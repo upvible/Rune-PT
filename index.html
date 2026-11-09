@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>룬PT 루틴·숙련도 관리</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0e0906">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="룬PT">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f3efe6;--pn:#fffaf0;--ln:#d9cdb2;--tx:#1d2430;--mu:#6b7280;--gd:#9a6f1c;--cy:#0b7e93;--hx:#efe6d0}
@@ -81,7 +90,30 @@ input[type=text],input[type=number]{width:100%;padding:9px;border:1px solid var(
 .cal .gr{position:absolute;left:0;right:0;bottom:1px;font-style:normal;font-size:10px;font-weight:900;color:#1d2430}
 @media(min-width:900px){#app.wide{max-width:1000px}#app.wide .dual{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}}
 code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
+/* 첫 화면(로그인·초기정보·서버 선택) */
+.gate{min-height:calc(100svh - 24px);display:flex;flex-direction:column;justify-content:center;gap:14px;padding:8px 2px 96px}
+.gate .logo{text-align:center}.gate .logo img{width:84px;height:84px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.kk{background:#fee500!important;color:#191600!important;margin-bottom:8px}
+.btn:disabled{opacity:.4;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{padding:9px 13px;border:1px solid var(--ln);border-radius:18px;background:transparent;font-size:13px;font-weight:700}
+.chip.on{background:var(--gd);color:#fff;border-color:var(--gd)}
+.srv{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;padding:34px 12px;border-radius:22px;border:2px solid #8ff0b4;color:#fff;
+  background:linear-gradient(180deg,#34c777 0%,#17863f 100%);box-shadow:0 0 0 4px rgba(52,199,119,.18),0 14px 34px rgba(23,134,63,.45);font-weight:900}
+.srv b{font-size:26px;letter-spacing:-.5px}.srv small{font-size:12px;font-weight:700;opacity:.92}
+.srv:active{transform:translateY(1px)}
+.admbox{position:fixed;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:30;background:#c62828;color:#fff;border:2px solid #ff9a90;border-radius:12px;padding:10px 14px;text-align:left;font-weight:900;font-size:14px;box-shadow:0 6px 18px rgba(198,40,40,.5)}
+.admbox small{display:block;font-size:10px;font-weight:700;opacity:.9}
+.lo{position:fixed;left:14px;bottom:calc(22px + env(safe-area-inset-bottom,0px));z-index:30;border:0;background:transparent;color:var(--mu);font-size:12px;text-decoration:underline}
+.srvbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.srvchip{font-size:12px;font-weight:900;padding:6px 10px;border-radius:14px;color:#fff;white-space:nowrap}
+.srvchip.mem{background:#1f9d55}.srvchip.adm{background:#c62828}
+.srvbar .bt{display:flex;gap:6px}
+.sb2{padding:7px 10px;border-radius:8px;border:1px solid var(--ln);background:transparent;font-size:12px;font-weight:700;white-space:nowrap}
+.sb2.mem{border-color:#1f9d55;color:#1f9d55}.sb2.adm{border-color:#c62828;color:#c62828}
+
 @media(prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+.cf label{display:block;margin-top:8px}.cf .fi{width:100%;box-sizing:border-box}.cf input[type=checkbox]{width:auto;flex:none}
 </style>
 </head>
 <body>
@@ -89,6 +121,619 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
 <div id="md"></div>
 <div class="nav"><div id="nav"></div></div>
 <script>
+/* ===== 티어 코어 (rune-tier-core.js) ===== */
+/* 룬PT 티어 코어 — DOM·네트워크 없는 순수 계산 모듈 (확정 규칙: tier-promotion-spec.md)
+   브라우저: window.RuneTier / Node: module.exports */
+(function (root) {
+  'use strict';
+
+  /* ---------- 티어·별·MP ---------- */
+  const TIERS = ['아이언', '브론즈', '실버', '골드', '플래티넘', '에메랄드', '다이아몬드', '마스터', '그랜드마스터', '챌린저'];
+  const TIER_ID = ['iron', 'bronze', 'silver', 'gold', 'platinum', 'emerald', 'diamond', 'master', 'grandmaster', 'challenger'];
+  // 별 1개의 폭(MP). 초반은 1~2세션, 후반은 인내가 필요하도록 설계: 1성당 표준 세션 수 = 1/1.5/2/3/4/5.5/6.5/10/12/14
+  // (표준 세션 = 메인 4세트 x 8회, 해당 티어 기준 무게의 70%, 벤치 75kg 남성 기준. 세트·무게가 많으면 더 빨리 쌓임)
+  const WIDTH = [220, 420, 730, 1430, 2240, 3390, 4730, 8400, 11760, 15680]; // 챌린저는 승급이 없어 별 표시용
+  const START = [0]; WIDTH.forEach((w, i) => { if (i < WIDTH.length - 1) START.push(START[i] + 5 * w); }); // 티어 시작 = 앞 티어 5성 폭의 합
+  // 티어 수준 안내(추정): l = 비슷한 나이·성별·체격의 헬스 이용자 중 상위 %, g = 일반 성인 중 상위 %
+  // 근거가 약한 가이드값이에요(공개 근력 기준표 기반 추정). 앱 회원 기록이 쌓이면 실제 분포로 교정해요.
+  const TIER_RANK = [
+    { n: '운동을 시작한 단계예요' }, { n: '기초 체력을 만든 단계예요', g: 50 },
+    { l: 80, g: 40 }, { l: 65, g: 25 }, { l: 50, g: 15 }, { l: 40, g: 10 }, { l: 30, g: 6 }, { l: 20, g: 3 }, { l: 7, g: 0.5 }, { l: 3, g: 0.1 }
+  ];
+  function rankLine(tier) {
+    const r = TIER_RANK[Math.max(0, Math.min(9, tier | 0))], pc = (v) => '상위 약 ' + v + '%';
+    if (r.l == null) return r.g != null ? r.n + ' · 일반 성인 중 ' + pc(r.g) + ' 수준' : r.n;
+    return '헬스 이용자 중 ' + pc(r.l) + ' · 일반 성인 중 ' + pc(r.g);
+  }
+  const MAX_STARS = 8, PROMO_STARS = 5, MAX_CARRY = 3;
+  const CARRY_MAX_BY_TIER = { 6: 1, 7: 0, 8: 0 };   // 다이아→마스터 1성, 마스터→그마·그마→챌린저는 이월 없음 (마의 구간)
+  const MULT = { beginner: 1, intermediate: 3, advanced: 6.5 };   // 레벨 버튼은 없앴고 내부 계수는 중급(3)으로 고정해서 써요
+  const FLOOR_PCT = 0.5, BONUS_PCT = 0.85, BONUS = 1.3;  // 기준 1RM의 50% 미만 세트는 MP 제외, 85% 이상은 1.3배
+
+  const multOf = (level, personal) => (personal > 0 ? personal : MULT[level] || 1);
+  const capMP = (tier) => START[tier] + MAX_STARS * WIDTH[tier];
+  const starsOf = (mp, tier) => Math.max(0, Math.min(MAX_STARS, Math.floor((mp - START[tier]) / WIDTH[tier] + 1e-9)));
+  const toKg = (mp, mult) => mp * mult; // 화면 표시용: 현재 배율 기준 kg
+
+  /* 세트 목록의 완료 볼륨(웜업 제외) */
+  const volOf = (sets, ref1rm) => (sets || []).reduce((a, s) => {
+    if (!(s && s.done && s.t !== 'W')) return a;
+    const w = +s.w || 0, v = w * (+s.r || 0);
+    if (!(ref1rm > 0)) return a + v;
+    const p = w / ref1rm;
+    return a + (p < FLOOR_PCT ? 0 : p >= BONUS_PCT ? v * BONUS : v);
+  }, 0);
+
+  /* ---------- 종목 마스터 ---------- */
+  // kind: barbell | machine | dumbbell | body    quest: 'trainer'(바벨, 트레이너 부여·승인) | 'auto'(머신·덤벨, 우편함 자동)
+  // role: head(왕룬) | aux(바벨 보조) | follower(머신·덤벨 등)   maxTier: 챌린저 9 / GM 8 / 마스터 7
+  // base: 남성 1RM 기준 체중배수, 브론즈(티어 1)부터. 없으면 트레이너가 무게를 직접 설정
+  // 20% 안(2026-11-08): 브론즈·에메랄드 기준은 그대로, 사이(실버·골드·플래티넘)는 약 20% 간격으로 재배치. 아이언은 브론즈의 1/1.2
+  const IRON_RATIO = 1 / 1.2;
+  const BASE = {
+    squat: [.75, .91, 1.11, 1.35, 1.65, 1.8, 2, 2.25, 2.5],
+    bench: [.5, .61, .74, .9, 1.1, 1.3, 1.5, 1.75, 2],
+    deadlift: [1, 1.19, 1.41, 1.68, 2, 2.2, 2.4, 2.6, 2.8],
+    ohp: [.35, .42, .51, .62, .75, .85, .95, 1.05, 1.2],
+    bbrow: [.5, .59, .69, .81, .95, 1.05, 1.15, 1.3, 1.4],
+    bbcurl: [.3, .36, .44, .54, .65, .72, .8, .88],
+    latpull: [.5, .59, .71, .84, 1, 1.15, 1.25],
+    cablerow: [.6, .7, .81, .95, 1.1, 1.25, 1.35],
+    dbfly: [.24, .29, .36, .43, .53, .6, .67],
+    chestfly: [.3, .37, .46, .57, .7, .8, .9],
+    reardelt: [.2, .25, .32, .41, .52, .6, .68]
+  };
+  const REPS = {
+    main: [12, 12, 10, 5, 7, 3, 1, 20, 1],
+    deadlift: [12, 12, 10, 5, 7, 3, 1, 10, 1],
+    pull: [15, 15, 10, 5, 15, 5, 5, 20, 5],      // 바벨로우(챌린저 5RM)
+    curl: [15, 15, 10, 5, 15, 5, 5, 20],          // 바벨컬·라잉 트라이셉스 (GM까지)
+    upperMD: [15, 20, 10, 30, 20, 20, 20],
+    legMD: [15, 20, 20, 30, 20, 25, 20]
+  };
+
+  const E = (id, name, o) => Object.assign({ id, name, kind: 'machine', role: 'follower', quest: 'auto', maxTier: 7, head: null, region: 'upper', reps: 'upperMD', base: null }, o);
+  const EXERCISES = [
+    // 왕룬(헤드) — 바벨 주력 5종, 챌린저까지
+    E('squat', '스쿼트', { kind: 'barbell', role: 'head', quest: 'trainer', maxTier: 9, region: 'lower', reps: 'main', base: BASE.squat }),
+    E('bench', '벤치프레스', { kind: 'barbell', role: 'head', quest: 'trainer', maxTier: 9, reps: 'main', base: BASE.bench }),
+    E('deadlift', '데드리프트', { kind: 'barbell', role: 'head', quest: 'trainer', maxTier: 9, region: 'lower', reps: 'deadlift', base: BASE.deadlift }),
+    E('ohp', '오버헤드 프레스', { kind: 'barbell', role: 'head', quest: 'trainer', maxTier: 9, reps: 'main', base: BASE.ohp }),
+    E('bbrow', '바벨 로우', { kind: 'barbell', role: 'head', quest: 'trainer', maxTier: 9, reps: 'pull', base: BASE.bbrow }),
+    // 바벨 보조 — GM까지 (헤드 격차 규칙은 적용하지 않음: 바벨은 트레이너 승인 구조)
+    E('bbcurl', '바벨 컬', { kind: 'barbell', role: 'aux', quest: 'trainer', maxTier: 8, reps: 'curl', base: BASE.bbcurl }),
+    E('lyingtri', '스컬크러셔', { kind: 'barbell', role: 'aux', quest: 'trainer', maxTier: 8, reps: 'curl' }),
+    // 머신·덤벨 — 마스터까지, 헤드 티어 +1 제한
+    E('legpress_plate', '레그프레스', { head: 'squat', region: 'lower', reps: 'legMD', equip: 'plate' }),
+    E('legpress_pin', '시티드 레그프레스', { head: 'squat', region: 'lower', reps: 'legMD', equip: 'pin' }),
+    E('lunge', '런지', { kind: 'dumbbell', head: 'squat', region: 'lower', reps: 'legMD' }),
+    E('pushup', '푸시업', { kind: 'body', head: 'bench' }),
+    E('dbfly', '체스트 플라이', { kind: 'dumbbell', head: 'bench', base: BASE.dbfly }),
+    E('chestfly', '펙덱 플라이', { head: 'bench', base: BASE.chestfly }),
+    E('latpull', '랫풀다운', { head: 'bbrow', base: BASE.latpull }),
+    E('cablerow', '시티드 케이블 로우', { head: 'bbrow', base: BASE.cablerow }),
+    E('reardelt', '리버스 펙덱', { head: 'bbrow', base: BASE.reardelt }),
+    E('assistpull', '어시스티드 풀업 머신', { head: 'bbrow', kind: 'machine' })
+  ];
+  const BY_ID = {}; EXERCISES.forEach((e) => (BY_ID[e.id] = e));
+
+  /* 앱 종목명 → 마스터 id / 헤드 연결 (앱의 EX 목록과 이름으로 연결, 신규 종목 추가에도 안전) */
+  const NAME_TO_ID = { '스쿼트': 'squat', '벤치프레스': 'bench', '데드리프트': 'deadlift', '오버헤드 프레스': 'ohp', '바벨 로우': 'bbrow', '바벨 컬': 'bbcurl', '스컬크러셔': 'lyingtri',
+    '레그프레스': 'legpress_plate', '시티드 레그프레스': 'legpress_pin', '런지': 'lunge', '푸시업': 'pushup', '체스트 플라이': 'dbfly', '펙덱 플라이': 'chestfly',
+    '랫풀다운': 'latpull', '시티드 케이블 로우': 'cablerow', '리버스 펙덱': 'reardelt', '어시스티드 풀업 머신': 'assistpull' };
+  // 마스터에 수치가 없는 종목: 헤드만 연결(무게는 트레이너 설정). 힌지 계열 → 데드, 숄더 → OHP, 가슴 프레스 → 벤치, 당기기 → 로우, 무릎계 → 스쿼트
+  const HEAD_BY_NAME = {
+    '인클라인 덤벨프레스': 'bench', '케이블 크로스오버': 'bench', '딥스': 'bench', '체스트 프레스 머신': 'bench', '인클라인 체스트 프레스 머신': 'bench', '스미스 머신 벤치프레스': 'bench', '디클라인 체스트 프레스 머신': 'bench',
+    '풀업': 'bbrow', '원암 덤벨 로우': 'bbrow', '시티드 로우 머신': 'bbrow', 'T바 로우 머신': 'bbrow', '풀오버 머신': 'bbrow', '하이 로우 머신': 'bbrow', '페이스 풀': 'bbrow', '리어델트 플라이': 'bbrow',
+    '루마니안 데드리프트': 'deadlift', '레그 컬': 'deadlift', '힙 쓰러스트': 'deadlift', '백 익스텐션 머신': 'deadlift',
+    '레그 익스텐션': 'squat', '핵 스쿼트 머신': 'squat', '스미스 머신 스쿼트': 'squat',
+    '숄더 프레스 머신': 'ohp', '스미스 머신 숄더 프레스': 'ohp', '사이드 레터럴 레이즈': 'ohp', '프론트 레이즈': 'ohp', '사이드 레터럴 레이즈 머신': 'ohp', '케이블 사이드 레터럴 레이즈': 'ohp', '슈러그 머신': 'ohp'
+  };
+  const BARBELL_NAMES = new Set(['루마니안 데드리프트']);
+
+  /* 종목명(+앱 정보) → 마스터 메타. 마스터에 없으면 일반 머신·덤벨 규칙(마스터까지, 무게는 트레이너 설정) */
+  function metaFor(name, opts) {
+    opts = opts || {};
+    const id = NAME_TO_ID[name];
+    if (id) return BY_ID[id];
+    const head = HEAD_BY_NAME[name] || null;
+    const bb = BARBELL_NAMES.has(name);
+    return E('x:' + name, name, Object.assign({ kind: bb ? 'barbell' : (opts.machine ? 'machine' : 'dumbbell'), quest: bb ? 'trainer' : 'auto', head, region: opts.region || 'upper', generic: true }, GENERIC_OVR[name] || {}));
+  }
+
+  /* ---------- 카탈로그 적용 (종목 추가·변경을 코드 배포 없이) ----------
+     rows: [{ id, name, tier?: { core?, head?, kind?, quest?, role?, region?, maxTier?, reps? }, std?: { version, base:[…] } }]
+     · tier.core 가 있으면 코어 마스터(squat 등)와 연결 — 이름이 바뀌어도 연결이 유지돼요.
+     · 코어에 없는 종목은 일반 머신·덤벨 규칙 + tier 값으로 덮어써요(GENERIC_OVR).
+     · 잘못된 값은 건너뛰고 rejected 로 돌려줘요(앱이 멈추지 않게). 여러 번 호출해도 같은 결과(멱등). */
+  const GENERIC_OVR = {};
+  const DEFAULTS = {
+    base: JSON.parse(JSON.stringify(BASE)), nameToId: Object.assign({}, NAME_TO_ID), headByName: Object.assign({}, HEAD_BY_NAME),
+    ex: EXERCISES.map((e) => Object.assign({}, e)), barbell: Array.from(BARBELL_NAMES)
+  };
+  const validBase = (b) => Array.isArray(b) && b.length >= 1 && b.length <= 9 && b.every((v, i) => typeof v === 'number' && v > 0 && v < 10 && (i === 0 || v > b[i - 1]));
+  function applyCatalog(rows) {
+    const rejected = [];
+    // 1) 기본값으로 되돌린 뒤 덮어써요
+    Object.keys(BASE).forEach((k) => delete BASE[k]); Object.keys(DEFAULTS.base).forEach((k) => (BASE[k] = DEFAULTS.base[k].slice()));
+    Object.keys(NAME_TO_ID).forEach((k) => delete NAME_TO_ID[k]); Object.assign(NAME_TO_ID, DEFAULTS.nameToId);
+    Object.keys(HEAD_BY_NAME).forEach((k) => delete HEAD_BY_NAME[k]); Object.assign(HEAD_BY_NAME, DEFAULTS.headByName);
+    Object.keys(GENERIC_OVR).forEach((k) => delete GENERIC_OVR[k]);
+    BARBELL_NAMES.clear(); DEFAULTS.barbell.forEach((n) => BARBELL_NAMES.add(n));
+    EXERCISES.length = 0; DEFAULTS.ex.forEach((e) => EXERCISES.push(Object.assign({}, e, { base: e.base && e.base.slice() })));
+    EXERCISES.forEach((e) => { if (e.base && DEFAULTS.base[e.id]) e.base = BASE[e.id]; });
+    Object.keys(BY_ID).forEach((k) => delete BY_ID[k]); EXERCISES.forEach((e) => (BY_ID[e.id] = e));
+    // 2) 행 적용 (같은 이름이 여러 행이면 정렬 앞쪽이 우선)
+    (rows || []).forEach((r) => {
+      if (!r || !r.id || !r.name) return;
+      if (r.status && r.status !== 'active') return; // 숨김·폐기·병합 종목은 연결하지 않아요(기록 표시는 앱 쪽 EX 가 담당)
+      const t = r.tier || {};
+      const std = r.std && r.std.base != null ? r.std : null;
+      if (std && !validBase(std.base)) { rejected.push({ id: r.id, reason: '기준표(체중배수)가 올바르지 않아요: 1~9개, 0보다 크고 올라가는 숫자' }); }
+      const base = std && validBase(std.base) ? std.base.slice() : null;
+      if (t.maxTier != null && !(t.maxTier >= 1 && t.maxTier <= 9)) { rejected.push({ id: r.id, reason: 'maxTier 범위 밖' }); return; }
+      if (t.reps != null && !REPS[t.reps]) { rejected.push({ id: r.id, reason: '알 수 없는 반복 기준: ' + t.reps }); return; }
+      if (t.head != null && !(DEFAULTS.ex.some((e) => e.id === t.head && e.role === 'head') || BY_ID[t.head])) { rejected.push({ id: r.id, reason: '연결할 왕룬 종목이 없어요: ' + t.head }); return; }
+      if (t.core) {
+        const ex = BY_ID[t.core];
+        if (!ex) { rejected.push({ id: r.id, reason: '코어 종목 없음: ' + t.core }); return; }
+        NAME_TO_ID[r.name] = t.core;
+        if (base) { BASE[t.core] = base; ex.base = base; }
+        ['maxTier', 'reps', 'quest', 'region'].forEach((k) => { if (t[k] != null) ex[k] = t[k]; });
+        ex.stdVersion = std ? std.version : ex.stdVersion;
+      } else {
+        const o = {};
+        ['head', 'kind', 'quest', 'role', 'region', 'maxTier', 'reps'].forEach((k) => { if (t[k] != null) o[k] = t[k]; });
+        if (base) o.base = base;
+        if (std) o.stdVersion = std.version;
+        if (t.head) HEAD_BY_NAME[r.name] = t.head;
+        if (t.kind === 'barbell') BARBELL_NAMES.add(r.name);
+        if (Object.keys(o).length) GENERIC_OVR[r.name] = o;
+      }
+    });
+    return { rejected };
+  }
+
+  /* ---------- 진행도 계산 ---------- */
+  // 진행 상태 = { tier, baseMp, sinceDate }  (승급 때 baseMp=시작점+이월별×폭, sinceDate=승급일 다음 날)
+  // mp = baseMp + Σ(since 이후 세션 볼륨 ÷ 그날 배율) → 같은 날 저장을 여러 번 해도 중복 집계되지 않아요
+  const newState = () => ({ tier: 0, baseMp: 0, sinceDate: '0000-00-00' });
+
+  function progressOf(state, sessions, multAt, exId, refFn) {
+    const ref = refFn ? refFn(state.tier) : null; // 기준 1RM(kg): 없으면 가벼운 세트 제외·무거운 세트 보너스를 적용하지 않아요
+    // sessions: { 'YYYY-MM-DD': [{exId, sets}] } 형태가 아니라 호출부에서 exId별 [{date, sets}] 로 넘겨도 되도록 두 모양 지원
+    let add = 0;
+    const list = Array.isArray(sessions) ? sessions : [];
+    for (const r of list) {
+      if (r.date < state.sinceDate) continue;
+      add += volOf(r.sets, ref) / (multAt(r.date) || 1);
+    }
+    const cap = capMP(state.tier);
+    const mp = Math.min(cap, state.baseMp + add);
+    const stars = starsOf(mp, state.tier);
+    const into = mp - START[state.tier] - Math.min(stars, MAX_STARS) * WIDTH[state.tier];
+    return { tier: state.tier, mp, stars, toNext: stars >= MAX_STARS ? 0 : WIDTH[state.tier] - into, pct: stars >= MAX_STARS ? 1 : into / WIDTH[state.tier], atCap: mp >= cap };
+  }
+
+  function carryOf(stars, fromTier) { const cap = fromTier != null && CARRY_MAX_BY_TIER[fromTier] != null ? CARRY_MAX_BY_TIER[fromTier] : MAX_CARRY; return Math.max(0, Math.min(cap, stars - PROMO_STARS)); }
+
+  /* 승급 가능/잠김 판정 (퀘스트 수락·수행 여부는 3단계에서 별도 확인) */
+  function promoStatus(ex, prog, headTierOf, subHeadOf) {
+    if (prog.tier >= ex.maxTier) return { state: 'max', reason: '이 종목의 최고 티어예요' };
+    if (prog.stars < PROMO_STARS) return { state: 'notyet', reason: `5성부터 승급 퀘스트가 열려요 (${prog.stars}/5)` };
+    const lim = headLimit(ex, headTierOf, subHeadOf);
+    if (lim && prog.tier + 1 > lim.maxTier) return { state: 'locked', reason: `${lim.headName} 티어가 ${TIERS[lim.headTier]}라서 ${TIERS[lim.maxTier]}까지만 올릴 수 있어요`, head: lim.headId };
+    return { state: 'ready', reason: ex.quest === 'trainer' ? '승급 미션을 요청할 수 있어요' : '승급 퀘스트가 우편함에 도착해요' };
+  }
+
+  /* 헤드 격차 규칙: 머신·덤벨은 연결된 왕룬 티어 +1까지. 기록 없는 헤드는 아이언. 트레이너가 대체 헤드 지정 가능 */
+  function headLimit(ex, headTierOf, subHeadOf) {
+    if (ex.role !== 'follower' || !ex.head) return null;
+    const headId = (subHeadOf && subHeadOf(ex.id)) || ex.head;
+    const headTier = headTierOf(headId) || 0;
+    return { headId, headName: (BY_ID[headId] || { name: headId }).name, headTier, maxTier: Math.min(ex.maxTier, headTier + 1) };
+  }
+
+  function promote(state, stars, today) {
+    const t = state.tier + 1, c = carryOf(stars, state.tier);
+    const d = new Date(today + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1);
+    return { tier: t, baseMp: START[t] + c * WIDTH[t], sinceDate: d.toISOString().slice(0, 10), carry: c };
+  }
+
+  /* ---------- 승급 목표(반복수·무게) ---------- */
+  const RM = [[1, 1.0], [3, .93], [5, .87], [7, .82], [8, .80], [10, .75], [12, .70], [15, .66], [20, .60], [25, .55], [30, .50]];
+  function rmPct(reps) {
+    if (reps <= 1) return 1;
+    for (let i = 1; i < RM.length; i++) {
+      if (reps <= RM[i][0]) { const [r0, p0] = RM[i - 1], [r1, p1] = RM[i]; return p0 + (p1 - p0) * (reps - r0) / (r1 - r0); }
+    }
+    return RM[RM.length - 1][1];
+  }
+  function repsForPct(pct) { // rmPct 역함수(반올림)
+    if (pct >= 1) return 1;
+    for (let i = 1; i < RM.length; i++) {
+      if (pct >= RM[i][1]) { const [r0, p0] = RM[i - 1], [r1, p1] = RM[i]; return Math.round(r0 + (r1 - r0) * (p0 - pct) / (p0 - p1)); }
+    }
+    return 30;
+  }
+
+  const AGE_ANCHOR = [25, 35, 45, 55, 65, 75, 85];            // 20대·30대·…·80+ 의 중앙 나이
+  const AGE_STR = [1.00, .97, .92, .85, .75, .62, .50];        // 최대근력(7RM 이하)
+  const AGE_END = [1.00, .98, .95, .90, .83, .72, .60];        // 근지구력(10RM 이상)
+  function lerpTable(age, ys) {
+    if (age <= AGE_ANCHOR[0]) return ys[0];
+    if (age >= AGE_ANCHOR[AGE_ANCHOR.length - 1]) return ys[ys.length - 1];
+    for (let i = 1; i < AGE_ANCHOR.length; i++) if (age <= AGE_ANCHOR[i]) { const t = (age - AGE_ANCHOR[i - 1]) / (AGE_ANCHOR[i] - AGE_ANCHOR[i - 1]); return ys[i - 1] + (ys[i] - ys[i - 1]) * t; }
+  }
+  function ageCoef(age, reps) {
+    const s = lerpTable(age, AGE_STR), e = lerpTable(age, AGE_END);
+    if (age >= 60) return (s + e) / 2; // 60세 이상은 시험이 모두 8회 이상이라 계수를 하나로 통일(상위 티어 역전 방지)
+    return reps <= 7 ? s : reps >= 10 ? e : (s + e) / 2; // 8~9RM은 평균
+  }
+
+  /* 안전 규칙: 반복수 보정 + 안내 */
+  function safeReps(reps, age, tierIdx) {
+    const notes = [];
+    let r = reps;
+    if (age != null) {
+      if (age < 18 && r <= 3) { r = 5; notes.push('만 18세 미만은 1~3RM 금지 → 5RM'); }
+      if (age < 13) { const c = Math.max(12, Math.min(15, r < 12 ? 12 : r)); if (c !== r) notes.push('어린이는 12~15RM 범위'); r = c; }
+      if (age >= 60 && r >= 30) { r = 20; notes.push('60세 이상 30RM → 20RM'); }
+      else if (age >= 60 && r >= 20) { r = 15; notes.push('60세 이상 20RM → 15RM'); }
+      if (age >= 60 && r < 8) { r = 8; notes.push('60세 이상은 8RM 이상'); }
+    }
+    return { reps: r, notes };
+  }
+  // 나이별 티어 상한: 12세 이하 에메랄드(5), 13~15세 다이아몬드(6), 16~17세 마스터(7)
+  const ageTierCap = (age) => (age == null ? 9 : age < 13 ? 5 : age < 16 ? 6 : age < 18 ? 7 : 9);
+  const childTierCap = ageTierCap;
+  const BAR_MIN = 6; // 센터에 6kg·8kg 바벨이 있어 바벨 종목의 최소 목표는 6kg
+
+  const sexCoef = (sex, ex, variant) => {
+    if (sex !== 'F') return 1;
+    if (ex.region === 'upper') return .55;
+    return .7; // 하체(스쿼트·데드·루마니안 포함) 여성 계수 0.7
+  };
+
+  /* 체격 보정: 키·체중으로 제지방량(Boer 공식)을 추정해, 체중에 단순 비례하던 기준을 체격에 맞게 미세 조정.
+     기준 체격(남 75kg·175cm, 여 60kg·162cm)에서는 1.0, 같은 체중이면 키가 클수록 높고, 체지방이 많은 체격일수록 낮아져요.
+     보정 폭은 ±15%로 제한. 체지방률 측정값이 있으면 그것을 우선 사용하고(키는 영향 없음), 없으면 키·체중 추정, 키도 없으면 보정 없음(1.0). 초안이라 실제 회원 기록으로 검증이 필요해요. */
+  const BODY_REF = { M: { kg: 75, cm: 175 }, F: { kg: 60, cm: 162 } };
+  const BODY_CLAMP = [0.85, 1.15];
+  const lbm = (sex, kg, cm) => (sex === 'F' ? 0.252 * kg + 0.473 * cm - 48.3 : 0.407 * kg + 0.267 * cm - 19.2);
+  const bfOk = (v) => v != null && v !== '' && +v >= 3 && +v <= 60;
+  /* 체지방률(측정값)이 있으면 제지방 비율 = 1 − 체지방률, 없으면 키·체중으로 추정(Boer). 기준 체격 대비 비율로 보정 */
+  function bodyBasis(member) {
+    if (!member || !member.bodyKg) return 'none';
+    if (bfOk(member.bodyFatPct)) return 'measured';
+    if (member.age != null && member.age < 18) return 'none'; // 추정식(Boer)은 성인용이라 미성년은 측정값이 있을 때만 보정
+    return member.heightCm ? 'estimated' : 'none';
+  }
+  function bodyFactor(member) {
+    const basis = bodyBasis(member);
+    if (basis === 'none') return 1;
+    const sex = member.sex === 'F' ? 'F' : 'M', ref = BODY_REF[sex];
+    const f = basis === 'measured' ? 1 - member.bodyFatPct / 100 : lbm(sex, member.bodyKg, member.heightCm) / member.bodyKg;
+    const f0 = lbm(sex, ref.kg, ref.cm) / ref.kg;
+    return Math.max(BODY_CLAMP[0], Math.min(BODY_CLAMP[1], f / f0));
+  }
+
+  const roundTo = (x, step) => Math.round(x / step) * step;
+  const ceilTo = (x, step) => Math.ceil(x / step - 1e-9) * step;
+
+  /* 승급 목표 계산.
+     member: { sex:'M'|'F', age, bodyKg }, targetTier: 올라갈 티어(1~9), opts: { dumbbellStep, variant } */
+  function targetFor(ex, targetTier, member, opts) {
+    opts = opts || {};
+    const idx = targetTier - 1; // base/reps 배열은 브론즈(티어1)부터
+    if (targetTier < 1 || targetTier > ex.maxTier) return { ok: false, reason: '범위 밖 티어' };
+    const scheme = REPS[ex.reps];
+    let reps = scheme && scheme[idx];
+    if (reps == null) return { ok: false, reason: '반복 기준 없음' };
+    if (ex.id === 'lunge') reps = idx === 0 ? 12 : reps;               // 브론즈: 지지 런지 합계 12회
+    const out = { ok: true, exId: ex.id, targetTier, reps, notes: [], variant: null };
+
+    // 런지 브론즈·실버는 맨몸 기준(무게 없음)
+    if (ex.id === 'lunge' && targetTier <= 2) {
+      out.kg = 0; out.variant = targetTier === 1 ? '지지 런지(합계)' : '맨몸 런지(합계)'; out.totalReps = reps; return out;
+    }
+    if (ex.id === 'pushup' || ex.id === 'assistpull') { out.kg = null; out.trainerSet = true; out.notes.push('변형·보조 무게는 트레이너가 설정'); return out; }
+
+    // 기준값(남성 1RM 체중배수)
+    let mul = null;
+    if (ex.id === 'lunge') { const sq = BASE.squat[targetTier - 2]; mul = sq == null ? null : sq * .55; }           // 한 티어 아래 스쿼트 ×0.55 (덤벨 합계)
+    else if (ex.id === 'legpress_plate') { const sq = BASE.squat[idx]; mul = sq == null ? null : sq * 2; }          // 플레이트 = 스쿼트 ×2
+    else if (ex.id === 'legpress_pin') { const sq = BASE.squat[idx]; mul = sq == null ? null : sq * 2 * .7; }       // 핀로드 = 플레이트 ×0.7
+    else mul = ex.base ? ex.base[idx] : null;
+    if (mul == null || !member || !member.bodyKg) { out.kg = null; out.trainerSet = true; out.notes.push(mul == null ? '무게 기준표 없음 · 트레이너 설정' : '체중 정보 필요'); return out; }
+
+    const age = member.age == null ? 30 : member.age;
+    const sr = safeReps(reps, age, targetTier); out.notes.push(...sr.notes);
+    const bf = bodyFactor(member);
+    const compute = (r) => member.bodyKg * bf * mul * rmPct(r) * sexCoef(member.sex, ex, opts.variant) * ageCoef(age, r) * (ex.id === 'chestfly' || ex.id === 'reardelt' ? 2 : 1);
+    reps = sr.reps; let kg = compute(reps);
+
+    if (ex.id === 'legpress_plate') {
+      if (kg < 50) { out.notes.push('50kg 미만 → 핀로드 시티드 레그프레스로 시험'); out.switchTo = 'legpress_pin'; }
+      else { kg = Math.max(50, 50 + roundTo(kg - 50, 20)); out.plate = platesFor(kg); }
+    } else if (ex.id === 'legpress_pin') {
+      if (kg > 140) { reps += 5; kg = compute(reps); out.notes.push('기구 한계로 반복 +5'); }
+      if (kg > 150) { out.notes.push('핀로드 한계 → 플레이트로드로 시험'); out.switchTo = 'legpress_plate'; kg = 150; }
+      kg = Math.min(150, roundTo(kg, 5));
+    } else if (ex.kind === 'dumbbell') {
+      const st = opts.dumbbellStep || 2, per = kg / (ex.id === 'lunge' || ex.id === 'dbfly' ? 2 : 1);
+      const up = Math.max(st, ceilTo(per, st));
+      if (up > per + 1e-6) { // 올림 보정: 더 무거워진 만큼 반복수 줄임(너무 줄이면 원래의 70%까지만)
+        const pct = rmPct(reps) * up / per, adj = Math.max(Math.round(reps * .7), repsForPct(Math.min(1, pct)));
+        if (adj < reps) { out.notes.push(`덤벨 ${up}kg로 올림 → ${reps}회에서 ${adj}회로 보정`); reps = adj; }
+      }
+      out.perHandKg = up; kg = up * (ex.id === 'lunge' || ex.id === 'dbfly' ? 2 : 1);
+    } else {
+      const floor = ex.kind === 'barbell' ? BAR_MIN : 2.5, raw = kg;
+      kg = Math.max(floor, roundTo(kg, 2.5));
+      if (raw < floor - 0.01 && ex.kind === 'barbell') out.notes.push('6kg 바벨로 시작');
+    }
+    out.reps = reps; out.kg = kg; out.rm = reps; out.bodyFactor = Math.round(bf * 1000) / 1000; out.bodyBasis = bodyBasis(member);
+    const cap = ageTierCap(age);
+    if (targetTier > cap) { out.blocked = true; out.notes.push(age < 13 ? '12세 이하는 에메랄드까지만 부여' : age < 16 ? '13~15세는 다이아몬드까지만 부여' : '16~17세는 마스터까지만 부여'); }
+    if (kg > 0 && reps > 0) out.eq1rm = Math.round(kg / rmPct(reps)); // 무게 옆에 보여줄 1RM 환산
+    return out;
+  }
+  /* 티어별 목표 사다리: 가벼운 체격에서 반올림 때문에 같은 목표가 이어지거나 환산이 거꾸로 가는 것을 바로잡아요.
+     최소 무게에 걸리면 반복수로 단계를 나누고, 그 외에는 환산 1RM이 앞 티어보다 2% 이상 오르도록 무게를 올려요. */
+  function ladderFor(ex, member, opts) {
+    const out = []; let prev = null;
+    for (let t = 1; t <= ex.maxTier; t++) {
+      const r = targetFor(ex, t, member, opts);
+      if (!r.ok || r.kg == null || r.trainerSet || ex.kind === 'dumbbell' || !(r.kg > 0)) { out.push(r); prev = null; continue; }
+      const eq = (x) => x.kg / rmPct(x.reps);
+      if (prev) {
+        const floor = ex.kind === 'barbell' ? BAR_MIN : 2.5;
+        if (r.kg <= floor && prev.kg <= floor) { r.reps = Math.min(30, prev.reps + 3); r.rm = r.reps; r.notes.push('최소 무게라 반복수로 단계를 나눠요'); }
+        else { let g = 0; while (eq(r) < eq(prev) * 1.02 && g++ < 40) r.kg += 2.5; if (g > 1) r.notes.push('앞 티어와 구분되도록 무게를 올렸어요'); }
+      }
+      r.eq1rm = Math.round(eq(r)); out.push(r); prev = r;
+    }
+    return out;
+  }
+  function platesFor(total) { const side = (total - 50) / 2, full = Math.floor(side / 20), half = side - full * 20 >= 10 ? 1 : 0; return { sled: 50, perSide: { full, half }, total }; }
+
+  root.RuneTier = { IRON_RATIO, ageTierCap, ladderFor, BAR_MIN, TIERS, TIER_ID, TIER_RANK, rankLine, START, WIDTH, MAX_STARS, PROMO_STARS, MAX_CARRY, MULT, multOf, capMP, starsOf, toKg, volOf,
+    EXERCISES, BY_ID, NAME_TO_ID, metaFor, applyCatalog, newState, progressOf, carryOf, promoStatus, headLimit, promote,
+    rmPct, repsForPct, ageCoef, bodyFactor, bodyBasis, lbm, safeReps, sexCoef, targetFor, platesFor, REPS, BASE };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.RuneTier;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ===== 루틴 엔진 (rune-routine.js) ===== */
+/* 룬PT 루틴 자동 구성 엔진 (순수 함수) — 입문/중급/고급 버튼 대신 3가지 모드 + 최근 기록 기반 목표 갱신
+   모드: volume(볼륨형) · strength(스트렝스 강화형) · low(로우컨디션형)
+   기록 형식: history = [{ date, mode?, sets:[{w, r, done, pr?}] }]  (오래된 순, 웜업은 제외하고 넘겨요) */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./rune-tier-core.js'));
+  else root.RuneRoutine = factory(root.RuneTier);
+})(typeof self !== 'undefined' ? self : this, function (T) {
+  const EFFORT = 0.95;           // 계획 세트는 실패 지점보다 1~2회 여유 있게 → 5%
+  const BUMP = 1.01;             // 지난 세션 계획을 전부 채웠으면 다음 기준 +1%
+  const MODES = {
+    volume:   { name: '볼륨형', reps: [5, 5, 10, 10, 15, 20], optional: [10], note: '5회×2 · 10회×2 · 15회 · 20회 각 1세트 (5~7세트, 추가·삭제 자유)' },
+    strength: { name: '스트렝스 강화형', reps: [5, 5, 5, 8, 8, 8], optional: [], note: '5회 이하 3세트 + 8회 3세트' },
+    low:      { name: '로우컨디션형', reps: [10, 10, 10], optional: [], note: '15RM 무게로 10회 × 3세트, 부담 없이' }
+  };
+  const roundStep = (x, st) => Math.max(st, Math.round(x / st) * st);
+
+  // 세트 하나의 1RM 추정 (여유 1~2회 가정). 20회 초과·미완료·가벼운 세트는 제외
+  function setE1(s) {
+    if (!s || !s.done || !(s.w > 0) || !(s.r >= 1) || s.r > 20) return null;
+    return s.w / (T.rmPct(s.r) * EFFORT);
+  }
+  function sessionE1(sess) {
+    const v = (sess.sets || []).map(setE1).filter(Boolean);
+    return v.length ? Math.max.apply(null, v) : null;
+  }
+  // 최근 3~4세션 기록으로 현재 기준(e1RM) 추정. 로우컨디션 세션은 일부러 가볍게 한 것이라 제외
+  function estimate(history) {
+    const use = (history || []).filter((h) => h.mode !== 'low').slice(-4);
+    const es = use.map(sessionE1).filter(Boolean);
+    if (!es.length) return null;
+    const top = es.slice().sort((a, b) => b - a).slice(0, es.length >= 3 ? 3 : es.length); // 컨디션 나쁜 하루는 버림
+    let e = top.reduce((a, b) => a + b, 0) / top.length;
+    const last = use[use.length - 1];
+    const planned = (last.sets || []).filter((s) => s.pr);
+    if (planned.length && planned.every((s) => s.done && s.r >= s.pr)) e *= BUMP; // 점진 과부하
+    return Math.round(e * 10) / 10;
+  }
+  // 배치고사: 워밍업 후 여유 1~2회 남기고 한 세트(3~12회) → 기준 추정
+  const fromTest = (w, r) => (w > 0 && r >= 3 && r <= 12 ? Math.round(w / (T.rmPct(r) * 0.97) * 10) / 10 : null);
+
+  /* 오늘의 추천 모드 */
+  function recommend(ctx) { // ctx: { lowCondition, lastMode, questReady }
+    if (ctx.lowCondition) return { mode: 'low', why: '컨디션이 낮은 날이에요. 부담 없이 움직이는 쪽을 권해요' };
+    if (ctx.questReady) return { mode: 'strength', why: '승급 시험이 열려 있어요. 기록 무게를 다지는 쪽을 권해요' };
+    if (ctx.lastMode === 'volume') return { mode: 'strength', why: '지난번 볼륨형 다음엔 힘을 다지는 날을 권해요' };
+    return { mode: 'volume', why: '숙련도와 운동감을 쌓는 볼륨형을 권해요' };
+  }
+
+  /* 한 종목의 오늘 루틴. e1rm: 추정 1RM(kg), opts: { step, age, topReps(스트렝스 상단 반복, 기본 5) } */
+  function plan(mode, e1rm, opts) {
+    opts = opts || {}; const M = MODES[mode]; if (!M || !(e1rm > 0)) return null;
+    const step = opts.step || 2.5, age = opts.age == null ? 30 : opts.age, notes = [];
+    let reps = M.reps.slice();
+    if (mode === 'strength') {
+      const top = Math.min(5, opts.topReps || 5);
+      reps = reps.map((r, i) => (i < 3 ? top : r));
+    }
+    reps = reps.map((r) => T.safeReps(r, age, 1).reps);
+    const sets = reps.map((r, i) => {
+      const f = mode === 'low' ? 1 : EFFORT; // 로우컨디션은 15RM 무게 그대로 10회
+      const base = mode === 'low' ? T.rmPct(15) : T.rmPct(r);
+      return { n: i + 1, r, w: roundStep(e1rm * base * f, step), pr: r };
+    });
+    return { mode, name: M.name, note: M.note, sets, optional: M.optional.slice(), notes };
+  }
+
+  /* MP에 반영되는 세트 볼륨 (코어 규칙과 동일: 1RM 50% 미만 제외·85% 이상 1.3배) */
+  const mpVolume = (sets, e1rm) => T.volOf(sets, e1rm);
+
+  /* 티어·별·체격으로 시작 기준(추정 1RM, kg)과 목표선을 계산.
+     tier: 현재 티어(0 아이언 ~ 9), stars: 현재 별(0~8). 체중·체지방률·키·성별·나이는 targetFor와 같은 보정을 사용.
+     기준선 = 현재 티어 시험 기준(그 티어를 통과한 수준)에서 다음 티어 시험 기준까지, 별 5개를 채울수록 가까워짐 */
+  function std1RM(ex, tierN, member) { // 티어 tierN(1~)의 1RM 기준 kg, 없으면 null
+    if (!ex.base || tierN < 1 || tierN > ex.base.length) return null;
+    const age = member.age == null ? 30 : member.age;
+    return member.bodyKg * T.bodyFactor(member) * ex.base[tierN - 1] * T.sexCoef(member.sex, ex) * T.ageCoef(age, 1);
+  }
+  /* MP 계산용 기준 1RM: 현재 티어를 통과한 수준의 체격 보정 기준(아이언은 브론즈의 1/1.2). 기준표 없는 종목·체중 없음은 null */
+  function refFor(ex, tier, member) {
+    if (!ex || !ex.base || !member || !member.bodyKg) return null;
+    const v = tier >= 1 ? std1RM(ex, tier, member) : (std1RM(ex, 1, member) || 0) * T.IRON_RATIO;
+    return v > 0 ? v : null;
+  }
+  function seed(ex, tier, stars, member) {
+    const cur = tier >= 1 ? std1RM(ex, tier, member) : (std1RM(ex, 1, member) || 0) * T.IRON_RATIO;
+    const next = std1RM(ex, tier + 1, member);
+    if (cur == null || !member || !member.bodyKg) return null;
+    const frac = Math.min(1, (stars || 0) / 5);
+    const e = next == null ? cur : cur + (next - cur) * frac;
+    return { e1rm: Math.round(e * 10) / 10, from: Math.round(cur * 10) / 10, goal: next == null ? null : Math.round(next * 10) / 10, frac,
+             bodyFactor: Math.round(T.bodyFactor(member) * 1000) / 1000, basis: T.bodyBasis(member) };
+  }
+  /* 오늘 쓸 기준: 기록이 없으면 티어·별·체격에서 구한 시작 기준, 기록이 쌓이면(3세션까지) 점점 실제 기록 쪽으로 */
+  function current(seedE, history) {
+    const est = estimate(history);
+    if (est == null) return seedE == null ? null : seedE;
+    if (seedE == null) return est;
+    const n = Math.min(3, (history || []).filter((h) => h.mode !== 'low' && sessionE1(h)).length), w = n / 3;
+    return Math.round((est * w + seedE * (1 - w)) * 10) / 10;
+  }
+  return { MODES, EFFORT, estimate, current, std1RM, refFor, seed, fromTest, recommend, plan, mpVolume, setE1, sessionE1, BUMP };
+});
+
+/* ===== 종목 카탈로그 (catalog.js) ===== */
+/* 룬PT 종목 카탈로그 — DOM·네트워크 없는 순수 모듈 (window.RuneCatalog / module.exports)
+   원칙: 종목 id 는 한 번 정하면 바꾸지도 재사용하지도 않아요. 이름·부위·연결·기준은 마음대로 고쳐도 기록은 안 깨져요.
+   · SEED  = 지금까지 앱에 있던 종목을 id 그대로 고정한 목록(순서가 바뀌어도 id 는 그대로)
+   · rows  = 서버(exercise_catalog)에서 받은 추가·수정분. SEED 위에 덮어써요.
+   · 모르는 id(삭제·미동기화)가 기록에 있어도 화면이 멈추지 않고 '(삭제된 종목)'으로 표시해요. */
+(function (root) {
+  'use strict';
+  const PARTS = ['chest', 'back', 'leg', 'shoulder', 'arm', 'core'];
+  const SEED = [
+    {"id":"chest0","name":"벤치프레스","part":"chest","aliases":"","is_machine":false,"status":"active","sort":0,"tier":{"core":"bench"}},
+    {"id":"chest1","name":"인클라인 덤벨프레스","part":"chest","aliases":"","is_machine":false,"status":"active","sort":1,"tier":{"head":"bench"}},
+    {"id":"chest2","name":"체스트 플라이","part":"chest","aliases":"","is_machine":false,"status":"active","sort":2,"tier":{"core":"dbfly"}},
+    {"id":"chest3","name":"푸시업","part":"chest","aliases":"","is_machine":false,"status":"active","sort":3,"tier":{"core":"pushup"}},
+    {"id":"chest4","name":"케이블 크로스오버","part":"chest","aliases":"","is_machine":true,"status":"active","sort":4,"tier":{"head":"bench"}},
+    {"id":"chest5","name":"딥스","part":"chest","aliases":"","is_machine":false,"status":"active","sort":5,"tier":{"head":"bench"}},
+    {"id":"chest6","name":"체스트 프레스 머신","part":"chest","aliases":"머신 벤치프레스/체프","is_machine":true,"status":"active","sort":6,"tier":{"head":"bench"}},
+    {"id":"chest7","name":"인클라인 체스트 프레스 머신","part":"chest","aliases":"","is_machine":true,"status":"active","sort":7,"tier":{"head":"bench"}},
+    {"id":"chest8","name":"펙덱 플라이","part":"chest","aliases":"버터플라이/펙덱/팩덱","is_machine":true,"status":"active","sort":8,"tier":{"core":"chestfly"}},
+    {"id":"chest9","name":"스미스 머신 벤치프레스","part":"chest","aliases":"","is_machine":true,"status":"active","sort":9,"tier":{"head":"bench"}},
+    {"id":"chest10","name":"디클라인 체스트 프레스 머신","part":"chest","aliases":"","is_machine":true,"status":"active","sort":10,"tier":{"head":"bench"}},
+    {"id":"back0","name":"데드리프트","part":"back","aliases":"","is_machine":false,"status":"active","sort":11,"tier":{"core":"deadlift"}},
+    {"id":"back1","name":"랫풀다운","part":"back","aliases":"","is_machine":true,"status":"active","sort":12,"tier":{"core":"latpull"}},
+    {"id":"back2","name":"바벨 로우","part":"back","aliases":"","is_machine":false,"status":"active","sort":13,"tier":{"core":"bbrow"}},
+    {"id":"back3","name":"시티드 케이블 로우","part":"back","aliases":"","is_machine":true,"status":"active","sort":14,"tier":{"core":"cablerow"}},
+    {"id":"back4","name":"풀업","part":"back","aliases":"","is_machine":false,"status":"active","sort":15,"tier":{"head":"bbrow"}},
+    {"id":"back5","name":"원암 덤벨 로우","part":"back","aliases":"","is_machine":false,"status":"active","sort":16,"tier":{"head":"bbrow"}},
+    {"id":"back6","name":"어시스티드 풀업 머신","part":"back","aliases":"어시스트 풀업/보조 풀업","is_machine":true,"status":"active","sort":17,"tier":{"core":"assistpull"}},
+    {"id":"back7","name":"시티드 로우 머신","part":"back","aliases":"체스트 서포트 로우/머신 로우","is_machine":true,"status":"active","sort":18,"tier":{"head":"bbrow"}},
+    {"id":"back8","name":"T바 로우 머신","part":"back","aliases":"티바 로우","is_machine":true,"status":"active","sort":19,"tier":{"head":"bbrow"}},
+    {"id":"back9","name":"풀오버 머신","part":"back","aliases":"","is_machine":true,"status":"active","sort":20,"tier":{"head":"bbrow"}},
+    {"id":"back10","name":"하이 로우 머신","part":"back","aliases":"","is_machine":true,"status":"active","sort":21,"tier":{"head":"bbrow"}},
+    {"id":"leg0","name":"스쿼트","part":"leg","aliases":"","is_machine":false,"status":"active","sort":22,"tier":{"core":"squat"}},
+    {"id":"leg1","name":"레그프레스","part":"leg","aliases":"","is_machine":true,"status":"active","sort":23,"tier":{"core":"legpress_plate"}},
+    {"id":"leg2","name":"루마니안 데드리프트","part":"leg","aliases":"","is_machine":false,"status":"active","sort":24,"tier":{"head":"deadlift","kind":"barbell","quest":"trainer"}},
+    {"id":"leg3","name":"런지","part":"leg","aliases":"","is_machine":false,"status":"active","sort":25,"tier":{"core":"lunge"}},
+    {"id":"leg4","name":"레그 익스텐션","part":"leg","aliases":"","is_machine":true,"status":"active","sort":26,"tier":{"head":"squat"}},
+    {"id":"leg5","name":"레그 컬","part":"leg","aliases":"","is_machine":true,"status":"active","sort":27,"tier":{"head":"deadlift"}},
+    {"id":"leg6","name":"힙 쓰러스트","part":"leg","aliases":"","is_machine":false,"status":"active","sort":28,"tier":{"head":"deadlift"}},
+    {"id":"leg7","name":"카프 레이즈","part":"leg","aliases":"","is_machine":false,"status":"active","sort":29},
+    {"id":"leg8","name":"핵 스쿼트 머신","part":"leg","aliases":"핵스쿼트","is_machine":true,"status":"active","sort":30,"tier":{"head":"squat"}},
+    {"id":"leg9","name":"힙 어브덕션 머신","part":"leg","aliases":"아웃타이/바깥쪽 허벅지","is_machine":true,"status":"active","sort":31},
+    {"id":"leg10","name":"힙 어덕션 머신","part":"leg","aliases":"인타이/안쪽 허벅지","is_machine":true,"status":"active","sort":32},
+    {"id":"leg11","name":"스미스 머신 스쿼트","part":"leg","aliases":"","is_machine":true,"status":"active","sort":33,"tier":{"head":"squat"}},
+    {"id":"leg12","name":"시티드 카프 레이즈 머신","part":"leg","aliases":"","is_machine":true,"status":"active","sort":34},
+    {"id":"shoulder0","name":"오버헤드 프레스","part":"shoulder","aliases":"","is_machine":false,"status":"active","sort":35,"tier":{"core":"ohp"}},
+    {"id":"shoulder1","name":"사이드 레터럴 레이즈","part":"shoulder","aliases":"","is_machine":false,"status":"active","sort":36,"tier":{"head":"ohp"}},
+    {"id":"shoulder2","name":"프론트 레이즈","part":"shoulder","aliases":"","is_machine":false,"status":"active","sort":37,"tier":{"head":"ohp"}},
+    {"id":"shoulder3","name":"리어델트 플라이","part":"shoulder","aliases":"","is_machine":false,"status":"active","sort":38,"tier":{"head":"bbrow"}},
+    {"id":"shoulder4","name":"페이스 풀","part":"shoulder","aliases":"","is_machine":true,"status":"active","sort":39,"tier":{"head":"bbrow"}},
+    {"id":"shoulder5","name":"숄더 프레스 머신","part":"shoulder","aliases":"","is_machine":true,"status":"active","sort":40,"tier":{"head":"ohp"}},
+    {"id":"shoulder6","name":"리버스 펙덱","part":"shoulder","aliases":"리어델트 머신/후면 어깨","is_machine":true,"status":"active","sort":41,"tier":{"core":"reardelt"}},
+    {"id":"shoulder7","name":"사이드 레터럴 레이즈 머신","part":"shoulder","aliases":"옆 어깨 머신","is_machine":true,"status":"active","sort":42,"tier":{"head":"ohp"}},
+    {"id":"shoulder8","name":"스미스 머신 숄더 프레스","part":"shoulder","aliases":"","is_machine":true,"status":"active","sort":43,"tier":{"head":"ohp"}},
+    {"id":"shoulder9","name":"슈러그 머신","part":"shoulder","aliases":"트랩","is_machine":true,"status":"active","sort":44,"tier":{"head":"ohp"}},
+    {"id":"shoulder10","name":"케이블 사이드 레터럴 레이즈","part":"shoulder","aliases":"","is_machine":true,"status":"active","sort":45,"tier":{"head":"ohp"}},
+    {"id":"arm0","name":"바벨 컬","part":"arm","aliases":"","is_machine":false,"status":"active","sort":46,"tier":{"core":"bbcurl"}},
+    {"id":"arm1","name":"해머 컬","part":"arm","aliases":"","is_machine":false,"status":"active","sort":47},
+    {"id":"arm2","name":"프리처 컬","part":"arm","aliases":"","is_machine":false,"status":"active","sort":48},
+    {"id":"arm3","name":"트라이셉스 푸시다운","part":"arm","aliases":"","is_machine":true,"status":"active","sort":49},
+    {"id":"arm4","name":"스컬크러셔","part":"arm","aliases":"","is_machine":false,"status":"active","sort":50,"tier":{"core":"lyingtri"}},
+    {"id":"arm5","name":"덤벨 킥백","part":"arm","aliases":"","is_machine":false,"status":"active","sort":51},
+    {"id":"arm6","name":"바이셉스 컬 머신","part":"arm","aliases":"이두 머신","is_machine":true,"status":"active","sort":52},
+    {"id":"arm7","name":"프리처 컬 머신","part":"arm","aliases":"","is_machine":true,"status":"active","sort":53},
+    {"id":"arm8","name":"트라이셉스 익스텐션 머신","part":"arm","aliases":"삼두 머신","is_machine":true,"status":"active","sort":54},
+    {"id":"arm9","name":"트라이셉스 딥 머신","part":"arm","aliases":"삼두 딥","is_machine":true,"status":"active","sort":55},
+    {"id":"arm10","name":"케이블 오버헤드 트라이셉스 익스텐션","part":"arm","aliases":"","is_machine":true,"status":"active","sort":56},
+    {"id":"core0","name":"플랭크","part":"core","aliases":"","is_machine":false,"status":"active","sort":57},
+    {"id":"core1","name":"크런치","part":"core","aliases":"","is_machine":false,"status":"active","sort":58},
+    {"id":"core2","name":"레그 레이즈","part":"core","aliases":"","is_machine":false,"status":"active","sort":59},
+    {"id":"core3","name":"러시안 트위스트","part":"core","aliases":"","is_machine":false,"status":"active","sort":60},
+    {"id":"core4","name":"케이블 크런치","part":"core","aliases":"","is_machine":true,"status":"active","sort":61},
+    {"id":"core5","name":"행잉 니레이즈","part":"core","aliases":"","is_machine":false,"status":"active","sort":62},
+    {"id":"core6","name":"어브도미널 크런치 머신","part":"core","aliases":"복근 머신/앱 크런치","is_machine":true,"status":"active","sort":63},
+    {"id":"core7","name":"로터리 토르소 머신","part":"core","aliases":"옆구리 머신/토르소","is_machine":true,"status":"active","sort":64},
+    {"id":"core8","name":"캡틴스 체어 레그 레이즈","part":"core","aliases":"롬안 체어","is_machine":true,"status":"active","sort":65},
+    {"id":"core9","name":"케이블 우드찹","part":"core","aliases":"우드찹","is_machine":true,"status":"active","sort":66},
+    {"id":"core10","name":"백 익스텐션 머신","part":"core","aliases":"허리 머신/하이퍼 익스텐션","is_machine":true,"status":"active","sort":67,"tier":{"head":"deadlift"}},
+    {"id":"leg100","name":"시티드 레그프레스","part":"leg","aliases":"핀로드 레그프레스","is_machine":true,"status":"active","sort":68,"tier":{"core":"legpress_pin"}}
+  ];
+
+  let seq = Math.floor(Math.random() * 1000);
+  const newId = () => 'n' + Date.now() + '_' + (seq++).toString(36) + Math.floor(Math.random() * 36).toString(36); // 숫자 포함 + 충돌 방지
+
+  /* rows 를 SEED 위에 얹어 종목 목록을 만들어요. 반환: { EX(id→종목, 없는 id 는 대체 객체; hints{id:이름}이 있으면 그 이름으로), list(화면 목록용: 활성만), rows(합친 전체) } */
+  function build(rows, hints) {
+    const byId = {}, order = [];
+    const put = (r) => { if (!byId[r.id]) order.push(r.id); byId[r.id] = Object.assign({}, byId[r.id] || {}, r); };
+    SEED.forEach(put);
+    (rows || []).forEach((r) => { if (r && r.id && (byId[r.id] || r.name) && PARTS.indexOf(r.part || (byId[r.id] || {}).part) >= 0) put(r); }); // 시드에 있는 id 는 일부 항목(기준표 등)만 있어도 얹어요
+    const merged = order.map((id) => byId[id]);
+    const EXS = {};
+    const canon = (id) => { let g = 0, c = byId[id]; while (c && c.merged_into && byId[c.merged_into] && g++ < 5) c = byId[c.merged_into]; return c ? c.id : id; };
+    merged.forEach((r) => {
+      const a = r.aliases != null ? r.aliases : r.al || '';
+      const active = !r.status || r.status === 'active';
+      EXS[r.id] = { id: r.id, name: r.name, part: r.part, al: a, m: !!(r.is_machine != null ? r.is_machine : r.m), hidden: !active, merged: r.merged_into || null, sort: r.sort == null ? 0 : r.sort, tier: r.tier || null };
+    });
+    // 병합된 종목은 합쳐진 쪽 이름으로 보여줘요(옛 기록의 id 는 그대로 둠)
+    merged.forEach((r) => { if (r.merged_into && EXS[canon(r.id)] && canon(r.id) !== r.id) { const t = EXS[canon(r.id)]; EXS[r.id] = Object.assign({}, EXS[r.id], { name: t.name, part: t.part, m: t.m }); } });
+    const missing = (id) => ({ id, name: (hints && hints[id]) || '(삭제된 종목)', part: 'core', al: '', m: false, hidden: true, missing: true, sort: 9999, tier: null });
+    const EX = new Proxy(EXS, { get(t, k) { if (typeof k === 'string' && !(k in t) && /\d/.test(k)) return missing(k); return t[k]; } });
+    const list = () => Object.keys(EXS).map((k) => EXS[k]).filter((e) => !e.hidden).sort((a, b) => a.sort - b.sort);
+    return { EX, EXS, list, canon, rows: merged };
+  }
+
+  /* 새 종목 행 만들기(+검증). 반환 { ok, row | reason } */
+  function makeRow(inp, existing) {
+    const name = String(inp.name || '').trim();
+    if (!name) return { ok: false, reason: '이름을 입력해 주세요' };
+    if (name.length > 30) return { ok: false, reason: '이름은 30자 이내로 해 주세요' };
+    if (PARTS.indexOf(inp.part) < 0) return { ok: false, reason: '부위를 선택해 주세요' };
+    const dup = (existing || []).find((e) => e.name === name && (e.status || 'active') === 'active' && e.id !== inp.id);
+    if (dup) return { ok: false, reason: '같은 이름의 종목이 이미 있어요' };
+    const tier = {};
+    if (inp.head) tier.head = inp.head;
+    if (inp.kind === 'barbell') { tier.kind = 'barbell'; tier.quest = 'trainer'; }
+    const max = (existing || []).reduce((a, e) => Math.max(a, e.sort == null ? 0 : e.sort), 0);
+    return { ok: true, row: { id: inp.id || newId(), name, part: inp.part, aliases: String(inp.aliases || '').trim(), is_machine: !!inp.machine, status: 'active', sort: inp.sort != null ? inp.sort : max + 1, tier: Object.keys(tier).length ? tier : null } };
+  }
+
+  root.RuneCatalog = { PARTS, SEED, newId, build, makeRow };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.RuneCatalog;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ===== 앱 ===== */
 const P={chest:'가슴',back:'등',leg:'다리',shoulder:'어깨',arm:'팔',core:'코어'};
 const PC={chest:'#e5604a',back:'#2aa7c0',leg:'#d9aa4e',shoulder:'#9b7bf0',arm:'#3bb56a',core:'#e0559e'};
 const BIG={chest:1,back:1,leg:1};
@@ -105,10 +750,67 @@ shoulder:'리버스 펙덱|리어델트 머신/후면 어깨,사이드 레터럴
 arm:'바이셉스 컬 머신|이두 머신,프리처 컬 머신,트라이셉스 익스텐션 머신|삼두 머신,트라이셉스 딥 머신|삼두 딥,케이블 오버헤드 트라이셉스 익스텐션',
 core:'어브도미널 크런치 머신|복근 머신/앱 크런치,로터리 토르소 머신|옆구리 머신/토르소,캡틴스 체어 레그 레이즈|롬안 체어,케이블 우드찹|우드찹,백 익스텐션 머신|허리 머신/하이퍼 익스텐션'};
 const MSET=['레그프레스','레그 익스텐션','레그 컬','랫풀다운','숄더 프레스 머신','시티드 케이블 로우','케이블 크로스오버','트라이셉스 푸시다운','케이블 크런치','페이스 풀'];
-const EX={};Object.keys(RAW).forEach(p=>{const a=RAW[p].split(','),b=RAWM[p].split(',');a.concat(b).forEach((s,i)=>{const[n,al]=s.split('|');EX[p+i]={id:p+i,name:n,part:p,al:al||'',m:i>=a.length||MSET.includes(n)}})});
+/* 종목 목록은 카탈로그(내장 시드 + 서버 추가분)에서 만들어요. id 는 고정이라 종목을 추가·숨김·이름 변경해도 옛 기록이 안 밀려요 */
+const CATKEY='rune_cat_v1';
+function catRead(){try{const o=JSON.parse(localStorage.getItem(CATKEY)||'null');return o&&o.rows?o:{rows:[],hints:{}}}catch(e){return{rows:[],hints:{}}}}
+let CATSTATE=catRead(),CAT,EX;
+function catWrite(){try{localStorage.setItem(CATKEY,JSON.stringify({rows:CATSTATE.rows,hints:CATSTATE.hints}))}catch(e){}}
+function catApply(){CAT=RuneCatalog.build(CATSTATE.rows,CATSTATE.hints);EX=CAT.EX;CATSTATE.rejected=window.RuneTier.applyCatalog(CAT.rows).rejected}
+catApply();
+async function loadCat(){
+  if(!sb||!UID)return;
+  try{
+    const a=await sb.from('exercise_catalog').select('id,name,part,aliases,is_machine,status,merged_into,sort,tier,meta');
+    if(a.error||!a.data)return; // 4단계 SQL 전이면 내장 목록으로 계속 써요
+    const b=await sb.from('exercise_standards_active').select('exercise_id,version,base'),std={};
+    ((b&&b.data)||[]).forEach(x=>std[x.exercise_id]={version:x.version,base:(x.base||[]).map(Number)});
+    const rows=a.data.map(r=>Object.assign({},r,{std:std[r.id]||null})),was=JSON.stringify(CATSTATE.rows);
+    Object.keys(std).forEach(k=>{if(!rows.some(r=>r.id===k)&&CAT.EXS[k])rows.push({id:k,part:CAT.EXS[k].part,std:std[k]})}); // 종목 행이 아직 없는 시드 종목의 기준표
+    CATSTATE.rows=rows;CATSTATE.synced=true;catWrite();catApply();
+    if(JSON.stringify(rows)!==was)render();
+  }catch(e){}
+}
+function catHints(items){let ch=false;(items||[]).forEach(x=>{if(x&&x.id&&x.nm&&EX[x.id].missing&&CATSTATE.hints[x.id]!==x.nm){CATSTATE.hints[x.id]=x.nm;ch=true}});if(ch){catWrite();catApply()}}
 const LV={beginner:{n:3,v:600,t:'초급'},intermediate:{n:4,v:1600,t:'중급'},advanced:{n:5,v:3000,t:'고급'}};
 const TIER=[[0,'브론즈'],[30000,'실버'],[100000,'골드'],[250000,'플래티넘'],[600000,'다이아']];
 const POS=[[7,6,30],[63,6,30],[2,236,22],[26,236,22],[52,236,22],[76,236,22]];
+const lvOf=d=>(S.lv&&S.lv[d])||'intermediate';
+function tierRows(){
+  const R=window.RuneTier,by={};
+  allDates().sort().forEach(d=>dayItems(d).forEach(x=>{if(!EX[x.id]||EX[x.id].missing)return;const e=EX[x.id],m=R.metaFor(e.name,{machine:e.m,region:e.part==='leg'?'lower':'upper'});(by[m.id]=by[m.id]||{m,name:e.name,part:e.part,recs:[]}).recs.push({date:d,sets:x.sets})}));
+  const pg={};Object.keys(by).forEach(k=>{{const ex=R.BY_ID[by[k].m.id],mem=memberCalc();pg[k]=R.progressOf(R.newState(),by[k].recs,d=>R.multOf(lvOf(d)),k,t=>window.RuneRoutine.refFor(ex,t,mem))}});
+  const headT=id=>pg[id]?pg[id].tier:0;
+  return Object.keys(by).map(k=>{const b=by[k],p=pg[k];return Object.assign({},b,{p,ps:R.promoStatus(b.m,p,headT)})}).sort((a,b)=>b.p.tier-a.p.tier||b.p.mp-a.p.mp);
+}
+function tierGuide(){
+  const R=window.RuneTier,p=S.profile||{},c=bodyCur(),cur=Math.max.apply(null,[0].concat(tierRows().map(r=>r.p.tier)));
+  const who=[p.age?p.age+'세':'',p.sex?(p.sex==='F'?'여성':'남성'):'',p.heightCm?p.heightCm+'cm':'',c&&c.bf!=null?'체지방률 '+c.bf+'%':''].filter(Boolean).join(' · ')||'나이·성별·체격';
+  return `<details style="margin-top:10px"><summary class="mu" style="cursor:pointer;color:#ffb62e">티어별 수준 안내 보기</summary>
+  <div class="mu" style="margin:6px 0">내 기준: ${esc(who)}<br>무게 기준을 나이·성별·키·체지방률에 맞춰 조정하기 때문에, 같은 티어는 체격이 달라도 비슷한 수준을 뜻해요.</div>
+  ${R.TIERS.map((n,i)=>`<div class="mu" style="${i===cur?'color:#ffb62e;font-weight:700':''}">${i===cur?'▶ ':''}${n} · ${esc(R.rankLine(i))}</div>`).join('')}
+  <div class="mu" style="margin-top:6px;opacity:.8">추정치예요. 앱 회원 기록이 쌓이면 실제 분포로 바꿔 갈게요.</div></details>`;
+}
+function examLine(r){
+  try{
+    const R=window.RuneTier,RR=window.RuneRoutine,mem=memberCalc(),ex=R.BY_ID[r.m.id];
+    if(!ex||!mem.bodyKg||r.p.tier>=ex.maxTier)return '';
+    const L=R.ladderFor(ex,mem),t=L[r.p.tier];if(!t||!t.ok||!t.kg)return '';
+    if(t.blocked)return '<div class="mu">다음 시험: 나이 제한으로 아직 열리지 않아요</div>';
+    const id=Object.keys(EX).find(k=>EX[k].name===r.name),sd=RR.seed(ex,r.p.tier,r.p.stars,mem),cur=RR.current(sd?sd.e1rm:null,id?histOf(id):[]);
+    const eq=t.eq1rm,gap=cur&&eq?Math.round((eq/cur-1)*100):null;
+    const dist=gap==null?'':gap<=0?' · 내 추정 약 '+fmt(cur)+'kg → 도전 가능!':' · 내 추정 약 '+fmt(cur)+'kg (+'+gap+'% 남음)';
+    return `<div class="mu" style="color:#9ad">다음 시험(${R.TIERS[r.p.tier+1]}): ${t.kg}kg × ${t.reps}회 (1RM 환산 약 ${eq}kg)${dist}</div>`;
+  }catch(e){return ''}
+}
+function tierPanel(){
+  const R=window.RuneTier,rows=tierRows(),mu=R.multOf(S.level);
+  if(!rows.length)return `<div class="pn"><div class="h2">종목별 티어 <small class="mu">베타</small></div><div class="mu">기록을 저장하면 종목마다 별이 쌓여요</div></div>`;
+  const msg={ready:'5성 달성 · 승급 퀘스트는 다음 업데이트에서 열려요',locked:null,max:'이 종목의 최고 티어예요',notyet:''};
+  return `<div class="pn"><div class="h2">종목별 티어 <small class="mu">베타</small></div><div class="mu">종목마다 티어가 따로예요 · 별은 8성까지 쌓이고, 5성부터 승급 퀘스트가 열려요</div>`+rows.map(r=>{
+    const p=r.p,st=p.stars>5?'★'.repeat(5)+'<b style="color:#ff7a3c">+'+(p.stars-5)+'</b>':'★'.repeat(p.stars)+'<span style="opacity:.3">'+'★'.repeat(5-p.stars)+'</span>';
+    const note=r.ps.state==='locked'?'🔒 '+esc(r.ps.reason):esc(msg[r.ps.state]||'');
+    return `<div class="sp"><div class="row"><b style="color:${PC[r.part]}">${esc(r.name)}</b><span>${R.TIERS[p.tier]} <span style="color:#ffb62e">${st}</span></span></div><div class="bar" style="--c:${PC[r.part]}"><i style="width:${Math.round(p.pct*100)}%"></i></div><div class="mu">${fmt(R.toKg(p.mp,mu))}kg 누적(기준 환산)${note?' · '+note:''}</div><div class="mu" style="color:#ffb62e">${esc(R.rankLine(p.tier))}</div>${examLine(r)}</div>`}).join('')+tierGuide()+`</div>`;
+}
 const $=s=>document.querySelector(s);
 const ymd=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const fmt=n=>Math.round(n).toLocaleString('ko-KR');
@@ -120,34 +822,78 @@ const DB={
   load(){try{const r=localStorage.getItem('rpt1');if(r)return JSON.parse(r)}catch(e){}return mem||{user:null,level:'beginner',sessions:{},drafts:{}}},
   save(s){mem=s;try{localStorage.setItem('rpt1',JSON.stringify(s))}catch(e){}}
 };
-let S=DB.load();S.sessions=S.sessions||{};S.drafts=S.drafts||{};S.level=S.level||'beginner';
+let S=DB.load();S.sessions=S.sessions||{};S.more=S.more||{};S.curNo=S.curNo||{};S.drafts=S.drafts||{};S.level='intermediate';
 const fixT=l=>l.forEach(x=>x&&x.sets.forEach(s=>{if(s.t==='N')s.t='M'}));Object.values(S.sessions).forEach(fixT);Object.values(S.drafts).forEach(d=>fixT(d.slots));
 const DEMO=[['m1','김민수'],['m2','이서연'],['m3','박지훈'],['m4','최유나'],['m5','정하늘']];
 const AD=()=>S.adm||(S.adm={members:DEMO.map(([id,name])=>({id,name})),plans:{}});
-const persist=()=>DB.save(S);
+let sb=null,UID=null,PULLED=false,PULLING=false,SYNC='off',stmr=null;
+const persist=()=>{DB.save(S);queueSync()};
 let ADM={date:T,cur:null},tab=S.mode==='admin'?'acal':'today',PK={slot:0,part:'chest',q:''},RC=0,CM=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()}})(),CD=T;
 
 const vol=sets=>sets.reduce((a,s)=>a+(s.done&&s.t!=='W'?s.w*s.r:0),0);
 const pvol=sets=>sets.reduce((a,s)=>a+(s.t!=='W'?s.w*s.r:0),0);
 const draft=()=>ADM.cur||S.drafts[T]||(S.drafts[T]={slots:Array(6).fill(null)});
 const rnd=x=>Math.max(2.5,Math.round(x/2.5)*2.5);
+const WM={volume:{t:'볼륨형',d:'5·5·10·10·15·20회'},strength:{t:'퍼포먼스형',d:'5회 3세트 + 8회 3세트'},low:{t:'회복형',d:'15RM 무게 10회×3'}};
+const wmAll=()=>(S.wm=S.wm||{});
+const curMode=()=>{const a=wmAll()[T];return(a&&a[curNo()-1])||null};
+function lastMode(){const ds=Object.keys(wmAll()).sort();for(let i=ds.length-1;i>=0;i--){const a=wmAll()[ds[i]]||[];for(let j=a.length-1;j>=0;j--){if(a[j]&&!(ds[i]===T&&j>=curNo()-1))return a[j]}}return null}
+function recMode(){let ready=false;try{ready=tierRows().some(r=>r.ps.state==='ready')}catch(e){}return window.RuneRoutine.recommend({lastMode:lastMode(),questReady:ready})}
+const shownMode=()=>curMode()||recMode().mode;
+function histOf(id){
+  const out=[];allDates().filter(d=>d<T).sort().forEach(d=>{const it=dayItems(d).find(x=>x&&x.id===id);if(!it)return;
+    const md=(wmAll()[d]||[])[0]||undefined;
+    out.push({date:d,mode:md,sets:it.sets.filter(s=>s.t!=='W').map(s=>({w:+s.w,r:+s.r,done:!!s.done,pr:s.pr}))})});
+  return out.slice(-6);
+}
+/* 티어·별·체격 + 최근 기록으로 오늘 세트 구성. 정보가 부족하면 null → 기본 세트 */
+function planFor(id){
+  const R=window.RuneTier,RR=window.RuneRoutine,e=EX[id],mem=memberCalc();
+  if(!RR||!mem.bodyKg)return null;
+  const m=R.metaFor(e.name,{machine:e.m,region:e.part==='leg'?'lower':'upper'}),ex=m&&R.BY_ID[m.id];
+  if(ex&&ex.kind==='dumbbell')return null; // 덤벨 표기(한쪽/합계)가 정해지기 전까지 기본 세트
+  let seedE=null;
+  if(ex&&ex.base){const row=tierRows().find(r=>r.name===e.name),sd=RR.seed(ex,row?row.p.tier:0,row?row.p.stars:0,mem);seedE=sd?sd.e1rm:null}
+  const e1=RR.current(seedE,histOf(id));if(!e1)return null;
+  const pl=RR.plan(shownMode(),e1,{step:2.5,age:mem.age});if(!pl)return null;
+  return[{t:'W',w:rnd(pl.sets[0].w/2),r:5,done:false,tmp:1}].concat(pl.sets.map(s=>({t:'M',w:s.w,r:s.r,pr:s.pr,done:false,tmp:1})));
+}
 function mkSets(id){
-  const c=LV[S.level],per=c.v/c.n,big=BIG[EX[id].part];
+  if(!ADM.cur){try{const p=planFor(id);if(p)return p}catch(e){console.error(e)}}
+  const c=LV.intermediate,per=c.v/c.n,big=BIG[EX[id].part];
   const r=big?10:20,w=rnd(big?per/10:per/10/2);
   return [{t:'W',w:rnd(w/2),r,done:false,tmp:1},{t:'M',w,r,done:false,tmp:1},{t:'M',w,r,done:false,tmp:1}];
 }
+function modePanel(){
+  const rec=recMode(),cur=curMode(),sel=cur||rec.mode;
+  return `<div class="pn"><div class="h2">오늘의 운동 방식</div>
+  <button class="btn" style="margin:8px 0;background:#ffb62e;color:#2a1b00" data-act="wmrec">★ 오늘의 추천 · ${WM[rec.mode].t}<br><small style="font-weight:500">${esc(rec.why)}</small></button>
+  <div class="seg">${Object.keys(WM).map(k=>`<button class="${sel===k?'on':''}" data-act="wm" data-v="${k}">${WM[k].t}${rec.mode===k?' <b style="color:'+(sel===k?'#fff':'#ffb62e')+'">추천</b>':''}<br><small>${WM[k].d}</small></button>`).join('')}</div>
+  <div class="mu">종목을 장착하면 최근 기록과 내 몸 정보로 무게가 자동으로 채워져요. 세트는 언제든 추가·삭제할 수 있어요.</div></div>`;
+}
+function setMode(v){
+  const a=wmAll()[T]=wmAll()[T]||[];a[curNo()-1]=v;
+  let n=0;draft().slots.forEach(x=>{if(x&&x.sets.every(s=>s.tmp&&!s.done)){x.sets=mkSets(x.id);n++}});
+  persist();render();toast(WM[v].t+'으로 맞췄어요'+(n?' · 손대지 않은 종목 '+n+'개의 세트를 새로 채웠어요':''));
+}
 function prevOf(id){
-  const ds=Object.keys(S.sessions).filter(d=>d!==T).sort().reverse();
-  for(const d of ds){const it=S.sessions[d].find(x=>x&&x.id===id);if(it)return{d,sets:it.sets}}
+  const ds=allDates().filter(d=>d!==T).sort().reverse();
+  for(const d of ds){const it=dayItems(d).find(x=>x&&x.id===id);if(it)return{d,sets:it.sets}}
   return null;
 }
 function partVol(from,to){
   const o={chest:0,back:0,leg:0,shoulder:0,arm:0,core:0};
-  Object.keys(S.sessions).forEach(d=>{if(d>=from&&d<=to)S.sessions[d].forEach(x=>{if(x)o[EX[x.id].part]+=vol(x.sets)})});
+  allDates().forEach(d=>{if(d>=from&&d<=to)dayItems(d).forEach(x=>{o[EX[x.id].part]+=vol(x.sets)})});
   return o;
 }
 const dAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return ymd(d)};
-const dayVol=d=>(S.sessions[d]||[]).reduce((a,x)=>a+(x?vol(x.sets):0),0);
+/* 하루 여러 번 운동: S.sessions[날짜]=1회차, S.more[날짜]=[2회차, 3회차…] */
+const dayItems=d=>(S.sessions[d]||[]).concat(...((S.more&&S.more[d])||[])).filter(Boolean);
+const sessCount=d=>((S.sessions[d]||[]).some(Boolean)?1:0)+((S.more&&S.more[d])||[]).filter(a=>a&&a.some(Boolean)).length;
+const allDates=()=>{const o={};Object.keys(S.sessions).forEach(d=>o[d]=1);Object.keys(S.more||{}).forEach(d=>o[d]=1);return Object.keys(o)};
+const curNo=()=>(S.curNo&&S.curNo[T])||1;
+function putToday(items){const n=curNo(),c=JSON.parse(JSON.stringify(items));if(n===1)S.sessions[T]=c;else{S.more=S.more||{};const a=S.more[T]=S.more[T]||[];a[n-2]=c}(S.lv=S.lv||{})[T]='intermediate'}
+const dayVol=d=>dayItems(d).reduce((a,x)=>a+vol(x.sets),0);
 
 /* 화면 */
 function viewToday(){
@@ -159,12 +905,16 @@ function viewToday(){
     return `<div class="sl" style="left:${l}%;top:${t}px;width:${w}%"><button class="hx ${x?'':'empty'}" style="--c:${x?PC[EX[x.id].part]:''}" data-act="slot" data-i="${i}" aria-label="${lab}">${inner}</button>${x?`<button class="rm" data-act="rm" data-i="${i}">해제</button>`:''}</div>`;
   }).join('');
   const sets=d.slots.reduce((a,x)=>a+(x?x.sets.filter(s=>s.done&&s.t!=='W').length:0),0);
-  return `<div class="row"><div><h1 class="h1">${ADM.cur?'수업 룬 페이지':'룬PT'}</h1><div class="mu">${ADM.cur?ADM.cur.time+' · '+(ADM.cur.name||'회원 미지정'):dt}</div></div><div class="vb">완료 볼륨 (예정 ${fmt(pt)})<br><b>${fmt(tv)}</b> kg</div></div>
-  <div class="pn"><div class="h2">내 수준</div><div class="mu">새로 장착하는 종목부터 기본 세트가 자동으로 채워져요</div>
-  <div class="seg">${Object.keys(LV).map(k=>`<button class="${S.level===k?'on':''}" data-act="level" data-v="${k}">${LV[k].t}<br><small>${LV[k].n}세트·${fmt(LV[k].v)}kg</small></button>`).join('')}</div></div>
+  return `<div class="row"><div><h1 class="h1">${ADM.cur?'수업 룬 페이지':'룬PT'}</h1><div class="mu">${ADM.cur?ADM.cur.time+' · '+(ADM.cur.name||'회원 미지정'):dt+(curNo()>1?' · 오늘 '+curNo()+'번째 운동':'')}</div></div><div class="vb">완료 볼륨 (예정 ${fmt(pt)})<br><b>${fmt(tv)}</b> kg</div></div>
+  ${ADM.cur?'':modePanel()}
   <div class="pn"><div class="h2">오늘의 룬 페이지</div><div class="mu">빈 룬을 눌러 종목 장착, 장착된 룬을 눌러 기록</div>
   <div class="stage">${nodes}<div class="ctr">${miniRadar(d.slots)}</div></div></div>
-  ${ADM.cur?'':reviewHTML(d)}${ADM.cur?'<button class="btn" data-act="admdone">수업 칸에 저장</button>':'<button class="btn" data-act="save">오늘 기록 저장</button>'}`;
+  ${ADM.cur?'':reviewHTML(d)}${ADM.cur?'<button class="btn" data-act="admdone">수업 칸에 저장</button>':'<button class="btn" data-act="save">오늘 기록 저장</button>'}${ADM.cur?'':moreBtn(d)}`;
+}
+function moreBtn(d){
+  if(!d.slots.some(Boolean))return '';
+  const n=curNo()+1;
+  return `<button class="btn ghost" style="margin-top:8px" data-act="newsess">+ 오늘 ${n}번째 운동 시작</button><div class="mu" style="margin-top:6px">하루에 여러 번 운동해도 기록과 점수에 모두 반영돼요. 2번째부터는 트레이너 리포트에 알림이 전달돼요.</div>`;
 }
 function viewCal(){
   const {y,m}=CM,first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
@@ -173,8 +923,9 @@ function viewCal(){
     const k=`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`,v=dayVol(k),lv=v?(v<2000?1:v<5000?2:3):0;
     cells+=`<button data-act="day" data-d="${k}" data-l="0" class="${v?'hl':''} ${k===CD?'sel':''} ${k===T?'td':''}">${i}${S.reviews&&S.reviews[k]&&S.reviews[k].g?'<i class="gr">'+S.reviews[k].g+'</i>':''}</button>`;
   }
-  const items=(S.sessions[CD]||[]).filter(Boolean);
-  const det=items.length?items.map(x=>`<div class="sp row"><div><b style="color:${PC[EX[x.id].part]}">${P[EX[x.id].part]}</b> ${EX[x.id].name}<div class="mu">${x.sets.map(s=>(s.t==='W'?'W':s.t==='F'?'F':'')+s.w+'×'+s.r+(s.done?'':'(미완)')).join(' · ')}${x.note?'<br>📝 '+esc(x.note):''}</div></div><b>${fmt(vol(x.sets))}</b></div>`).join(''):'<div class="mu">이 날은 저장된 운동이 없어요</div>';
+  const gs=[S.sessions[CD]||[]].concat((S.more&&S.more[CD])||[]).map(g=>(g||[]).filter(Boolean)).filter(g=>g.length);
+  const one=x=>`<div class="sp row"><div><b style="color:${PC[EX[x.id].part]}">${P[EX[x.id].part]}</b> ${EX[x.id].name}<div class="mu">${x.sets.map(s=>(s.t==='W'?'W':s.t==='F'?'F':'')+s.w+'×'+s.r+(s.done?'':'(미완)')).join(' · ')}${x.note?'<br>📝 '+esc(x.note):''}</div></div><b>${fmt(vol(x.sets))}</b></div>`;
+  const det=gs.length?gs.map((g,i)=>(gs.length>1?`<div class="mu" style="margin-top:8px"><b>${i+1}회차</b> · ${fmt(g.reduce((a,x)=>a+vol(x.sets),0))}kg</div>`:'')+g.map(one).join('')).join(''):'<div class="mu">이 날은 저장된 운동이 없어요</div>';
   return `<h1 class="h1">운동 달력</h1><div class="pn"><div class="row"><button class="x" data-act="mon" data-v="-1">◀</button><b class="h2">${y}년 ${m+1}월</b><button class="x" data-act="mon" data-v="1">▶</button></div><div class="cal" style="margin-top:8px">${cells}</div></div>
   <div class="pn"><div class="row"><b class="h2">${CD}</b><span class="vb"><b style="font-size:16px">${fmt(dayVol(CD))}</b> kg</span></div>${revCal()}${det}</div>`;
 }
@@ -190,26 +941,28 @@ function radar(a,b){
 }
 function viewStat(){
   const a=partVol(dAgo(29),T),b=partVol(dAgo(59),dAgo(30));
-  const ds=Object.keys(S.sessions).filter(d=>d>=dAgo(29)&&dayVol(d)>0);
+  const ds=allDates().filter(d=>d>=dAgo(29)&&dayVol(d)>0);
   const tot=Object.values(a).reduce((x,y)=>x+y,0);
-  const setN=ds.reduce((n,d)=>n+S.sessions[d].reduce((m,x)=>m+(x?x.sets.filter(s=>s.done&&s.t!=='W').length:0),0),0);
+  const setN=ds.reduce((n,d)=>n+dayItems(d).reduce((m,x)=>m+x.sets.filter(s=>s.done&&s.t!=='W').length,0),0);
   const all=partVol('0000','9999'),ex={};
-  Object.values(S.sessions).forEach(s=>s.forEach(x=>{if(x){ex[x.id]=ex[x.id]||{n:0,v:0};ex[x.id].n++;ex[x.id].v+=vol(x.sets)}}));
-  const top=Object.keys(ex).sort((p,q)=>ex[q].n-ex[p].n).slice(0,5);
+  allDates().forEach(d=>dayItems(d).forEach(x=>{ex[x.id]=ex[x.id]||{n:0,v:0};ex[x.id].n++;ex[x.id].v+=vol(x.sets)}));
+  const top=Object.keys(ex).filter(k=>!(EX[k].missing&&EX[k].name==='(삭제된 종목)')).sort((p,q)=>ex[q].n-ex[p].n).slice(0,5);
   const mast=Object.keys(P).map(k=>{let i=0;TIER.forEach((t,j)=>{if(all[k]>=t[0])i=j});const nx=TIER[i+1],pr=nx?(all[k]-TIER[i][0])/(nx[0]-TIER[i][0]):1;
     return `<div class="sp"><div class="row"><b style="color:${PC[k]}">${P[k]}</b><span>${TIER[i][1]} <span class="mu">${fmt(all[k])}kg${nx?' / '+fmt(nx[0]):''}</span></span></div><div class="bar" style="--c:${PC[k]}"><i style="width:${Math.min(100,pr*100)}%"></i></div></div>`}).join('');
   return `<h1 class="h1">내 통계</h1><div class="pn"><div class="h2">부위별 균형 (최근 30일)</div>${radar(a,b)}
   <div class="cards"><div><span class="mu">운동한 날</span><b>${ds.length}일</b></div><div><span class="mu">총 볼륨</span><b>${fmt(tot)}kg</b></div><div><span class="mu">완료 세트</span><b>${setN}</b></div><div><span class="mu">주당 평균</span><b>${(ds.length/30*7).toFixed(1)}회</b></div></div></div>
   <div class="pn"><div class="h2">자주 하는 운동</div>${top.length?top.map(id=>`<div class="sp row"><span>${EX[id].name}</span><span class="mu">${ex[id].n}회 · ${fmt(ex[id].v)}kg</span></div>`).join(''):'<div class="mu">기록을 저장하면 여기에 쌓여요</div>'}</div>
+  ${tierPanel()}
   <div class="pn"><div class="h2">부위별 숙련도</div><div class="mu">누적 볼륨 기준 등급</div>${mast}</div>`;
 }
 function viewMe(){
   const u=S.user;
-  return `<h1 class="h1">내 정보</h1><div class="pn">${u?`<div class="row"><div><b class="h2">${u.name}</b><div class="mu">${u.provider} 계정 연결됨 (데모)</div></div><button class="btn ghost" style="width:auto;padding:8px 14px" data-act="logout">로그아웃</button></div>`:
-  `<div class="h2">로그인하고 기록 이어가기</div><div class="mu" style="margin:4px 0 10px">지금은 데모라서 이 기기에만 저장돼요. 실제 서비스에서는 카카오·구글 계정으로 서버에 저장됩니다.</div>
+  return `<h1 class="h1">내 정보</h1><div class="pn">${u?`<div class="row"><div><b class="h2">${u.name}</b><div class="mu">${u.provider} 계정 연결됨 · 서버 저장: ${syncTxt()}</div></div><button class="btn ghost" style="width:auto;padding:8px 14px" data-act="logout">로그아웃</button></div>`:
+  `<div class="h2">로그인하고 기록 이어가기</div><div class="mu" style="margin:4px 0 10px">로그인하면 기록이 계정에 저장돼서 기기를 바꿔도 이어져요. 카톡 안에서 열었다면 크롬·사파리로 열어 로그인해 주세요.</div>
   <button class="btn" style="background:#fee500;color:#191600;margin-bottom:8px" data-act="login" data-p="카카오">카카오로 시작하기</button>
   <button class="btn ghost" data-act="login" data-p="구글">구글로 시작하기</button>`}</div>
-  <div class="pn"><div class="h2">서버 연동 구조 (Supabase 기준)</div><div class="mu" style="line-height:1.7">members(id, provider, nickname, level)<br>sessions(id, member_id, date, started_at)<br>session_items(id, session_id, exercise_id, slot)<br>sets(id, item_id, type W/N/F, weight, reps, done)<br>모든 테이블에 <code>member_id = auth.uid()</code> 행 단위 보안 규칙 적용</div></div>
+  <div class="pn"><div class="row"><b class="h2">내 초기 정보</b><button class="btn ghost sm" data-act="editprofile">수정</button></div>${(()=>{const p=S.profile;if(!p)return '<div class="mu" style="margin-top:6px">아직 입력하지 않았어요</div>';const ex=(EXP.find(x=>x[0]===p.exp)||[0,''])[1];return `<div class="mu" style="line-height:1.8;margin-top:6px">만 ${p.age}세 · ${p.sex==='M'?'남성':'여성'}${p.heightCm?' · '+p.heightCm+'cm':''}${p.bodyKg?' · '+p.bodyKg+'kg':''} · 운동 경력 ${ex}<br>관심사: ${p.interests.map(esc).join(', ')||'-'}<br>부상·질병: ${p.injuries.map(esc).join(', ')||'-'}${p.note?' ('+esc(p.note)+')':''}</div>`})()}</div>
+  ${bodyPanel()}
   <button class="btn ghost" data-act="reset">이 기기 데이터 모두 지우기</button>`;
 }
 function miniRadar(sl){
@@ -286,21 +1039,33 @@ function viewDay2(){
     return `<div class='trw'><button class='tr' data-act='aslot' data-t='${h}'><b>${h}</b><span><b>${esc(it.name)||'회원 미지정'}</b>${it.no?' · '+it.no+'차시':''}<br><span class='mu'>룬 ${n}/6${n?' · '+esc(it.slots.filter(Boolean).map(x=>EX[x.id].name).join(', ')):''}${it.special?' · 특이사항':''}</span></span><span class='mu'>${it.sent?'✔ 발송':'작성중'}</span></button><div class='ra'><button class='btn ghost sm' data-act='acopy' data-id='${it.id}'>카톡 복사</button><a class='btn ghost sm' href='${esc(calURL(it,d))}' target='_blank' rel='noopener'>캘린더</a><button class='btn ghost sm' data-act='asend' data-id='${it.id}'>발송</button><button class='btn ghost sm' data-act='adel' data-id='${it.id}'>삭제</button></div></div>`}).join('');
   return `<div class='row'><button class='x' data-act='adnav' data-v='-1'>◀</button><b class='h2'>${dt}</b><button class='x' data-act='adnav' data-v='1'>▶</button></div><div class='mu' style='margin:6px 0 10px'>수업 ${l.length}칸 · 발송 ${sent} · 시간을 누르면 룬 페이지가 팝업으로 열려요</div>${rows}<div class='pn' style='margin-top:10px'><button class='btn' data-act='asendall'>회원 지정된 칸 모두 발송</button><div class='row' style='gap:8px;margin-top:8px'><button class='btn ghost sm' data-act='aexp'>다른 기기로 보내기 (코드 복사)</button></div><details style='margin-top:8px'><summary class='mu'>다른 기기에서 가져오기</summary><textarea id='imp' class='fi' rows='3' style='width:100%;margin-top:6px' placeholder='복사한 코드를 붙여넣기'></textarea><button class='btn sm' data-act='aimp' style='margin-top:6px'>가져오기</button></details><button class='btn ghost' style='margin-top:8px' data-act='agcal'>구글 캘린더에서 [PT] 일정 불러오기</button></div>`;
 }
+const ALR={wk:'',rows:null,busy:false};
+async function loadAlerts(){const w=wk(ADM.date).days;if(!sb||!UID||ALR.busy||ALR.wk===w[0])return;ALR.busy=true;ALR.wk=w[0];
+  try{const r=await sb.rpc('trainer_multi_workout_alerts',{p_from:w[0],p_to:w[6]});ALR.rows=r.error?null:(r.data||[])}catch(e){ALR.rows=null}
+  ALR.busy=false;if(S.mode==='admin')render()}
+const alertTxt=r=>`${r.member_name} 회원님 · 하루 ${r.session_count}번째 운동 진행 중`;
 function viewQuest(){
+  loadAlerts();
   const d=ADM.date,l=plan(d).slice().sort((a,b)=>a.time<b.time?-1:1);
   const hw=l.filter(x=>x.hw&&x.hw.trim()),sp=l.filter(x=>x.special&&x.special.trim());
-  const hd=hw.filter(x=>x.hwDone).length,sd=sp.filter(x=>x.spDone).length;
+  const hd=hw.filter(x=>x.hwDone).length,sd=sp.filter(x=>x.spDone).length,al=(ALR.rows||[]).filter(r=>r.session_date===d);
   const dt=new Date(d+'T00:00:00').toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
   const q=(it,k,txt,dn)=>`<div class='qr ${dn?'dn':''}'><button class='qc' data-act='aq' data-k='${k}' data-id='${it.id}' aria-pressed='${dn?'true':'false'}' aria-label='${dn?'체크 취소':'체크'}'>${dn?'✔':''}</button><button class='qt' data-act='aslot' data-t='${it.time}'><span class='mu'>${it.time} · ${esc(it.name)||'회원 미지정'}</span><br>${esc(txt)}</button></div>`;
   const bar=(a,b)=>`<div class='bar' style='--c:var(--gd)'><i style='width:${b?a/b*100:0}%'></i></div>`;
   const none=t=>`<div class='mu' style='padding-top:8px'>${t}</div>`;
   return `<div class='row'><button class='x' data-act='adnav' data-v='-1'>◀</button><b class='h2'>${dt}</b><button class='x' data-act='adnav' data-v='1'>▶</button></div><h1 class='h1' style='margin:10px 0'>과제·특이사항 관리</h1>
   <div class='pn'><div class='row'><b class='h2'>오늘의 과제 퀘스트</b><span class='mu'>회원에게 인지 ${hd}/${hw.length}</span></div>${bar(hd,hw.length)}<div class='mu' style='margin:6px 0'>회원에게 알려준 과제는 체크하세요. 글을 누르면 수업 팝업이 열려요.</div>${hw.map(it=>q(it,'hw',it.hw,it.hwDone)).join('')||none('입력된 과제가 없어요')}${l.length>hw.length?none((l.length-hw.length)+'칸은 과제가 비어 있어요'):''}</div>
-  <div class='pn'><div class='row'><b class='h2'>오늘의 특이사항</b><span class='mu'>확인 ${sd}/${sp.length}</span></div>${bar(sd,sp.length)}<div class='mu' style='margin:6px 0'>관리자 전용 메모예요. 회원에게 전송되지 않아요.</div>${sp.map(it=>q(it,'sp',it.special,it.spDone)).join('')||none('입력된 특이사항이 없어요')}</div>`;
+  <div class='pn'><div class='row'><b class='h2'>오늘의 특이사항</b><span class='mu'>확인 ${sd}/${sp.length}</span></div>${bar(sd,sp.length)}<div class='mu' style='margin:6px 0'>관리자 전용 메모예요. 회원에게 전송되지 않아요.</div>${sp.map(it=>q(it,'sp',it.special,it.spDone)).join('')||none('입력된 특이사항이 없어요')}</div>
+  <div class='pn'><div class='row'><b class='h2'>자동 알림 · 하루 여러 번 운동</b><span class='mu'>${al.length}건</span></div><div class='mu' style='margin:6px 0'>연결된 회원이 하루에 2번 이상 운동하면 자동으로 표시돼요. 기록은 막지 않고 점수에도 그대로 반영돼요.</div>${al.map(r=>`<div class='qr'><span class='qt'><span class='mu'>${r.session_date.slice(5).replace('-','/')}</span><br>${esc(alertTxt(r))}</span></div>`).join('')||none(ALR.rows===null?'트레이너 계정으로 로그인하면 표시돼요':'이 날은 알림이 없어요')}</div>`;
 }
 const DOW=['일','월','화','수','목','금','토'];
 const wk=d=>{const m=new Date(d+'T00:00:00');m.setDate(m.getDate()-((m.getDay()+6)%7));const e=new Date(m);e.setDate(m.getDate()+6);return{m,e,days:Array.from({length:7},(_,i)=>{const x=new Date(m);x.setDate(m.getDate()+i);return ymd(x)})}};
+function alertPanel(days){
+  const al=(ALR.rows||[]).filter(r=>days.includes(r.session_date));
+  return `<div class='pn'><div class='row'><b class='h2'>자동 알림 · 하루 여러 번 운동</b><span class='mu'>${al.length}건</span></div><div class='mu' style='margin:6px 0'>연결된 회원이 하루에 2번 이상 운동하면 자동으로 표시돼요. 기록은 막지 않고 점수에도 그대로 반영돼요. [주간 리포트 복사]에도 포함돼요.</div>`+(al.map(r=>`<div class='sp'><b>${esc(r.member_name)}</b> <span class='mu'>${r.session_date.slice(5).replace('-','/')}</span><div>⚠ 하루 ${r.session_count}번째 운동 진행 중</div></div>`).join('')||`<div class='mu' style='padding-top:8px'>${ALR.rows===null?'트레이너 계정으로 로그인하면 표시돼요':'이번 주는 알림이 없어요'}</div>`)+`</div>`;
+}
 function viewQuest2(){
+  loadAlerts();
   const w=wk(ADM.date),th=new Date(w.m);th.setDate(w.m.getDate()+3);
   const lab=`${th.getMonth()+1}월 ${Math.ceil(th.getDate()/7)}주차`;
   const rng=`${w.m.getMonth()+1}/${w.m.getDate()} ~ ${w.e.getMonth()+1}/${w.e.getDate()}`;
@@ -311,7 +1076,7 @@ function viewQuest2(){
       const h=it.hw&&it.hw.trim(),s=it.special&&it.special.trim();if(h){hwT++;if(it.hwDone)hwD++}if(s){spT++;if(it.spDone)spD++}
       const line=(k,t,txt,dn)=>txt?`<div class='qr ${dn?'dn':''}'><button class='qc' data-act='aq2' data-k='${k}' data-d='${d}' data-id='${it.id}' aria-label='체크'>${dn?'✔':''}</button><button class='qt' data-act='aopen' data-d='${d}' data-t='${it.time}'><span class='mu'>${t}</span> ${esc(txt)}</button></div>`:`<div class='qr'><span class='qc' style='border-style:dashed;opacity:.4'></span><span class='mu'>${t} 없음</span></div>`;
       return `<div class='sp'><b>${esc(it.name)}</b> <span class='mu'>${it.time}${it.no?' · '+it.no+'차시':''}</span>${line('sp','특이사항',s,it.spDone)}${line('hw','과제',h,it.hwDone)}</div>`}).join('')+`</div>`}).join('');
-  return `<div class='row'><button class='x' data-act='awk' data-v='-7'>◀</button><div style='text-align:center'><b class='h2'>${lab}</b><div class='mu'>${rng}</div></div><button class='x' data-act='awk' data-v='7'>▶</button></div><h1 class='h1' style='margin:10px 0'>주간 과제·특이사항</h1><div class='pn'><div class='row'><span>과제 인지 <b>${hwD}/${hwT}</b></span><span>특이사항 확인 <b>${spD}/${spT}</b></span></div><div class='row' style='gap:8px;margin-top:8px;flex-wrap:wrap'><button class='btn sm' data-act='arsave'>회원정보에 저장</button><button class='btn ghost sm' data-act='arcopy'>주간 리포트 복사</button></div><div class='mu' style='margin-top:6px'>저장하면 이번 주 특이사항·과제가 각 회원의 정보 기록으로 넘어가요 (관리자만 볼 수 있어요)</div></div>${days||`<div class='mu'>이 주에 회원이 지정된 수업이 없어요</div>`}`;
+  return `<div class='row'><button class='x' data-act='awk' data-v='-7'>◀</button><div style='text-align:center'><b class='h2'>${lab}</b><div class='mu'>${rng}</div></div><button class='x' data-act='awk' data-v='7'>▶</button></div><h1 class='h1' style='margin:10px 0'>주간 과제·특이사항</h1><div class='pn'><div class='row'><span>과제 인지 <b>${hwD}/${hwT}</b></span><span>특이사항 확인 <b>${spD}/${spT}</b></span></div><div class='row' style='gap:8px;margin-top:8px;flex-wrap:wrap'><button class='btn sm' data-act='arsave'>회원정보에 저장</button><button class='btn ghost sm' data-act='arcopy'>주간 리포트 복사</button></div><div class='mu' style='margin-top:6px'>저장하면 이번 주 특이사항·과제가 각 회원의 정보 기록으로 넘어가요 (관리자만 볼 수 있어요)</div></div>${alertPanel(w.days)}${days||`<div class='mu'>이 주에 회원이 지정된 수업이 없어요</div>`}`;
 }
 function memHTML(id){
   const m=AD().members.find(x=>x.id===id),lg=(m.log||[]).slice().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
@@ -342,13 +1107,169 @@ function memInfo(id){
     return `<div class='pn'><div class='row'><b class='h2'>${e.n}회차</b><span class='mu'>${e.d.slice(5).replace('-','/')} ${it.time}</span></div><div style='margin:8px 0;font-size:15px'><span class='mu'>과제</span><br><b>${esc(it.hw)||`<span class='mu'>없음</span>`}</b>${it.hw&&it.hwDone?' ✔ 인지':''}</div><details><summary class='mu'>특이사항 · 룬 페이지 · 수업 내용 보기</summary>${blk('특이사항',it.special)}<div class='sp'><span class='mu'>룬 페이지</span>${rl}</div>${blk('수업 내용',it.memo)}${blk('다음 수업 목표',it.goal)}</details></div>`}).join('');
   return `<div class='row'><b class='h2'>${esc(m.name)}${m.temp?' (임시)':''}</b><div style='display:flex;gap:6px;align-items:center'><button class='btn sm' data-act='mcal' data-id='${m.id}'>캘린더</button><button class='x' data-act='close'>✕</button></div></div><div class='pn' style='margin-top:10px;border-color:var(--gd)'><div class='row'><b class='h2'>다음 수업 중점사항 · 도전과제</b><span class='mu'>${nx}회차 예정</span></div><textarea class='fi' rows='3' data-mf='${m.id}' style='width:100%;margin-top:8px' placeholder='(다음 수업에서 집중할 점, 도전할 목표를 적어요)'>${esc(m.focus)}</textarea>${lg?`<div class='mu' style='margin-top:6px'>최근 수업에서 적은 다음 수업 목표: ${esc(lg)}</div>`:''}</div><div class='mu' style='margin:10px 0 4px'>수업 흐름 (최신순)</div>${hist||`<div class='mu'>아직 수업 기록이 없어요</div>`}`;
 }
+const SB_URL='https://vpdemapnpunsuxqdffgn.supabase.co',SB_KEY='sb_publishable_fonyE5eloRwvXb7hacPTow_d6JR0zMv',APP_URL='https://upvible.github.io/Rune-PT/';
+const syncTxt=()=>({off:'이 기기에만 저장',ok:'저장됨',err:'저장 실패 · 다시 시도 중',busy:'저장 중…'}[SYNC]||'');
+function queueSync(){if(!sb||!UID||!PULLED||S.mode==='admin')return;clearTimeout(stmr);SYNC='busy';stmr=setTimeout(syncToday,1500)}
+async function syncToday(){
+  const dr=S.drafts[T],items=dr?dr.slots.map(x=>x||null):Array(6).fill(null),has=items.some(Boolean),rv=(S.reviews||{})[T]||{};
+  if(!sb||!UID||!PULLED)return;
+  if(!has&&!rv.g&&!rv.t){SYNC='ok';return}
+  const no=curNo();
+  if(has)putToday(items.filter(Boolean));
+  try{const r=await sb.from('workout_sessions').upsert({member_id:UID,session_date:T,session_no:no,level:'intermediate',items,grade:rv.g||null,review:rv.t||null,updated_at:new Date().toISOString()},{onConflict:'member_id,session_date,session_no'});SYNC=r.error?'err':'ok';if(r.error)console.error(r.error)}catch(e){SYNC='err'}
+  DB.save(S);if(SYNC==='err')setTimeout(queueSync,15000);
+}
+async function pull(){
+  PULLING=true;
+  const r=await sb.from('workout_sessions').select('session_date,session_no,level,items,grade,review');
+  if(r.error){SYNC='err';PULLING=false;toast('서버에서 기록을 불러오지 못했어요');render();return}
+  S.reviews=S.reviews||{};
+  const srv={};
+  S.lv=S.lv||{};S.more=S.more||{};S.curNo=S.curNo||{};
+  r.data.slice().sort((a,b)=>(a.session_no||1)-(b.session_no||1)).forEach(x=>{const no=x.session_no||1;srv[x.session_date+'#'+no]=1;S.lv[x.session_date]=x.level||'beginner';const its=(x.items||[]).filter(Boolean);if(no===1)S.sessions[x.session_date]=its;else{const a=S.more[x.session_date]=S.more[x.session_date]||[];a[no-2]=its}if(x.grade||x.review)S.reviews[x.session_date]={g:x.grade||'',t:x.review||''}});
+  r.data.forEach(x=>catHints(x.items));
+  const rowsT=r.data.filter(x=>x.session_date===T).sort((a,b)=>(a.session_no||1)-(b.session_no||1)),d0=rowsT[rowsT.length-1];
+  if(d0){const cur=S.drafts[T];if(!cur||!cur.slots.some(Boolean)){const sl=(d0.items||[]).slice(0,6);while(sl.length<6)sl.push(null);S.drafts[T]={slots:sl};S.curNo[T]=d0.session_no||1}}
+  for(const d of allDates()){const gs=[S.sessions[d]||[]].concat(S.more[d]||[]);for(let i=0;i<gs.length;i++){const g=gs[i];if(!g||!g.length||srv[d+'#'+(i+1)])continue;const rv=S.reviews[d]||{};await sb.from('workout_sessions').upsert({member_id:UID,session_date:d,session_no:i+1,level:'intermediate',items:g,grade:i===0?(rv.g||null):null,review:i===0?(rv.t||null):null},{onConflict:'member_id,session_date,session_no'})}}
+  PULLED=true;PULLING=false;SYNC='ok';DB.save(S);render();
+}
+async function onSession(sess){
+  if(!sess){UID=null;ROLE=null;PULLED=false;PULLING=false;SYNC='off';if(S.user){S.user=null;DB.save(S)}if(!GUEST)SCR='auth';render();return}
+  if(UID===sess.user.id&&(PULLED||PULLING))return;
+  UID=sess.user.id;const m=sess.user.user_metadata||{};
+  S.user={name:m.name||m.full_name||m.nickname||'카카오 회원',provider:'카카오'};
+  DB.save(S);SCR='boot';render();
+  await loadMe();
+  await pull();
+  enterAfterLogin();
+}
+async function initAuth(){
+  if(!/github\.io$/.test(location.hostname)||!window.supabase){SCR='auth';render();return}
+  try{sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){SCR='auth';render();return}
+  sb.auth.onAuthStateChange((ev,sess)=>{setTimeout(()=>onSession(sess),0)});
+  const g=await sb.auth.getSession();
+  if(location.search.includes('code=')||location.hash.includes('access_token'))history.replaceState(null,'',location.pathname);
+  await onSession(g.data.session);
+}
+addEventListener('online',()=>queueSync());
 const VIEWS={today:viewToday,cal:viewCal,stat:viewStat,me:viewMe};
-function render(){
+
+/* ===== 첫 화면: 로그인 → 초기 정보 5가지 → 서버 선택 ===== */
+let SCR='boot',ROLE=null,GUEST=false;
+const EXP=[['new','처음이에요'],['lt6','6개월 미만'],['lt12','6개월~1년'],['lt36','1~3년'],['gt36','3년 이상']];
+const EXP_LV={new:'beginner',lt6:'beginner',lt12:'intermediate',lt36:'intermediate',gt36:'advanced'};
+const INTERESTS=['체지방 감량','근력 향상','근육 키우기','체형·자세 교정','재활·통증 관리','체력·건강 유지','대회·기록 도전'];
+const INJURIES=['없음','허리','무릎','어깨','목','손목·팔꿈치','고혈압','당뇨','심장질환','기타'];
+const canAdmin=()=>GUEST||ROLE==='trainer';
+const bodyCur=()=>{const L=S.bodyLog||[];return L.length?L[L.length-1]:null};
+const BSRC={self:'직접 입력',inbody:'체성분 측정',trainer:'트레이너 입력'};
+const memberCalc=()=>{const p=S.profile||{},c=bodyCur();return{sex:p.sex,age:p.age,heightCm:p.heightCm,bodyKg:c?c.kg:p.bodyKg,bodyFatPct:c&&c.bf!=null?c.bf:null}};
+const obBlank=()=>({age:'',sex:'',h:'',w:'',bf:'',exp:'',interests:[],injuries:[],note:'',from:''});
+const obFrom=p=>p?{age:String(p.age),sex:p.sex,h:p.heightCm?String(p.heightCm):'',w:bodyCur()?String(bodyCur().kg):(p.bodyKg?String(p.bodyKg):''),bf:bodyCur()&&bodyCur().bf!=null?String(bodyCur().bf):'',exp:p.exp,interests:p.interests.slice(),injuries:p.injuries.slice(),note:p.note||'',from:''}:obBlank();
+let OB=obBlank();
+const ageOk=()=>/^\d{1,2}$/.test(String(OB.age).trim())&&+OB.age>=8&&+OB.age<=90;
+const hwOk=()=>+OB.h>=120&&+OB.h<=230&&+OB.w>=25&&+OB.w<=250;
+const obCount=()=>(ageOk()?1:0)+(OB.sex?1:0)+(hwOk()?1:0)+(OB.exp?1:0)+(OB.interests.length?1:0)+(OB.injuries.length?1:0);
+const obBfOk=()=>OB.bf==null||OB.bf===''||(+OB.bf>=3&&+OB.bf<=60);
+const obValid=()=>obCount()===6&&obBfOk();
+const profOk=p=>!!(p&&p.done&&p.heightCm&&p.bodyKg);
+function obRefresh(){const b=$('#obgo');if(b)b.disabled=!obValid();const n=$('#obn');if(n)n.textContent=obCount();
+  const l=$('#oblv');if(l)l.textContent=''}
+function srvSave(v){try{if(v)sessionStorage.setItem('rpt-srv',v);else sessionStorage.removeItem('rpt-srv')}catch(e){}}
+function srvLoad(){try{return sessionStorage.getItem('rpt-srv')}catch(e){return null}}
+async function loadMe(){
+  loadCat();
+  try{
+    const a=await sb.from('profiles').select('role').maybeSingle();ROLE=(a.data&&a.data.role)||'member';
+    const b=await sb.from('member_body').select('sex,birth_year,body_kg,height_cm,experience,interests,injuries,injury_note,onboarded_at').maybeSingle();
+    if(b.data&&b.data.onboarded_at){const d=b.data;S.profile={done:true,age:new Date().getFullYear()-d.birth_year,sex:d.sex,heightCm:d.height_cm?+d.height_cm:0,bodyKg:d.body_kg?+d.body_kg:0,exp:d.experience,interests:d.interests||[],injuries:d.injuries||[],note:d.injury_note||''};S.lvSet=true;DB.save(S)}
+    else if(S.profile&&S.profile.done)upProfile();
+  }catch(e){}
+  try{const m=await sb.from('body_measurements').select('measured_on,body_kg,body_fat_pct,source').order('measured_on',{ascending:false}).limit(60);if(!m.error&&m.data&&m.data.length){S.bodyLog=m.data.slice().reverse().map(x=>({d:x.measured_on,kg:+x.body_kg,bf:x.body_fat_pct==null?null:+x.body_fat_pct,src:x.source}));DB.save(S)}}catch(e){}
+}
+async function upProfile(){
+  if(!sb||!UID||!S.profile||!S.profile.done)return false;const p=S.profile;
+  try{const r=await sb.from('member_body').upsert({member_id:UID,sex:p.sex,birth_year:new Date().getFullYear()-p.age,body_kg:p.bodyKg||null,height_cm:p.heightCm||null,experience:p.exp,interests:p.interests,injuries:p.injuries,injury_note:p.note||null,onboarded_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:'member_id'});
+    if(r.error){console.error(r.error);return false}return true}catch(e){return false}
+}
+function enterAfterLogin(){
+  const sv=srvLoad();
+  if(!profOk(S.profile)){OB=obFrom(S.profile);SCR='onboard'}
+  else if(sv==='member'||(sv==='admin'&&canAdmin())){S.mode=sv==='admin'?'admin':'member';tab=sv==='admin'?'acal':'today';SCR='app'}
+  else SCR='servers';
+  render();
+}
+const logoHTML=`<div class="logo"><img src="icon-192.png" alt="" onerror="this.style.display='none'"></div>`;
+function viewBoot(){return `<div class="gate">${logoHTML}<div class="mu" style="text-align:center">접속 중…</div></div>`}
+function viewAuth(){
+  return `<div class="gate">${logoHTML}<div style="text-align:center"><h1 class="h1" style="font-size:26px">룬PT</h1><div class="mu" style="margin-top:4px">PT 회원 운동 루틴 · 숙련도 관리</div></div>
+  <div class="pn"><div class="h2">로그인 · 계정 만들기</div><div class="mu" style="margin:4px 0 12px">처음이면 계정이 자동으로 만들어져요. 기록은 계정에 저장돼서 기기를 바꿔도 이어져요.</div>
+  <button class="btn kk" data-act="login" data-p="카카오">카카오로 시작하기</button>
+  <button class="btn ghost" data-act="login" data-p="구글">구글로 시작하기</button></div>
+  <div class="mu" style="text-align:center">카톡 안에서 열었다면 크롬·사파리로 열어 로그인해 주세요.</div>
+  ${sb?'':`<div style="text-align:center"><button class="x" style="font-size:13px;text-decoration:underline" data-act="guest">로그인 없이 미리보기</button></div>`}</div>`;
+}
+function viewOnboard(){
+  const chip=(k,v,on,label)=>`<button class="chip ${on?'on':''}" data-act="ob" data-k="${k}" data-v="${esc(v)}" aria-pressed="${on?'true':'false'}">${esc(label||v)}</button>`;
+  const nm=S.user?esc(S.user.name)+' 님, ':'';
+  return `<div class="gate" style="justify-content:flex-start;padding-top:16px">
+  <div><div class="mu">처음 한 번만 입력해요 · <b id="obn">${obCount()}</b>/6</div><h1 class="h1" style="font-size:22px;margin-top:4px">${nm}기본 정보를 알려주세요</h1>
+  <div class="mu" style="margin-top:4px">운동 기준과 안전 수칙을 맞추는 데만 써요. 나중에 내 정보에서 고칠 수 있어요.</div></div>
+  <div class="pn"><div class="h2">1. 연령 <span class="mu">만 나이</span></div><input type="number" inputmode="numeric" min="8" max="90" placeholder="예: 34" value="${esc(OB.age)}" data-pf="age" aria-label="만 나이" style="margin-top:8px"></div>
+  <div class="pn"><div class="h2">2. 성별</div><div class="chips">${chip('sex','M',OB.sex==='M','남성')}${chip('sex','F',OB.sex==='F','여성')}</div></div>
+  <div class="pn"><div class="h2">3. 키 · 체중</div><div style="display:flex;gap:8px;margin-top:8px"><label style="flex:1" class="mu">키 (cm)<input type="number" inputmode="decimal" min="120" max="230" placeholder="예: 172" value="${esc(OB.h)}" data-pf="h" aria-label="키 센티미터"></label><label style="flex:1" class="mu">체중 (kg)<input type="number" inputmode="decimal" min="25" max="250" step="0.1" placeholder="예: 68.5" value="${esc(OB.w)}" data-pf="w" aria-label="체중 킬로그램"></label></div><label class="mu" style="display:block;margin-top:8px">체지방률 (%) <b>선택</b><input type="number" inputmode="decimal" min="3" max="60" step="0.1" placeholder="모르면 비워 두세요" value="${esc(OB.bf)}" data-pf="bf" aria-label="체지방률 퍼센트"></label><div class="mu" style="margin-top:8px">키·체중(·체지방률)으로 몸에 맞는 승급 기준 무게를 조정해요. 체지방률을 모르면 키와 체중으로 추정하고, 나중에 내 정보에서 입력하면 그때부터 더 정확하게 바뀌어요.</div></div>
+  <div class="pn"><div class="h2">4. 운동 경력</div><div class="chips">${EXP.map(([v,l])=>chip('exp',v,OB.exp===v,l)).join('')}</div><div id="oblv" class="mu" style="margin-top:8px"></div></div>
+  <div class="pn"><div class="h2">5. 주요 관심사 <span class="mu">여러 개 선택</span></div><div class="chips">${INTERESTS.map(v=>chip('interests',v,OB.interests.includes(v))).join('')}</div></div>
+  <div class="pn"><div class="h2">6. 부상·질병 이력 <span class="mu">해당하는 것 모두</span></div><div class="chips">${INJURIES.map(v=>chip('injuries',v,OB.injuries.includes(v))).join('')}</div>
+  <input type="text" maxlength="300" placeholder="자세한 내용이 있다면 적어 주세요 (선택)" value="${esc(OB.note)}" data-pf="note" aria-label="부상·질병 자세한 내용" style="margin-top:10px">
+  <div class="mu" style="margin-top:8px">건강 정보라서 운동 안전 목적으로만 쓰고, 담당 트레이너가 볼 수 있어요.</div></div>
+  <button class="btn" id="obgo" data-act="obdone" disabled>다음</button>${OB.from==='app'?'<button class="btn ghost" data-act="obcancel">취소</button>':''}</div>`;
+}
+function viewServers(){
+  const nm=S.user?esc(S.user.name):'미리보기';
+  return `<div class="gate">${logoHTML}<div style="text-align:center"><div class="h2">${nm} 님, 어서 오세요</div><div class="mu" style="margin-top:4px">접속할 서버를 선택하세요</div></div>
+  <button class="srv" data-act="enter" data-v="member"><b>운동 시작하기</b><small>회원 서버 · ● 접속 가능</small></button></div>
+  <button class="lo" data-act="logout">로그아웃</button>
+  <button class="admbox" data-act="enter" data-v="admin">관리자 서버<small>트레이너 전용 ▸</small></button>`;
+}
+function renderGate(){
+  const a=$('#app');a.className='';document.querySelector('.nav').style.display='none';$('#nav').innerHTML='';
+  a.innerHTML=SCR==='boot'?viewBoot():SCR==='auth'?viewAuth():SCR==='onboard'?viewOnboard():viewServers();
+  if(SCR==='onboard')obRefresh();
+}
+function bodyPanel(){
+  const R=window.RuneTier,p=S.profile;if(!p)return '';
+  const c=bodyCur(),m=memberCalc(),basis=R.bodyBasis(m);
+  const days=c?Math.floor((new Date(T+'T00:00:00')-new Date(c.d+'T00:00:00'))/864e5):null;
+  const bTxt={measured:'측정한 체지방률',estimated:'키·체중 추정값',none:'체중'}[basis];
+  const ss=[['squat','스쿼트'],['bench','벤치프레스'],['deadlift','데드리프트']].map(([id,n])=>{const t=R.targetFor(R.BY_ID[id],3,m);return t.ok&&t.kg?`${n} ${t.reps}RM ${t.kg}kg`:''}).filter(Boolean).join(' · ');
+  const hist=(S.bodyLog||[]).slice(-4).reverse().map(x=>`<div class="mu">${x.d.slice(5).replace('-','/')} · ${x.kg}kg · ${x.bf!=null?'체지방률 '+x.bf+'%':'체지방률 -'} · ${BSRC[x.src]||''}</div>`).join('');
+  return `<div class="pn"><div class="row"><b class="h2">몸 정보</b><button class="btn ghost sm" data-act="bodyedit">측정값 업데이트</button></div>
+  <div class="mu" style="line-height:1.7;margin-top:6px">${c?`현재 ${c.kg}kg · ${c.bf!=null?'체지방률 '+c.bf+'%':'체지방률 미입력'}`:'기록이 없어요'}<br>승급 기준 무게는 <b>${bTxt}</b>으로 몸에 맞춰 조정돼요${basis!=='measured'?'. 체지방률을 입력하면 더 정확해져요':''}.</div>
+  ${days!=null&&days>=30?`<div class="mu" style="margin-top:6px;color:var(--gd)">마지막 업데이트 후 ${days}일이 지났어요. 체중·체지방이 바뀌었다면 업데이트해 주세요.</div>`:''}
+  ${ss?`<div class="mu" style="margin-top:8px">내 기준 미리보기 (골드 승급, 참고용)<br>${ss}</div>`:''}
+  ${hist?`<div style="margin-top:8px">${hist}</div>`:''}</div>`;
+}
+async function addBody(kg,bf,src,quiet){
+  S.bodyLog=S.bodyLog||[];const e={d:T,kg,bf:bf==null?null:bf,src:src||'self'};
+  const i=S.bodyLog.findIndex(x=>x.d===T);if(i>=0)S.bodyLog[i]=e;else S.bodyLog.push(e);
+  S.bodyLog.sort((a,b)=>a.d<b.d?-1:1);S.bodyLog=S.bodyLog.slice(-60);
+  if(S.profile)S.profile.bodyKg=kg;
+  DB.save(S);
+  if(sb&&UID){try{const r=await sb.from('body_measurements').upsert({member_id:UID,measured_on:T,body_kg:kg,body_fat_pct:e.bf,source:e.src},{onConflict:'member_id,measured_on'});if(r.error){console.error(r.error);if(!quiet)toast('서버 저장은 아직 안 됐어요. 이 기기에는 저장했어요')}}catch(x){}}
+}
+function srvBar(){
   const ad=S.mode==='admin';
-  $('#app').innerHTML=`<div class="seg" style="margin-top:0"><button class="${ad?'':'on'}" data-act="mode" data-v="member">회원 버전 켜기</button><button class="${ad?'on':''}" data-act="mode" data-v="admin">관리자 버전 켜기</button></div>`+(ad?(ADM.cur&&!ADM.pop?viewAdmEdit():tab==='mem'?viewMem():tab==='acal'?viewACal():tab==='quest'?viewQuest2():viewDay2()):VIEWS[tab]());
+  return `<div class="srvbar"><span class="srvchip ${ad?'adm':'mem'}">● ${ad?'관리자 서버':'회원 서버'}</span><div class="bt">${canAdmin()?(ad?`<button class="sb2 mem" data-act="mode" data-v="member">내 운동 기록 ▸ 회원 모드</button>`:`<button class="sb2 adm" data-act="mode" data-v="admin">관리자 화면 ▸</button>`):''}<button class="sb2" data-act="servers">서버 선택</button></div></div>`;
+}
+function render(){
+  if(SCR!=='app'){renderGate();return}
+  document.querySelector('.nav').style.display='';
+  const ad=S.mode==='admin';
+  $('#app').innerHTML=srvBar()+(ad?(ADM.cur&&!ADM.pop?viewAdmEdit():tab==='mem'?viewMem():tab==='cat'?viewCat():tab==='acal'?viewACal():tab==='quest'?viewQuest2():viewDay2()):VIEWS[tab]());
   $('#app').className=ad&&ADM.cur&&!ADM.pop&&!ADM.live?'wide':'';
   if(ad&&ADM.pop&&ADM.cur){const m=$('#md');if(!m.classList.contains('on')||m.querySelector('[data-edit]'))openM(viewAdmEdit())}
-  $('#nav').innerHTML=(ad?[['acal','달력'],['day','일일 스케줄'],['quest','과제·특이사항'],['mem','회원']]:[['today','오늘'],['cal','달력'],['stat','통계'],['me','내 정보']]).map(([k,t])=>`<button class="${tab===k?'on':''}" data-act="tab" data-v="${k}">${t}</button>`).join('');
+  $('#nav').innerHTML=(ad?[['acal','달력'],['day','일일 스케줄'],['quest','과제·특이사항'],['mem','회원'],['cat','종목']]:[['today','오늘'],['cal','달력'],['stat','통계'],['me','내 정보']]).map(([k,t])=>`<button class="${tab===k?'on':''}" data-act="tab" data-v="${k}">${t}</button>`).join('');
 }
 const toast=t=>{const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)};
 const openM=h=>{$('#md').innerHTML=`<div class="sheet">${h}</div>`;$('#md').classList.add('on')};
@@ -356,7 +1277,7 @@ const closeM=()=>{$('#md').classList.remove('on');$('#md').innerHTML='';render()
 
 function pickList(){
   const q=PK.q.trim();
-  const list=Object.values(EX).filter(e=>(q?(e.name.includes(q)||e.al.includes(q)):e.part===PK.part)&&(!PK.m||e.m));
+  const list=CAT.list().filter(e=>(q?(e.name.includes(q)||e.al.includes(q)):e.part===PK.part)&&(!PK.m||e.m));
   $('#pl').innerHTML=list.map(e=>`<button class="ex" data-act="pick" data-id="${e.id}"><span>${e.name}</span><span class="mu">${P[e.part]}${e.m?' · 머신':''}</span></button>`).join('')||'<div class="mu">검색 결과가 없어요</div>';
 }
 function openPick(i){
@@ -374,7 +1295,67 @@ function recHTML(){
   <input type="text" data-nf="1" placeholder="(통증 · 자극 부위 · 궁금증을 적어요)" value="${esc(x.note)}" style="margin:6px 0;border-style:dashed"><div class="mu" style="margin:4px 0 10px">W 웜업 · M 메인 · F 실패 (왼쪽 버튼을 누르면 바뀌어요). 웜업은 볼륨에서 빠져요. 회색 무게는 자동으로 채운 임시값이에요.${pv?` 이전 기록: ${pv.d}`:''}</div>
   <div class="row" style="margin-bottom:8px"><button class="btn ghost" data-act="sadd" data-t="W">+ 웜업 세트</button><button class="btn ghost" data-act="sadd" data-t="M">+ 메인 세트</button></div><button class="btn" data-act="close">기록 완료</button>`;
 }
+/* ---- 종목 관리(트레이너): 코드 수정·재배포 없이 종목 추가/숨김/이름·연결·기준표 변경 ---- */
+const CU={part:'chest'};
+const HEADS=[['squat','스쿼트'],['bench','벤치프레스'],['deadlift','데드리프트'],['ohp','오버헤드 프레스'],['bbrow','바벨 로우']];
+const catRow=id=>CAT.rows.find(r=>r.id===id);
+function viewCat(){
+  const rows=CAT.rows.filter(r=>r.part===CU.part).sort((a,b)=>a.sort-b.sort),rj=CATSTATE.rejected||[];
+  const tag=r=>{const t=r.tier||{},h=HEADS.find(x=>x[0]===t.head);return [r.is_machine?'머신':'',t.core?'티어 연결':'',h?'왕룬 '+h[1]:'',r.std?'기준표 v'+r.std.version:'',r.status==='hidden'?'숨김':r.status==='retired'?'폐기':''].filter(Boolean).join(' · ')};
+  return `<div class="pn"><div class="row"><b class="h2">종목 관리</b><button class="btn" style="width:auto;padding:8px 14px" data-act="catnew">+ 새 종목</button></div>
+  <div class="mu" style="margin:6px 0 10px">종목을 추가·숨김·이름 변경해도 회원 기록은 그대로 유지돼요(종목 id는 고정). ${CATSTATE.synced?'서버와 동기화됨':'서버에 연결되지 않아 내장 목록을 쓰는 중이에요 · 변경은 이 기기에만 저장돼요'}</div>
+  ${rj.length?`<div class="mu" style="color:#c0392b;margin-bottom:8px">적용하지 못한 설정 ${rj.length}건: ${rj.map(x=>esc((catRow(x.id)||{name:x.id}).name)+' ('+esc(x.reason)+')').join(' / ')}</div>`:''}
+  <div class="tabs">${Object.keys(P).map(k=>`<button data-act="cattab" data-v="${k}" class="${CU.part===k?'on':''}">${P[k]}</button>`).join('')}</div>
+  ${rows.map(r=>`<button class="ex" data-act="catedit" data-id="${r.id}" style="${r.status!=='active'?'opacity:.55':''}"><span>${esc(r.name)}</span><span class="mu">${esc(tag(r))}</span></button>`).join('')||'<div class="mu">이 부위에는 아직 종목이 없어요</div>'}</div>`;
+}
+function catForm(id){
+  const r=id?catRow(id):{id:'',name:'',part:CU.part,aliases:'',is_machine:false,status:'active',merged_into:null,tier:null,std:null},t=r.tier||{},core=t.core,ex=core?window.RuneTier.BY_ID[core]:null;
+  const base=(r.std&&r.std.base)||(ex&&ex.base)||[],others=CAT.list().filter(e=>e.id!==r.id);
+  return `<div class="cf"><div class="row"><b class="h2">${id?'종목 수정':'새 종목'}</b><button class="x" data-act="close">✕</button></div>
+  <label class="mu">이름<input class="fi" id="cn" value="${esc(r.name)}" maxlength="30"></label>
+  <label class="mu" style="display:block;margin-top:8px">부위<select class="fi" id="cp" style="width:100%">${Object.keys(P).map(k=>`<option value="${k}" ${r.part===k?'selected':''}>${P[k]}</option>`).join('')}</select></label>
+  <label class="mu" style="display:block;margin-top:8px">검색 별칭 (쉼표 없이 / 로 구분)<input class="fi" id="ca" value="${esc(r.aliases)}"></label>
+  <label class="mu" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="cm" ${r.is_machine?'checked':''}> 머신·케이블 종목</label>
+  ${core?`<div class="mu" style="margin-top:8px">티어 계산과 연결된 종목이에요(이름을 바꿔도 연결은 유지).</div>`:`
+  <label class="mu" style="display:block;margin-top:8px">연결할 왕룬(승급은 왕룬 티어+1까지)<select class="fi" id="ch" style="width:100%"><option value="">연결 안 함</option>${HEADS.map(h=>`<option value="${h[0]}" ${t.head===h[0]?'selected':''}>${h[1]}</option>`).join('')}</select></label>
+  <label class="mu" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="ck" ${t.kind==='barbell'?'checked':''}> 바벨 종목 (트레이너가 승급 승인)</label>`}
+  <label class="mu" style="display:block;margin-top:8px">승급 기준표 — 남성 1RM 체중배수, 브론즈부터 (예: .5 .65 .85)${r.std?` · 현재 v${r.std.version}`:''}<input class="fi" id="cs" value="${esc(base.join(' '))}" placeholder="비우면 트레이너가 무게를 직접 설정"></label>
+  <div class="mu" style="margin:4px 0 0">기준표를 바꾸면 새 버전으로 저장돼요(이전 버전은 이력으로 남음). 이미 확정된 회원 티어는 그대로예요.</div>
+  ${id?`<label class="mu" style="display:block;margin-top:8px">상태<select class="fi" id="cst" style="width:100%"><option value="active" ${r.status==='active'?'selected':''}>사용</option><option value="hidden" ${r.status==='hidden'?'selected':''}>숨김(고르는 목록에서만 안 보임)</option><option value="retired" ${r.status==='retired'?'selected':''}>폐기</option></select></label>
+  <label class="mu" style="display:block;margin-top:8px">다른 종목으로 합치기 (옛 기록은 합친 종목 이름으로 보여요)<select class="fi" id="cmg" style="width:100%"><option value="">합치지 않음</option>${others.map(e=>`<option value="${e.id}" ${r.merged_into===e.id?'selected':''}>${esc(e.name)} (${P[e.part]})</option>`).join('')}</select></label>`:''}
+  <button class="btn" style="margin-top:12px" data-act="catsave" data-id="${id||''}">저장</button></div>`;
+}
+function catParseBase(v){
+  const s=String(v||'').trim();if(!s)return{ok:true,base:null};
+  const b=s.split(/[\s,]+/).map(Number);
+  if(b.length<1||b.length>9||b.some((x,i)=>!(x>0&&x<10)||(i&&x<=b[i-1])))return{ok:false};
+  return{ok:true,base:b};
+}
 const A={
+  cattab:d=>{CU.part=d.v;render()},
+  catnew:()=>{openM(catForm(''))},
+  catedit:d=>{openM(catForm(d.id))},
+  catsave:async d=>{
+    const id=d.id||'',old=id?catRow(id):null,t=Object.assign({},(old&&old.tier)||{});
+    if(!(old&&t.core)){const h=$('#ch').value;if(h)t.head=h;else delete t.head;if($('#ck').checked){t.kind='barbell';t.quest='trainer'}else{if(t.kind==='barbell')delete t.kind;if(t.quest==='trainer')delete t.quest}}
+    const mg=id&&$('#cmg').value||null,stt=id?$('#cst').value:'active';
+    const v=RuneCatalog.makeRow({id:id||undefined,name:$('#cn').value,part:$('#cp').value,aliases:$('#ca').value,machine:$('#cm').checked},CAT.rows);
+    if(!v.ok){toast(v.reason);return}
+    const sb2=catParseBase($('#cs').value);if(!sb2.ok){toast('기준표는 1~9개의 숫자(0보다 크고 점점 커지게)로 입력해 주세요');return}
+    const row=Object.assign({},old||{},v.row,{id:id||v.row.id,sort:old?old.sort:v.row.sort,status:mg?'retired':stt,merged_into:mg,tier:Object.keys(t).length?t:null});
+    delete row.std;
+    const curBase=(old&&old.std&&old.std.base)||null,ex=old&&t.core?window.RuneTier.BY_ID[t.core]:null,defBase=curBase||(ex&&ex.base)||null;
+    const stdChanged=sb2.base&&JSON.stringify(sb2.base)!==JSON.stringify(defBase),ver=((old&&old.std&&old.std.version)||0)+1;
+    if(sb&&UID){
+      const w=await sb.from('exercise_catalog').upsert({id:row.id,name:row.name,part:row.part,aliases:row.aliases||'',is_machine:!!row.is_machine,status:row.status,merged_into:row.merged_into||null,sort:row.sort,tier:row.tier},{onConflict:'id'});
+      if(w.error){console.error(w.error);toast('서버에 저장하지 못했어요 (트레이너 계정·4단계 SQL 확인)');return}
+      if(stdChanged){const q=await sb.from('exercise_standards').insert({exercise_id:row.id,version:ver,base:sb2.base,note:'앱 종목 관리 화면에서 수정'});if(q.error){console.error(q.error);toast('종목은 저장했지만 기준표는 저장하지 못했어요');}}
+    }
+    const keep=old&&old.std?old.std:null;
+    row.std=stdChanged?{version:ver,base:sb2.base}:keep;
+    const i=CATSTATE.rows.findIndex(x=>x.id===row.id);if(i>=0)CATSTATE.rows[i]=row;else CATSTATE.rows.push(row);
+    catWrite();catApply();closeM();toast(id?'종목을 수정했어요':'새 종목을 추가했어요');
+  },
   awk:d=>{const x=new Date(ADM.date+'T00:00:00');x.setDate(x.getDate()+ +d.v);ADM.date=ymd(x);render()},
   aq2:d=>{const it=plan(d.d).find(x=>x.id===d.id);if(!it)return;const k=d.k==='hw'?'hwDone':'spDone';it[k]=!it[k];persist();render()},
   aopen:d=>{ADM.date=d.d;A.aslot({t:d.t})},
@@ -383,15 +1364,47 @@ const A={
   mday:d=>{MC.d=d.d;openM(memHTML2())},
   mmon:d=>{MC.m+=+d.v;if(MC.m<0){MC.m=11;MC.y--}if(MC.m>11){MC.m=0;MC.y++}openM(memHTML2())},
   arsave:()=>{const w=wk(ADM.date);let n=0;w.days.forEach(d=>plan(d).forEach(it=>{if(!it.name||!it.name.trim()||!(it.special||it.hw))return;let m=AD().members.find(x=>x.id===it.mid)||AD().members.find(x=>x.name===it.name.trim());if(!m){m={id:'t'+Date.now()+n,name:it.name.trim(),temp:1};AD().members.push(m)}it.mid=m.id;m.log=m.log||[];const e={date:d,time:it.time,no:it.no||0,special:it.special||'',hw:it.hw||'',hwDone:!!it.hwDone,spDone:!!it.spDone},i=m.log.findIndex(x=>x.date===d&&x.time===it.time);if(i>=0)m.log[i]=e;else m.log.push(e);n++}));persist();render();toast(n+'건을 회원정보에 저장했어요')},
-  arcopy:()=>{const w=wk(ADM.date);let t=`[주간 리포트] ${w.m.getMonth()+1}/${w.m.getDate()} ~ ${w.e.getMonth()+1}/${w.e.getDate()}`;w.days.forEach(d=>{const l=plan(d).filter(x=>x.name&&x.name.trim()).sort((a,b)=>a.time<b.time?-1:1);if(!l.length)return;t+=`\n\n${DOW[new Date(d+'T00:00:00').getDay()]} ${d.slice(5).replace('-','/')}`;l.forEach(it=>{t+=`\n- ${it.name} - 특이사항: ${it.special||'없음'} - 과제: ${it.hw||'없음'}`})});copyText(t,'주간 리포트를 복사했어요')},
+  arcopy:()=>{const w=wk(ADM.date);let t=`[주간 리포트] ${w.m.getMonth()+1}/${w.m.getDate()} ~ ${w.e.getMonth()+1}/${w.e.getDate()}`;w.days.forEach(d=>{const l=plan(d).filter(x=>x.name&&x.name.trim()).sort((a,b)=>a.time<b.time?-1:1);const al=(ALR.rows||[]).filter(r=>r.session_date===d);if(!l.length&&!al.length)return;t+=`\n\n${DOW[new Date(d+'T00:00:00').getDay()]} ${d.slice(5).replace('-','/')}`;l.forEach(it=>{t+=`\n- ${it.name} - 특이사항: ${it.special||'없음'} - 과제: ${it.hw||'없음'}`});al.forEach(r=>{t+=`\n- ⚠ ${alertTxt(r)}`})});copyText(t,'주간 리포트를 복사했어요')},
   aq:d=>{const it=fi(d.id);if(!it)return;const k=d.k==='hw'?'hwDone':'spDone';it[k]=!it[k];persist();render()},
   aday:d=>{ADM.date=d.d;tab='day';render();scrollTo(0,0)},
   amon2:d=>{ACM.m+=+d.v;if(ACM.m<0){ACM.m=11;ACM.y--}if(ACM.m>11){ACM.m=0;ACM.y++}render()},
   adnav:d=>{const x=new Date(ADM.date+'T00:00:00');x.setDate(x.getDate()+ +d.v);ADM.date=ymd(x);render()},
   aslot:d=>{const l=plan(ADM.date);let it=l.find(x=>x.time===d.t);if(!it){it={id:'p'+Date.now(),time:d.t,name:'',mid:null,no:0,memo:'',hw:'',goal:'',special:'',slots:Array(6).fill(null),sent:false};l.push(it)}ADM.cur=it;ADM.live=innerWidth<900&&!it.memo;ADM.pop=true;persist();render()},
   acal:d=>{const w=window.open(calURL(fi(d.id),ADM.date),'_blank');if(w){w.opener=null}else toast('캘린더 창이 막혔어요. 목록 화면의 캘린더 버튼을 이용해 주세요')},
-  grade:d=>{S.reviews=S.reviews||{};const r=S.reviews[T]||(S.reviews[T]={g:'',t:''});r.g=r.g===d.g?'':d.g;const sl=draft().slots.filter(Boolean);if(sl.length)S.sessions[T]=JSON.parse(JSON.stringify(sl));persist();render()},
-  mode:d=>{S.mode=d.v;ADM.cur=null;ADM.pop=false;tab=d.v==='admin'?'acal':'today';persist();render()},
+  grade:d=>{S.reviews=S.reviews||{};const r=S.reviews[T]||(S.reviews[T]={g:'',t:''});r.g=r.g===d.g?'':d.g;const sl=draft().slots.filter(Boolean);if(sl.length)putToday(sl);persist();render()},
+  guest:()=>{GUEST=true;SCR=profOk(S.profile)?'servers':'onboard';if(SCR==='onboard')OB=obFrom(S.profile);render()},
+  ob:d=>{const k=d.k,v=d.v,y=scrollY;
+    if(k==='sex'||k==='exp')OB[k]=v;
+    else if(k==='interests')OB.interests=OB.interests.includes(v)?OB.interests.filter(x=>x!==v):OB.interests.concat(v);
+    else if(k==='injuries'){if(v==='없음')OB.injuries=OB.injuries.includes('없음')?[]:['없음'];else{const b=OB.injuries.filter(x=>x!=='없음');OB.injuries=b.includes(v)?b.filter(x=>x!==v):b.concat(v)}}
+    render();scrollTo(0,y)},
+  obcancel:()=>{SCR='app';render()},
+  obdone:async()=>{
+    if(!obValid()){toast('모든 항목을 입력해 주세요');return}
+    const first=!(S.profile&&S.profile.done);
+    S.profile={done:true,age:+OB.age,sex:OB.sex,heightCm:+OB.h,bodyKg:+OB.w,exp:OB.exp,interests:OB.interests.slice(),injuries:OB.injuries.slice(),note:OB.note.trim()};
+    S.lvSet=true;
+    DB.save(S);
+    if(sb&&UID){const ok=await upProfile();if(!ok)toast('서버 저장은 아직 안 됐어요. 이 기기에는 저장했어요')}
+    {const kg=+OB.w,bf=OB.bf==null||OB.bf===''?null:+OB.bf,c=bodyCur();if(!c||c.kg!==kg||(c.bf==null?null:c.bf)!==bf)await addBody(kg,bf,'self',true)}
+    const back=OB.from==='app';SCR=back?'app':'servers';render();if(!back&&first)toast('설정이 끝났어요')},
+  bodyedit:()=>{const c=bodyCur();openM(`<div class="row"><b class="h2">측정값 업데이트</b><button class="x" data-act="close">✕</button></div>
+    <div class="mu" style="margin:6px 0 10px">운동 기준 무게를 몸에 맞게 조정하는 데만 써요. 숫자에 좋고 나쁨은 없어요. 체지방률은 모르면 비워 두세요.</div>
+    <label class="mu">체중 (kg)<input type="number" inputmode="decimal" step="0.1" id="bk" value="${c?c.kg:''}"></label>
+    <label class="mu" style="display:block;margin-top:8px">체지방률 (%) 선택<input type="number" inputmode="decimal" step="0.1" id="bb" value="${c&&c.bf!=null?c.bf:''}"></label>
+    <label class="mu" style="display:block;margin-top:8px">측정 방법<select id="bs" class="fi" style="width:100%"><option value="self">직접 입력 · 추정</option><option value="inbody">체성분 측정 (인바디 등)</option></select></label>
+    <button class="btn" style="margin-top:12px" data-act="bodysave">저장</button>`)},
+  bodysave:async()=>{const kg=+$('#bk').value,bfv=$('#bb').value.trim(),bf=bfv===''?null:+bfv,src=$('#bs').value;
+    if(!(kg>=25&&kg<=250)){toast('체중을 확인해 주세요 (25~250kg)');return}
+    if(bf!=null&&!(bf>=3&&bf<=60)){toast('체지방률은 3~60% 사이로 입력해 주세요');return}
+    await addBody(kg,bf,src);closeM();toast('몸 정보를 업데이트했어요. 새 승급 기준부터 반영돼요')},
+  editprofile:()=>{OB=obFrom(S.profile);OB.from='app';SCR='onboard';render();scrollTo(0,0)},
+  enter:d=>{
+    if(d.v==='admin'){if(!canAdmin()){toast('관리자 계정만 들어갈 수 있어요');return}S.mode='admin';tab='acal'}
+    else{S.mode='member';tab='today'}
+    ADM.cur=null;ADM.pop=false;srvSave(d.v);SCR='app';persist();render();scrollTo(0,0)},
+  servers:()=>{ADM.cur=null;ADM.pop=false;srvSave(null);SCR='servers';render()},
+  mode:d=>{if(d.v==='admin'&&!canAdmin()){toast('관리자 계정만 들어갈 수 있어요');return}S.mode=d.v;ADM.cur=null;ADM.pop=false;tab=d.v==='admin'?'acal':'today';srvSave(d.v);persist();render();scrollTo(0,0)},
   aadd:()=>{const t=$('#at').value,l=plan(ADM.date);if(l.some(x=>x.time===t)){toast('이미 있는 시간이에요');return}const it={id:'p'+Date.now(),time:t,name:'',mid:null,no:0,memo:'',hw:'',goal:'',slots:Array(6).fill(null),sent:false};l.push(it);ADM.cur=it;ADM.live=true;ADM.pop=true;persist();render()},
   aedit:d=>{ADM.cur=fi(d.id);ADM.live=innerWidth<900&&!ADM.cur.memo;ADM.pop=true;render()},
   alive:()=>{ADM.live=!ADM.live;render();scrollTo(0,0)},
@@ -409,26 +1422,36 @@ const A={
   aprev:()=>{const c=ADM.cur,ps=AD().plans;let f=null;Object.keys(ps).filter(k=>k<ADM.date).sort().reverse().some(k=>{const it=ps[k].find(x=>x.name.trim()&&x.name===c.name&&x.slots.some(Boolean));if(it){f=it;return true}});if(!f){toast('이전 수업 기록이 없어요');return}c.slots=JSON.parse(JSON.stringify(f.slots)).map(x=>x&&{id:x.id,sets:x.sets.map(s=>({...s,done:false}))});if(!c.no)c.no=(f.no||0)+1;persist();render();toast('지난 루틴을 불러왔어요')},
   amadd:()=>{const v=$('#mn').value.trim();if(!v)return;AD().members.push({id:'m'+Date.now(),name:v});persist();render()},
   tab:d=>{tab=d.v;ADM.cur=null;ADM.pop=false;render()},
-  level:d=>{S.level=d.v;persist();render()},
+  wm:d=>setMode(d.v),
+  wmrec:()=>setMode(recMode().mode),
   slot:d=>{const i=+d.i,x=draft().slots[i];if(x){RC=i;openM(recHTML())}else openPick(i)},
   rm:d=>{draft().slots[+d.i]=null;persist();render()},
   ptab:d=>{PK.part=d.v;PK.q='';$('#pq').value='';document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
-  pick:d=>{const sl=draft().slots;if(sl.some(x=>x&&x.id===d.id)){toast('이미 장착된 종목이에요');return}sl[PK.slot]={id:d.id,sets:mkSets(d.id)};persist();RC=PK.slot;openM(recHTML())},
+  pick:d=>{const sl=draft().slots;if(sl.some(x=>x&&x.id===d.id)){toast('이미 장착된 종목이에요');return}sl[PK.slot]={id:d.id,nm:EX[d.id].name,sets:mkSets(d.id)};persist();RC=PK.slot;openM(recHTML())},
   close:()=>{persist();closeM()},
   ty:d=>{const s=draft().slots[RC].sets[+d.i],o={W:'M',M:'F',F:'W'};s.t=o[s.t];persist();openM(recHTML())},
   sdel:d=>{const x=draft().slots[RC];if(x.sets.length<=1){toast('세트는 최소 1개 필요해요');return}x.sets.splice(+d.i,1);persist();openM(recHTML())},
   sadd:d=>{const x=draft().slots[RC],m=x.sets.filter(s=>s.t==='M'),l=m[m.length-1]||x.sets[x.sets.length-1],w=d.t==='W';const at=w?Math.max(0,x.sets.findIndex(s=>s.t==='M')):x.sets.length;x.sets.splice(at,0,{t:d.t,w:w?rnd(l.w/2):l.w,r:l.r,done:false,tmp:(w||l.tmp)?1:0});persist();openM(recHTML())},
   save:()=>{const sl=draft().slots.filter(Boolean);if(!sl.length){toast('먼저 룬에 종목을 장착해 주세요');return}
-    S.sessions[T]=JSON.parse(JSON.stringify(sl));persist();toast('오늘 기록을 저장했어요')},
+    putToday(sl);persist();toast(curNo()>1?`오늘 ${curNo()}번째 운동 기록을 저장했어요`:'오늘 기록을 저장했어요')},
+  newsess:async()=>{const sl=draft().slots.filter(Boolean);if(!sl.length){toast('먼저 룬에 종목을 장착해 주세요');return}
+    putToday(sl);clearTimeout(stmr);
+    if(sb&&UID&&PULLED&&S.mode!=='admin')await syncToday();   // 현재 회차를 서버에 먼저 저장한 뒤 다음 회차로 넘어가요
+    const n=curNo()+1;S.curNo[T]=n;S.drafts[T]={slots:Array(6).fill(null)};DB.save(S);render();toast(`오늘 ${n}번째 운동을 시작했어요`)},
   mon:d=>{CM.m+=+d.v;if(CM.m<0){CM.m=11;CM.y--}if(CM.m>11){CM.m=0;CM.y++}render()},
   day:d=>{CD=d.d;render()},
-  login:d=>{S.user={name:d.p+' 회원(데모)',provider:d.p};persist();render();toast('로그인했어요 (데모)')},
-  logout:()=>{S.user=null;persist();render()},
-  reset:()=>{S={user:null,level:'beginner',sessions:{},drafts:{}};ADM.cur=null;tab='today';persist();render();toast('데이터를 지웠어요')}
+  login:d=>{if(d.p!=='카카오'){toast('구글 로그인은 다음 단계에서 연결해요');return}if(!sb){toast('로그인은 GitHub 주소(upvible.github.io)에서만 동작해요');return}sb.auth.signInWithOAuth({provider:'kakao',options:{redirectTo:APP_URL}}).then(r=>{if(r.error)toast('로그인을 시작하지 못했어요: '+r.error.message)})},
+  logout:async()=>{if(sb&&UID){await upProfile();await syncToday();if(SYNC==='err'){toast('저장이 끝나지 않았어요. 연결을 확인하고 다시 시도해 주세요');return}await sb.auth.signOut()}S.user=null;UID=null;ROLE=null;GUEST=false;PULLED=false;SYNC='off';S.sessions={};S.more={};S.curNo={};S.reviews={};S.drafts={};S.profile=null;S.lvSet=false;S.bodyLog=[];srvSave(null);SCR='auth';persist();render()},
+  reset:()=>{S={user:null,level:'intermediate',sessions:{},more:{},curNo:{},drafts:{},wm:{}};ADM.cur=null;tab='today';persist();render();toast('데이터를 지웠어요')}
 };
 document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;e.stopPropagation();const f=A[el.dataset.act];if(f)f(el.dataset)});
+/* 회색(자동 채운 임시값) 칸은 누르는 순간 비워서, 새 숫자가 뒤에 붙지 않고 바로 대체되게 한다. 안 쓰고 나가면 원래 값 복원 */
+document.addEventListener('focusin',e=>{const t=e.target;if(!(t.matches&&t.matches('.sg input.tmp')))return;t.dataset.prev=t.value;t.placeholder=t.value;t.value=''});
+document.addEventListener('focusout',e=>{const t=e.target;if(!(t.matches&&t.matches('.sg input')))return;if(t.dataset.prev!==undefined&&t.value===''&&t.classList.contains('tmp'))t.value=t.dataset.prev;delete t.dataset.prev;if(t.classList.contains('tmp'))t.placeholder=''});
+document.addEventListener('input',e=>{const t=e.target;if(t.matches&&t.matches('.sg input.tmp')){t.classList.remove('tmp');delete t.dataset.prev;t.placeholder=''}},true);
 document.addEventListener('input',e=>{
   const t=e.target;
+  if(t.dataset.pf){OB[t.dataset.pf]=t.value;obRefresh();return}
   if(t.id==='pq'){PK.q=t.value;pickList();return}
   if(t.id==='pm'){PK.m=t.checked;pickList();return}
   if(t.id==='ad'){ADM.date=t.value||T;render();return}
@@ -444,7 +1467,11 @@ document.addEventListener('input',e=>{
   persist();const rv=$('#rv');if(rv)rv.textContent=fmt(vol(draft().slots[RC].sets));
 });
 $('#md').addEventListener('click',e=>{if(e.target.id!=='md')return;if(ADM.pop&&$('#md').querySelector('[data-edit]'))A.aback();else A.close()});
+initAuth();
 render();
+</script>
+<script>
+if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 </script>
 </body>
 </html>
