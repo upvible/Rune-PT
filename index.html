@@ -80,6 +80,7 @@ input[type=text],input[type=number]{width:100%;padding:9px;border:1px solid var(
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .cards div{border:1px solid var(--ln);border-radius:10px;padding:10px}.cards b{display:block;font-size:18px}
 .eg{margin:0 0 10px}.egt{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mu)}.egt b{color:#d9aa4e}.egb{height:10px;border-radius:5px;background:var(--ln);overflow:hidden;margin-top:4px}.egb i{display:block;height:100%;background:linear-gradient(90deg,#e8b923,#ffd54a)}
+.home .avf{width:100%;aspect-ratio:4/5;max-height:74vh;border:0;border-radius:14px;background:#050a15;display:block}.hgo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.hgo .btn{padding:14px 0;font-size:16px}
 .bar{height:8px;background:var(--ln);border-radius:4px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--c)}
 .toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:9px 16px;border-radius:20px;font-size:13px;z-index:99}
 .sp{border-top:1px solid var(--ln);padding:8px 0}
@@ -846,6 +847,19 @@ function gradeHTML(sl){
   }).join('');
   return `<div class="row"><b class="h2">오늘 세트 평가</b><button class="x" data-act="close">✕</button></div><div class="mu" style="margin:4px 0 8px">웜업을 뺀 완료 세트를 승급 시험 기준으로 환산했어요. 아 아이언 · 브 브론즈 · 실 실버 · 골 골드 · 플 플래티넘 · 에 에메랄드 · 다 다이아 · 마 마스터 · 그 그랜드마스터 · 챌 챌린저. 세트 구성이 비슷할수록 일관된 운동이에요.</div>${body}`;
 }
+/* ---- 홈: 서버에 들어가면 가장 먼저 뜨는 아바타 창 + 오늘/달력/통계/내 정보 버튼 ---- */
+function avatarState(){
+  const map={chest:'chest',back:'back',shoulder:'shoulder',leg:'legs'},st={};
+  try{tierRows().forEach(r=>{const k=map[r.part];if(!k)return;const o=st[k];if(!o||r.p.tier>o.t||(r.p.tier===o.t&&r.p.stars>o.s))st[k]={t:r.p.tier,s:r.p.stars}})}catch(e){}
+  Object.keys(map).forEach(p=>{if(!st[map[p]])st[map[p]]={t:0,s:0}});st.run=st.run||{t:0,s:0};
+  const p=S.profile||{};return{type:'rune-state',st,sex:p.sex==='F'?'F':'M'};
+}
+function viewHome(){
+  return `<div class="home"><iframe id="avf" class="avf" src="avatar/avatar.html?embed=1" title="내 아바타" loading="eager"></iframe>
+  <div class="hgo"><button class="btn" data-act="tab" data-v="today">운동시작</button><button class="btn" data-act="tab" data-v="cal">캘린더조회</button><button class="btn" data-act="tab" data-v="stat">통계분석</button><button class="btn" data-act="tab" data-v="me">계정 정보</button></div>
+  <div class="mu" style="text-align:center;margin-top:6px">아바타 화면이 안 보이면 avatar 폴더가 같은 저장소에 올라가 있는지 확인해 주세요</div></div>`;
+}
+addEventListener('message',e=>{if(e.data&&e.data.type==='rune-ready'){const f=document.getElementById('avf');if(f&&f.contentWindow&&e.source===f.contentWindow){try{f.contentWindow.postMessage(avatarState(),'*')}catch(x){}}}});
 function tierPanel(){
   const R=window.RuneTier,rows=tierRows(),mu=R.multOf(S.level);
   if(!rows.length)return `<div class="pn"><div class="h2">종목별 티어 <small class="mu">베타</small></div><div class="mu">기록을 저장하면 종목마다 별이 쌓여요</div></div>`;
@@ -872,7 +886,7 @@ const DEMO=[['m1','김민수'],['m2','이서연'],['m3','박지훈'],['m4','최�
 const AD=()=>S.adm||(S.adm={members:DEMO.map(([id,name])=>({id,name})),plans:{}});
 let sb=null,UID=null,PULLED=false,PULLING=false,SYNC='off',stmr=null;
 const persist=()=>{DB.save(S);queueSync()};
-let ADM={date:T,cur:null},tab=S.mode==='admin'?'acal':'today',PK={slot:0,part:'chest',q:''},RC=0,CM=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()}})(),CD=T;
+let ADM={date:T,cur:null},tab=S.mode==='admin'?'acal':'home',PK={slot:0,part:'chest',q:''},RC=0,CM=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()}})(),CD=T;
 
 const vol=sets=>sets.reduce((a,s)=>a+(s.done&&s.t!=='W'?s.w*s.r:0),0);
 const pvol=sets=>sets.reduce((a,s)=>a+(s.t!=='W'?s.w*s.r:0),0);
@@ -970,7 +984,7 @@ function viewCal(){
   const gs=[S.sessions[CD]||[]].concat((S.more&&S.more[CD])||[]).map(g=>(g||[]).filter(Boolean)).filter(g=>g.length);
   const one=x=>`<div class="sp row"><div><b style="color:${PC[EX[x.id].part]}">${P[EX[x.id].part]}</b> ${EX[x.id].name}<div class="mu">${x.sets.map(s=>(s.t==='W'?'W':s.t==='F'?'F':'')+s.w+'×'+s.r+(s.done?'':'(미완)')).join(' · ')}${x.note?'<br>📝 '+esc(x.note):''}</div></div><b>${fmt(vol(x.sets))}</b></div>`;
   const det=gs.length?gs.map((g,i)=>(gs.length>1?`<div class="mu" style="margin-top:8px"><b>${i+1}회차</b> · ${fmt(g.reduce((a,x)=>a+vol(x.sets),0))}kg</div>`:'')+g.map(one).join('')).join(''):'<div class="mu">이 날은 저장된 운동이 없어요</div>';
-  return `<h1 class="h1">운동 달력</h1><div class="pn"><div class="row"><button class="x" data-act="mon" data-v="-1">◀</button><b class="h2">${y}년 ${m+1}월</b><button class="x" data-act="mon" data-v="1">▶</button></div><div class="cal" style="margin-top:8px">${cells}</div></div>
+  return `<h1 class="h1">캘린더조회</h1><div class="pn"><div class="row"><button class="x" data-act="mon" data-v="-1">◀</button><b class="h2">${y}년 ${m+1}월</b><button class="x" data-act="mon" data-v="1">▶</button></div><div class="cal" style="margin-top:8px">${cells}</div></div>
   <div class="pn"><div class="row"><b class="h2">${CD}</b><span class="vb"><b style="font-size:16px">${fmt(dayVol(CD))}</b> kg</span></div>${revCal()}${det}</div>`;
 }
 function radar(a,b){
@@ -993,7 +1007,7 @@ function viewStat(){
   const top=Object.keys(ex).filter(k=>!(EX[k].missing&&EX[k].name==='(삭제된 종목)')).sort((p,q)=>ex[q].n-ex[p].n).slice(0,5);
   const mast=Object.keys(P).map(k=>{let i=0;TIER.forEach((t,j)=>{if(all[k]>=t[0])i=j});const nx=TIER[i+1],pr=nx?(all[k]-TIER[i][0])/(nx[0]-TIER[i][0]):1;
     return `<div class="sp"><div class="row"><b style="color:${PC[k]}">${P[k]}</b><span>${TIER[i][1]} <span class="mu">${fmt(all[k])}kg${nx?' / '+fmt(nx[0]):''}</span></span></div><div class="bar" style="--c:${PC[k]}"><i style="width:${Math.min(100,pr*100)}%"></i></div></div>`}).join('');
-  return `<h1 class="h1">내 통계</h1><div class="pn"><div class="h2">부위별 균형 (최근 30일)</div>${radar(a,b)}
+  return `<h1 class="h1">통계분석</h1><div class="pn"><div class="h2">부위별 균형 (최근 30일)</div>${radar(a,b)}
   <div class="cards"><div><span class="mu">운동한 날</span><b>${ds.length}일</b></div><div><span class="mu">총 볼륨</span><b>${fmt(tot)}kg</b></div><div><span class="mu">완료 세트</span><b>${setN}</b></div><div><span class="mu">주당 평균</span><b>${(ds.length/30*7).toFixed(1)}회</b></div></div></div>
   <div class="pn"><div class="h2">자주 하는 운동</div>${top.length?top.map(id=>`<div class="sp row"><span>${EX[id].name}</span><span class="mu">${ex[id].n}회 · ${fmt(ex[id].v)}kg</span></div>`).join(''):'<div class="mu">기록을 저장하면 여기에 쌓여요</div>'}</div>
   ${tierPanel()}
@@ -1001,7 +1015,7 @@ function viewStat(){
 }
 function viewMe(){
   const u=S.user;
-  return `<h1 class="h1">내 정보</h1><div class="pn">${u?`<div class="row"><div><b class="h2">${u.name}</b><div class="mu">${u.provider} 계정 연결됨 · 서버 저장: ${syncTxt()}</div></div><button class="btn ghost" style="width:auto;padding:8px 14px" data-act="logout">로그아웃</button></div>`:
+  return `<h1 class="h1">계정 정보</h1><div class="pn">${u?`<div class="row"><div><b class="h2">${u.name}</b><div class="mu">${u.provider} 계정 연결됨 · 서버 저장: ${syncTxt()}</div></div><button class="btn ghost" style="width:auto;padding:8px 14px" data-act="logout">로그아웃</button></div>`:
   `<div class="h2">로그인하고 기록 이어가기</div><div class="mu" style="margin:4px 0 10px">로그인하면 기록이 계정에 저장돼서 기기를 바꿔도 이어져요. 카톡 안에서 열었다면 크롬·사파리로 열어 로그인해 주세요.</div>
   <button class="btn" style="background:#fee500;color:#191600;margin-bottom:8px" data-act="login" data-p="카카오">카카오로 시작하기</button>
   <button class="btn ghost" data-act="login" data-p="구글">구글로 시작하기</button>`}</div>
@@ -1196,7 +1210,7 @@ async function initAuth(){
   await onSession(g.data.session);
 }
 addEventListener('online',()=>queueSync());
-const VIEWS={today:viewToday,cal:viewCal,stat:viewStat,me:viewMe};
+const VIEWS={home:viewHome,today:viewToday,cal:viewCal,stat:viewStat,me:viewMe};
 
 /* ===== 첫 화면: 로그인 → 초기 정보 5가지 → 서버 선택 ===== */
 let SCR='boot',ROLE=null,GUEST=false;
@@ -1234,12 +1248,12 @@ async function loadMe(){
 async function upProfile(){
   if(!sb||!UID||!S.profile||!S.profile.done)return false;const p=S.profile;
   try{const r=await sb.from('member_body').upsert({member_id:UID,sex:p.sex,birth_year:new Date().getFullYear()-p.age,body_kg:p.bodyKg||null,height_cm:p.heightCm||null,experience:p.exp,interests:p.interests,injuries:p.injuries,injury_note:p.note||null,onboarded_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:'member_id'});
-    if(r.error){console.error(r.error);return false}return true}catch(e){return false}
+    if(r.error){console.error(r.error);try{toast('내 정보를 서버에 저장하지 못했어요: '+(r.error.message||r.error.code||'원인 불명'))}catch(x){}return false}return true}catch(e){try{toast('내 정보를 서버에 저장하지 못했어요: 연결을 확인해 주세요')}catch(x){}return false}
 }
 function enterAfterLogin(){
   const sv=srvLoad();
   if(!profOk(S.profile)){OB=obFrom(S.profile);SCR='onboard'}
-  else if(sv==='member'||(sv==='admin'&&canAdmin())){S.mode=sv==='admin'?'admin':'member';tab=sv==='admin'?'acal':'today';SCR='app'}
+  else if(sv==='member'||(sv==='admin'&&canAdmin())){S.mode=sv==='admin'?'admin':'member';tab=sv==='admin'?'acal':'home';SCR='app'}
   else SCR='servers';
   render();
 }
@@ -1314,7 +1328,7 @@ function render(){
   $('#app').innerHTML=srvBar()+(ad?(ADM.cur&&!ADM.pop?viewAdmEdit():tab==='mem'?viewMem():tab==='cat'?viewCat():tab==='acal'?viewACal():tab==='quest'?viewQuest2():viewDay2()):VIEWS[tab]());
   $('#app').className=ad&&ADM.cur&&!ADM.pop&&!ADM.live?'wide':'';
   if(ad&&ADM.pop&&ADM.cur){const m=$('#md');if(!m.classList.contains('on')||m.querySelector('[data-edit]'))openM(viewAdmEdit())}
-  $('#nav').innerHTML=(ad?[['acal','달력'],['day','일일 스케줄'],['quest','과제·특이사항'],['mem','회원'],['cat','종목']]:[['today','오늘'],['cal','달력'],['stat','통계'],['me','내 정보']]).map(([k,t])=>`<button class="${tab===k?'on':''}" data-act="tab" data-v="${k}">${t}</button>`).join('');
+  $('#nav').innerHTML=(ad?[['acal','달력'],['day','일일 스케줄'],['quest','과제·특이사항'],['mem','회원'],['cat','종목']]:[['home','홈'],['today','운동시작'],['cal','캘린더조회'],['stat','통계분석'],['me','계정 정보']]).map(([k,t])=>`<button class="${tab===k?'on':''}" data-act="tab" data-v="${k}">${t}</button>`).join('');
 }
 const toast=t=>{const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)};
 const openM=h=>{$('#md').innerHTML=`<div class="sheet">${h}</div>`;$('#md').classList.add('on')};
@@ -1486,10 +1500,10 @@ const A={
   editprofile:()=>{OB=obFrom(S.profile);OB.from='app';SCR='onboard';render();scrollTo(0,0)},
   enter:d=>{
     if(d.v==='admin'){if(!canAdmin()){toast('관리자 계정만 들어갈 수 있어요');return}S.mode='admin';tab='acal'}
-    else{S.mode='member';tab='today'}
+    else{S.mode='member';tab='home'}
     ADM.cur=null;ADM.pop=false;srvSave(d.v);SCR='app';persist();render();scrollTo(0,0)},
   servers:()=>{ADM.cur=null;ADM.pop=false;srvSave(null);SCR='servers';render()},
-  mode:d=>{if(d.v==='admin'&&!canAdmin()){toast('관리자 계정만 들어갈 수 있어요');return}S.mode=d.v;ADM.cur=null;ADM.pop=false;tab=d.v==='admin'?'acal':'today';srvSave(d.v);persist();render();scrollTo(0,0)},
+  mode:d=>{if(d.v==='admin'&&!canAdmin()){toast('관리자 계정만 들어갈 수 있어요');return}S.mode=d.v;ADM.cur=null;ADM.pop=false;tab=d.v==='admin'?'acal':'home';srvSave(d.v);persist();render();scrollTo(0,0)},
   aadd:()=>{const t=$('#at').value,l=plan(ADM.date);if(l.some(x=>x.time===t)){toast('이미 있는 시간이에요');return}const it={id:'p'+Date.now(),time:t,name:'',mid:null,no:0,memo:'',hw:'',goal:'',slots:Array(6).fill(null),sent:false};l.push(it);ADM.cur=it;ADM.live=true;ADM.pop=true;persist();render()},
   aedit:d=>{ADM.cur=fi(d.id);ADM.live=innerWidth<900&&!ADM.cur.memo;ADM.pop=true;render()},
   alive:()=>{ADM.live=!ADM.live;render();scrollTo(0,0)},

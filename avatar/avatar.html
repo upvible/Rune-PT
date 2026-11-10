@@ -56,7 +56,9 @@ canvas:active{cursor:grabbing}
 .pyr h3,#pyrl{display:none!important}
 .pyr .pyh{text-align:right}
 .pyr p{pointer-events:auto;cursor:pointer}
-.pyr p{order:-1;margin:0 0 4px}
+.pyr p{order:-1;margin:0 0 4px;position:relative;padding-right:34px!important}
+.pyr .pyx{position:absolute;top:4px;right:4px;width:28px;height:28px;border:0;border-radius:50%;background:#ffffff14;color:#dbe8ff;font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.pyr .pyx:hover,.pyr .pyx:focus-visible{background:#ffffff30;outline:none}
 #pyrl{display:block!important;width:176px!important;position:relative}
 #pyrl .lay{position:absolute!important;left:0;top:0;width:1px!important;height:1px!important;padding:0!important;overflow:hidden;opacity:0!important;pointer-events:none}
 @media(prefers-reduced-motion:reduce){.pyr{transition:none}.pyr.open p{animation:none}}
@@ -91,6 +93,19 @@ select{background:#0a1630;border:1px solid var(--line);border-radius:6px;padding
 .orb span{font-size:11.5px;color:var(--mut);text-align:center}
 .orb:hover span{color:var(--fg)}
 .note{border-top:1px solid var(--line);padding-top:10px;color:var(--mut);font-size:12.5px;margin:0}
+
+.pyr .pyl{display:grid;gap:4px}
+.pyr2{display:grid;grid-template-columns:22px auto 1fr auto;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;border:1px solid transparent}
+.pyr2.me{border-color:#ffffff55;background:#ffffff10}
+.pyr2 i{width:18px;height:18px;border-radius:50%;display:block}
+.pyr2 .pn2{font-weight:700;font-size:12.5px}
+.pyr2 small{color:var(--mut);font-size:10.5px}
+.pyr2 em{font-style:normal;color:var(--acc);font-size:10.5px;text-align:right}
+html.embed header,html.embed .status,html.embed .note{display:none}
+html.embed body{padding-block:0;padding-left:0;padding-right:0;background:transparent}
+html.embed .wrap{max-width:none;gap:0}
+html.embed .stage{border-radius:14px}
+html.embed canvas{max-height:none}
 </style>
 
 <div class="wrap">
@@ -409,26 +424,22 @@ select{background:#0a1630;border:1px solid var(--line);border-radius:6px;padding
   });
   /* 티어 피라미드: 위쪽일수록 드문 수준. 내 부위들이 어느 층에 있는지 표시하고, 층을 누르면 '상위 몇 %' 설명 */
   var pyrSel=null,pyrl=document.getElementById('pyrl'),pyrt=document.getElementById('pyrt'),pyrEls=[];
-  for(var pt=9;pt>=0;pt--){(function(t){
-    var b=document.createElement('button');b.type='button';b.className='lay';b.dataset.t=t;b.style.setProperty('--c',COL[t]);
-    b.style.width=(46+(9-t)*6).toFixed(0)+'%';b.setAttribute('aria-label',TIERS[t]+' 티어, '+(RANK[t]?'일반 성인 상위 약 '+RANK[t]+'%':'시작 단계')+' 자세히 보기');
-    b.innerHTML='<span>'+(RANK[t]?RANK[t]+'%':'입문')+'</span>';
-    b.addEventListener('click',function(){pyrSel=pyrSel===t?null:t;pyrUpdate()});
-    pyrl.appendChild(b);pyrEls[t]=b;
-  })(pt)}
   var PD=['운동을 막 시작한 단계예요. 모든 티어는 여기서 출발해요.','기초 체력을 만든 단계예요. 일반 성인의 절반을 넘어선 수준이에요.','꾸준히 운동하는 사람의 수준이에요. 10명 중 4명 안에 들어요.','운동 습관이 몸에 밴 단계예요. 4명 중 1명만 도달해요.','헬스장에서도 눈에 띄는 수준이에요. 7명 중 1명 정도예요.','오랜 훈련의 결과예요. 10명 중 1명만 도달해요.','선수급 기반이에요. 약 17명 중 1명이에요.','극소수의 영역이에요. 약 33명 중 1명이에요.','200명 중 1명 꼴로 드문 수준이에요.','1,000명 중 1명. 피라미드의 꼭대기예요.'];
   /* 3D 금속 피라미드 3조각 — 정점(머리 옆) · 고지(몸통 옆) · 기반(발목~허벅지 옆). 아바타와 같은 시점(위아래 각도·확대)으로 그려서 함께 움직여요 */
+  var ZOF=function(t){return t<4?0:t<7?1:2},ZR=['50~25%','15~6%','3~0.1%'],ZREP=[2,5,8],pyTopT=0,
+      CT=function(z){return z===ZOF(pyTopT)?pyTopT:ZREP[z]};
   var pyHas={},pyTop=0,pyPoly=[],pyReduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches,
       pyo=document.createElement('canvas'),pyx=pyo.getContext('2d'),pyW=0,pyH=0;
   pyo.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1';
   cv.parentNode.appendChild(pyo);
   var PYZ=[
-    {n:'기반',t:[0,1,2,3],y0:.20,y1:.66,hb:[.150,.135,.120,.105],ht:[.142,.127,.112,.097]},
-    {n:'고지',t:[4,5,6],y0:.96,y1:1.36,hb:[.128,.112,.096],ht:[.120,.104,.088]},
-    {n:'정점',t:[7,8,9],y0:1.54,y1:1.78,hb:[.140,.110,.085],ht:[.120,.090,.030]}
-  ],PXC=-.58,STEEL=[205,214,228];
-  function mixc(c,k){return[c[0]+(STEEL[0]-c[0])*k,c[1]+(STEEL[1]-c[1])*k,c[2]+(STEEL[2]-c[2])*k]}
+    {n:'기반',t:[0],y0:.22,y1:.66,rb:.100,rt:.052,flat:1},
+    {n:'고지',t:[1],y0:.98,y1:1.32,rb:.088,rt:.050,flat:1},
+    {n:'정점',t:[2],y0:1.56,y1:1.82,rb:.076,rt:0,flat:0}
+  ],PXC=-.58,WOOD=[226,188,142];
+  function mixw(c,k){return[c[0]+(WOOD[0]-c[0])*k,c[1]+(WOOD[1]-c[1])*k,c[2]+(WOOD[2]-c[2])*k]}
   function rgbs(c,k,a){return'rgba('+(Math.max(0,Math.min(255,c[0]*k))|0)+','+(Math.max(0,Math.min(255,c[1]*k))|0)+','+(Math.max(0,Math.min(255,c[2]*k))|0)+','+a+')'}
+  function hsh(n){var x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)}
   function pyDraw(now){
     requestAnimationFrame(pyDraw);
     if(document.hidden)return;
@@ -436,48 +447,64 @@ select{background:#0a1630;border:1px solid var(--line);border-radius:6px;padding
     var d=Math.min(2,window.devicePixelRatio||1);
     if(pyW!==cw||pyH!==ch){pyW=cw;pyH=ch;pyo.width=cw*d;pyo.height=ch*d}
     pyx.setTransform(d,0,0,d,0,0);pyx.clearRect(0,0,cw,ch);pyPoly=[];
-    var ang=pyReduce?.7:now*.0006,cs=Math.cos(ang),sn=Math.sin(ang),Sx=ch*.47*zoom,cpp=Math.cos(pitch),spp=Math.sin(pitch);
+    var ang=pyReduce?.7:now*.00045,cs=Math.cos(ang),sn=Math.sin(ang),Sx=ch*.47*zoom,cpp=Math.cos(pitch),spp=Math.sin(pitch);
     function pr(x,y,z){var xr=x*cs+z*sn,zr=-x*sn+z*cs,X=PXC+xr,y2=(y-.9)*cpp+zr*spp,z2=-(y-.9)*spp+zr*cpp,f=3.4/(3.4-z2);return[cw/2+X*Sx*f,ch/2-y2*Sx*f]}
-    var NX=[0,1,0,-1],NZ=[1,0,-1,0],IJ=[[3,2],[2,1],[1,0],[0,3]];
-    PYZ.forEach(function(Z,zi){
-      var n=Z.t.length,gap=.012,hh=(Z.y1-Z.y0-gap*(n-1))/n,zsel=false;
+    function area(P){var s=0;for(var i=0;i<P.length;i++){var a=P[i],b=P[(i+1)%P.length];s+=a[0]*b[1]-b[0]*a[1]}return s}
+    function bil(B0,B1,T1,T0,u,v){var x0=B0[0]+(B1[0]-B0[0])*u,y0=B0[1]+(B1[1]-B0[1])*u,x1=T0[0]+(T1[0]-T0[0])*u,y1=T0[1]+(T1[1]-T0[1])*u;return[x0+(x1-x0)*v,y0+(y1-y0)*v]}
+    var FS=Math.max(8.5,Math.min(11,Sx*.04));
+    PYZ.forEach(function(Z){
+      var n=Z.t.length,H=Z.y1-Z.y0,gap=.012,lh=(H-gap*(n-1))/n,zsel=false,cx=pr(0,(Z.y0+Z.y1)/2,0)[0];
+      function R(y){return Z.rb+(Z.rt-Z.rb)*(y-Z.y0)/H}
+      function ring(rad,y){var o=[];for(var i=0;i<4;i++){var a=Math.PI/4+i*Math.PI/2;o.push(pr(Math.cos(a)*rad,y,Math.sin(a)*rad))}return o}
+      Z.t.forEach(function(t){if(pyrSel===t)zsel=true});var zown=!!pyHas[Z.t[0]];
       Z.t.forEach(function(t,k){
-        var c=mixc(RGB[t],.28),y0=Z.y0+k*(hh+gap),y1=y0+hh,hb=Z.hb[k],ht=Z.ht[k],sel=pyrSel===t,own=!!pyHas[t],al=sel?1:own?.96:.62;
-        if(sel)zsel=true;
-        var CB=[[-hb,-hb],[hb,-hb],[hb,hb],[-hb,hb]],CT=[[-ht,-ht],[ht,-ht],[ht,ht],[-ht,ht]];
-        var B=CB.map(function(q){return pr(q[0],y0,q[1])}),T=CT.map(function(q){return pr(q[0],y1,q[1])}),polys=[],bestN=-1,bestC=null,i;
-        pyx.shadowBlur=0;
-        if(t===pyTop){pyx.shadowColor=rgbs(RGB[t],1.2,.95);pyx.shadowBlur=16}
-        pyx.globalAlpha=al;
-        for(i=0;i<4;i++){
-          var nzr=-NX[i]*sn+NZ[i]*cs;if(nzr<=0)continue;
-          var a1=IJ[i][0],a2=IJ[i][1],pts=[B[a1],B[a2],T[a2],T[a1]];
-          /* 금속 면: 가로로 어둡 → 밝은 반사띠 → 어둡 (반사띠는 회전에 따라 이동) */
-          var g=pyx.createLinearGradient(B[a1][0],B[a1][1],B[a2][0],B[a2][1]),hp=.3+.28*Math.sin(ang*1.6+i*1.7+t*.4),base=.55+.4*nzr;
-          g.addColorStop(0,rgbs(c,base*.5,1));g.addColorStop(Math.max(.02,hp-.2),rgbs(c,base*.95,1));g.addColorStop(hp,rgbs(mixc(c,.55),base*1.45,1));g.addColorStop(Math.min(.98,hp+.2),rgbs(c,base*.8,1));g.addColorStop(1,rgbs(c,base*.42,1));
-          pyx.fillStyle=g;pyx.beginPath();pts.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.fill();
-          pyx.shadowBlur=0;pyx.lineWidth=sel?1.6:.8;pyx.strokeStyle=sel?'rgba(255,255,255,.95)':'rgba(10,16,30,.7)';pyx.stroke();
-          pyx.strokeStyle='rgba(255,255,255,'+(.25+.3*nzr)+')';pyx.lineWidth=1;pyx.beginPath();pyx.moveTo(T[a1][0],T[a1][1]);pyx.lineTo(T[a2][0],T[a2][1]);pyx.stroke(); // 윗모서리 하이라이트(모따기)
-          polys.push(pts);if(nzr>bestN){bestN=nzr;bestC=pts}
+        var y0=Z.y0+k*(lh+gap),y1=y0+lh,r0=R(y0),r1=R(y1),sel=pyrSel===t,own=!!pyHas[t],top=own,polys=[],i;
+        var c=mixw(RGB[CT(t)],own||sel?.34:.5),B=ring(r0,y0),T=ring(r1,y1);
+        pyx.globalAlpha=own?1:sel?.8:.42;
+        var ref=0,refN=-9;
+        for(i=0;i<4;i++){var a=Math.PI/4+(i+.5)*Math.PI/2,nz=-Math.cos(a)*sn+Math.sin(a)*cs;if(nz>refN){refN=nz;ref=i}}
+        var sgn=area([B[ref],B[(ref+1)%4],T[(ref+1)%4],T[ref]])>=0?1:-1;
+        /* 윗면(받침 위로 살짝 보이는 얇은 면) — 아래 층 위에 위층이 얹힌 느낌 */
+        if(Z.flat||k<n-1){
+          if(area(T)*sgn<0&&r1>.004){
+            pyx.fillStyle=rgbs(mixw(c,.25),1.12,1);pyx.beginPath();T.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.fill();
+            pyx.strokeStyle='rgba(60,30,10,.35)';pyx.lineWidth=.6;pyx.stroke();polys.push(T)}
         }
-        /* 윗면: 솔질한 강철판 + 안쪽 테두리 */
-        var tg=pyx.createLinearGradient(T[0][0],T[0][1],T[2][0],T[2][1]);
-        tg.addColorStop(0,rgbs(mixc(c,.5),1.5,1));tg.addColorStop(.5,rgbs(mixc(c,.7),1.1,1));tg.addColorStop(1,rgbs(c,.8,1));
-        pyx.fillStyle=tg;pyx.beginPath();T.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.fill();
-        pyx.lineWidth=sel?1.6:.8;pyx.strokeStyle=sel?'rgba(255,255,255,.95)':'rgba(10,16,30,.6)';pyx.stroke();
-        if(ht>.03){var ctr=pr(0,y1,0),inset=T.map(function(p){return[ctr[0]+(p[0]-ctr[0])*.62,ctr[1]+(p[1]-ctr[1])*.62]});
-          pyx.strokeStyle='rgba(255,255,255,.35)';pyx.lineWidth=.8;pyx.beginPath();inset.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.stroke()}
-        polys.push(T);pyPoly[t]=polys;pyx.globalAlpha=1;
-        var sx=0,sy=0;if(bestC){bestC.forEach(function(p){sx+=p[0];sy+=p[1]});sx/=4;sy/=4}
-        pyx.font='800 '+Math.max(8,Math.min(11,Sx*.046))+'px "Noto Sans KR",system-ui,sans-serif';pyx.textAlign='center';pyx.textBaseline='middle';
-        pyx.fillStyle='rgba(6,14,28,'+(own||sel?.95:.7)+')';pyx.fillText(RANK[t]?RANK[t]+'%':'입문',sx,sy+.5);
+        for(i=0;i<4;i++){
+          var j=(i+1)%4,P=[B[i],B[j],T[j],T[i]];
+          if(area(P)*sgn<=0&&Math.abs(area(P))>.01)continue;
+          var a=Math.PI/4+(i+.5)*Math.PI/2,aw=a-ang,lit=.5+.5*Math.cos(aw-2.2),b=.52+.62*lit;
+          if(top){pyx.shadowColor=rgbs(RGB[CT(t)],1.3,.85);pyx.shadowBlur=13}
+          var g=pyx.createLinearGradient(B[i][0],B[i][1],B[j][0],B[j][1]);
+          g.addColorStop(0,rgbs(c,b*1.06,1));g.addColorStop(1,rgbs(c,b*.9,1));
+          pyx.fillStyle=g;pyx.beginPath();P.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.fill();pyx.shadowBlur=0;
+          /* 나뭇결: 면 안을 가로지르는 가는 선 + 어두운 결 */
+          pyx.save();pyx.beginPath();P.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.clip();
+          var G=9;for(var gi=0;gi<G;gi++){
+            var h=hsh(t*31+i*7+gi*3.7),v0=(gi+.3+h*.5)/G,dv=(hsh(t*5+gi+i)-.5)*.10,v1=Math.max(0,Math.min(1,v0+dv)),dark=h>.45;
+            pyx.strokeStyle=dark?'rgba(70,32,8,'+(.10+.14*h).toFixed(3)+')':'rgba(255,238,205,'+(.08+.12*h).toFixed(3)+')';pyx.lineWidth=dark?.5+h*.9:.6;
+            var s1=bil(B[i],B[j],T[j],T[i],0,v0),s2=bil(B[i],B[j],T[j],T[i],.5,(v0+v1)/2+(h-.5)*.04),s3=bil(B[i],B[j],T[j],T[i],1,v1);
+            pyx.beginPath();pyx.moveTo(s1[0],s1[1]);pyx.quadraticCurveTo(s2[0],s2[1],s3[0],s3[1]);pyx.stroke();
+          }
+          pyx.restore();
+          if(own&&lit>.8){pyx.fillStyle='rgba(255,246,225,'+((lit-.8)*.5).toFixed(3)+')';pyx.beginPath();P.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.fill()}
+          pyx.setLineDash(own?[]:[3,3]);pyx.lineWidth=own?1.5:sel?1.2:.7;pyx.strokeStyle=own?'rgba(255,244,214,.97)':sel?'rgba(255,255,255,.9)':'rgba(230,214,190,.55)';pyx.beginPath();P.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.stroke();pyx.setLineDash([]);
+          polys.push(P);
+        }
+        /* 오른쪽 라벨 */
+        var ym=pr(0,(y0+y1)/2,0),rm=(r0+r1)/2,lx=cx+Sx*(Math.max(rm,.05)*1.35+.018),lbl='('+ZR[t]+')';
+        pyx.globalAlpha=1;pyx.font=(own||sel?'700 ':'500 ')+FS+'px "Noto Sans KR",system-ui,sans-serif';pyx.textAlign='left';pyx.textBaseline='middle';
+        var tw=pyx.measureText(lbl).width;
+        pyx.strokeStyle=rgbs(RGB[CT(t)],1.15,own||sel?.9:.4);pyx.lineWidth=1;pyx.beginPath();pyx.moveTo(lx-7,ym[1]);pyx.lineTo(lx-2,ym[1]);pyx.stroke();
+        pyx.fillStyle=sel?'#fff':own?rgbs(mixw(RGB[CT(t)],.3),1.2,1):'rgba(190,208,235,.62)';pyx.fillText(lbl,lx,ym[1]+.5);
+        polys.push([[lx-8,ym[1]-7],[lx+tw+3,ym[1]-7],[lx+tw+3,ym[1]+7],[lx-8,ym[1]+7]]);
+        pyPoly[t]=polys;
       });
-      /* 구간 이름표 (조각 위) */
-      var tp=pr(0,Z.y1,0),pw=34,ph=15;
-      pyx.fillStyle='rgba(8,16,33,.82)';pyx.beginPath();pyx.roundRect(tp[0]-pw/2,tp[1]-ph-9,pw,ph,6);pyx.fill();
-      pyx.strokeStyle=zsel?'rgba(255,255,255,.95)':'rgba(159,198,255,.5)';pyx.lineWidth=zsel?1.4:1;pyx.stroke();
-      pyx.font='700 10.5px "Noto Sans KR",system-ui,sans-serif';pyx.textAlign='center';pyx.textBaseline='middle';
-      pyx.fillStyle=zsel?'#fff':'rgba(200,222,255,.95)';pyx.fillText(Z.n,tp[0],tp[1]-ph/2-8.5);
+      var tp=pr(0,Z.y1,0),lab=Z.n+(zown?' ●':'');pyx.globalAlpha=1;pyx.font='600 '+(FS-1)+'px "Noto Sans KR",system-ui,sans-serif';
+      var pw=pyx.measureText(lab).width+14,ph=15,py0=tp[1]-ph-(Z.flat?12:10);
+      pyx.fillStyle='rgba(8,16,33,.55)';pyx.beginPath();pyx.roundRect(tp[0]-pw/2,py0,pw,ph,7.5);pyx.fill();
+      pyx.strokeStyle=zsel?'rgba(255,255,255,.9)':'rgba(159,198,255,.28)';pyx.lineWidth=zsel?1.2:.8;pyx.stroke();
+      pyx.textAlign='center';pyx.textBaseline='middle';pyx.fillStyle=zsel?'#fff':'rgba(200,222,255,.9)';pyx.fillText(lab,tp[0],py0+ph/2+.5);
     });
   }
   requestAnimationFrame(pyDraw);
@@ -487,20 +514,23 @@ select{background:#0a1630;border:1px solid var(--line);border-radius:6px;padding
   cv.addEventListener('pointerup',function(e){
     if(pinch||Math.hypot(e.clientX-tapX,e.clientY-tapY)>6||performance.now()-tapT>600)return;
     var r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
-    for(var t=9;t>=0;t--){var ps=pyPoly[t]||[];for(var k=0;k<ps.length;k++)if(inPoly(ps[k],x,y)){pyrSel=pyrSel===t?null:t;pyrUpdate();return}}
+    for(var t=2;t>=0;t--){var ps=pyPoly[t]||[];for(var k=0;k<ps.length;k++)if(inPoly(ps[k],x,y)){pyrSel=pyrSel===t?null:t;pyrUpdate();return}}
   });
   pyrt.addEventListener('click',function(){pyrSel=null;pyrUpdate()});
-  function pyrCard(t,top){
-    var here=REG.filter(function(k){return ST[k].t===t}).map(function(k){return INFO[k][0]}).join(' · ');
-    var mine=here?'이 티어에 있는 내 부위: <b>'+here+'</b>':(top<t?'내 최고 티어는 <b>'+TIERS[top]+'</b>이에요. 이 티어까지 '+(t-top)+'단계 남았어요.':'지금은 이 티어에 있는 부위가 없어요.');
-    return '<span class="pys" style="margin:0 0 4px">'+['기반 구간 · 아이언~골드','고지 구간 · 플래티넘~다이아몬드','정점 구간 · 마스터~챌린저'][t<4?0:t<7?1:2]+'</span><span class="pyt" style="color:'+COL[t]+'">'+TIERS[t]+'</span> '+(RANK[t]?'<b>일반 성인 상위 약 '+RANK[t]+'%</b>의 운동수행능력을 뜻해요.':'<b>시작 단계</b>예요.')+'<br>'+PD[t]+'<br>'+mine+'<span class="pys">상위 %는 공개 기준표를 바탕으로 한 추정치예요. 회원 기록이 쌓이면 실제 분포로 다듬어요.</span>';
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&pyrSel!=null){pyrSel=null;pyrUpdate()}});
+  var ZT=[[0,1,2,3],[4,5,6],[7,8,9]],ZN=['기반','고지','정점'];
+  function pyrCard(z,top){
+    var h='<span class="pys" style="margin:0 0 6px">'+ZN[z]+' <b>('+ZR[z]+')</b> · 일반 성인 상위 %</span><span class="pyl">';
+    ZT[z].forEach(function(t){
+      var here=REG.filter(function(k){return ST[k].t===t}).map(function(k){return INFO[k][0]}).join('·'),cur=t===top,g=GLOW[t],c=COL[t];
+      h+='<span class="pyr2'+(cur?' me':'')+'"><i style="background:radial-gradient(circle at 50% 45%,'+c+' 0%,'+c+(t===0?'66':'cc')+' 45%,transparent 72%);box-shadow:0 0 '+(3+g*14)+'px '+(g*3)+'px '+c+(t===0?'22':'66')+'"></i><span class="pn2" style="color:'+c+'">'+TIERS[t]+'</span><small>'+(RANK[t]?'상위 약 '+RANK[t]+'%':'입문')+'</small><em>'+(here?here:(cur?'내 최고':''))+'</em></span>';
+    });
+    return h+'</span>';
   }
   function pyrUpdate(){
-    var has={},top=0;REG.forEach(function(k){has[ST[k].t]=1;if(ST[k].t>top)top=ST[k].t});pyHas=has;pyTop=top;
-    pyrEls.forEach(function(b,t){b.classList.toggle('has',!!has[t]);b.classList.toggle('top',t===top);b.classList.toggle('sel',t===pyrSel)});
+    var has={},top=0;REG.forEach(function(k){if(ST[k].t>top)top=ST[k].t});has[ZOF(top)]=1;pyHas=has;pyTop=ZOF(top);pyTopT=top;
     document.getElementById('pyr').classList.toggle('open',pyrSel!=null);
-    var t=pyrSel==null?top:pyrSel;
-    pyrt.innerHTML=pyrCard(t,top);
+    pyrt.innerHTML=pyrSel==null?'':'<button type="button" class="pyx" aria-label="설명 닫기">✕</button>'+pyrCard(pyrSel,top);
   }
   function refresh(k){
     var st=ST[k],el=rowEls[k];
@@ -544,5 +574,15 @@ select{background:#0a1630;border:1px solid var(--line);border-radius:6px;padding
   statusEl=document.getElementById('stat');
   refreshAll();
   loadSex('M').then(function(){fetchModel('F').catch(function(){})});
+  (function(){
+    if(/[?&]embed=1/.test(location.search))document.documentElement.classList.add('embed');
+    window.addEventListener('message',function(e){
+      var d=e.data;if(!d||d.type!=='rune-state')return;
+      if(d.st)REG.forEach(function(k){if(d.st[k]){ST[k].t=Math.max(0,Math.min(9,d.st[k].t|0));ST[k].s=Math.max(0,Math.min(8,d.st[k].s|0))}});
+      if(d.sex&&d.sex!==SEX){loadSex(d.sex).catch(function(){})}
+      refreshAll();
+    });
+    try{if(window.parent!==window)window.parent.postMessage({type:'rune-ready'},'*')}catch(x){}
+  })();
 })();
 </script>
