@@ -64,6 +64,21 @@ input[type=text],input[type=number]{width:100%;padding:9px;border:1px solid var(
 .sg input[type=checkbox]{width:22px;height:22px;accent-color:var(--cy)}
 .ty{border:1px solid var(--ln);border-radius:6px;padding:7px 0;font-weight:900;background:transparent}
 .ty.W{background:#b45309;color:#fff;border-color:#b45309}.ty.F{background:#b91c1c;color:#fff;border-color:#b91c1c}.ty.M{background:var(--cy);color:#fff;border-color:var(--cy)}.sg input.tmp{color:var(--mu);font-style:italic}
+.rtop{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:8px;align-items:center;margin:10px 0 4px}.rtop span{display:block;font-size:12px;color:var(--mu)}.rtop b{font-size:22px;font-variant-numeric:tabular-nums}
+.pill{border:0;border-radius:14px;background:var(--bg);color:var(--tx);min-height:44px;font:inherit;font-size:14px;padding:0 10px}
+.r2h,.r2{display:grid;grid-template-columns:44px 1fr 1fr 1fr 46px;gap:7px;align-items:center;text-align:center}
+.r2h{font-size:12px;color:var(--mu);margin:8px 0 4px}
+.sw{position:relative;overflow:hidden;border-radius:12px;touch-action:pan-y;margin-bottom:8px}
+.sw .r2{position:relative;background:var(--pn);transition:transform .18s}
+.sdl{position:absolute;right:0;top:0;bottom:0;width:96px;border:0;border-radius:12px;background:#d62f3a;color:#fff;font-weight:700;font-size:14px}
+.r2 .ty{height:46px;padding:0;font-size:17px;border-radius:12px}
+.pvb{height:46px;line-height:46px;border:0;background:transparent;color:var(--mu);font-size:13px;border-radius:12px;min-width:0;padding:0;font-variant-numeric:tabular-nums}
+.r2 input[type=number]{height:46px;font-size:19px;font-weight:700;text-align:center;padding:0 2px;border-radius:12px;border-width:1.5px}
+.r2 input.tmp{color:var(--mu);font-weight:500;font-style:normal}
+.ckb{height:46px;border:0;border-radius:12px;background:var(--bg);color:var(--mu);font-size:21px}
+.r2.dn .ckb{background:#1f9d57;color:#fff}.r2.dn input{background:rgba(31,157,87,.18);border-color:transparent}
+.sw+.hn{margin:-2px 0 10px;padding:8px;border:1px solid var(--ln);border-radius:12px;background:var(--pn);gap:6px}.hn:empty{display:none}
+.hn .zc{cursor:pointer;border:1px solid var(--ln);border-radius:999px;padding:6px 11px 6px 7px;font-size:12.5px;min-height:34px;display:inline-flex;align-items:center}
 .hn{font-size:11px;color:var(--mu);margin:-3px 0 8px;text-align:left;display:flex;flex-wrap:wrap;gap:2px 10px;padding-left:2px}.hn .on{color:var(--tx);font-weight:700}.hz{display:inline-block;width:13px;height:13px;border-radius:50%;text-align:center;line-height:13px;font-size:10px;font-weight:800;font-style:normal;margin-right:3px;vertical-align:-1px}.hz.g{background:#2fbf71;color:#04210f}.hz.n{background:#f2c230;color:#3a2c00}.hz.h{background:#ff8a1f;color:#3a1c00}.hz.s{background:#e5383b;color:#fff}
 .gl{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.gs{background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:4px 8px;font-size:12px}.gs small{color:var(--mu);margin-right:4px}.gs b{color:var(--gd)}.gt{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px}.gt th,.gt td{padding:3px 4px;text-align:center;border-bottom:1px solid var(--ln)}.gt td:first-child{text-align:left}
 
@@ -1366,12 +1381,12 @@ function zoneInner(x,i){
   const s=x.sets[i];if(!RZ||!s||s.t==='W'||!(s.w>0))return '';
   const E=20,rG=zoneNeed(s.w,RZ.lo),rT=zoneNeed(s.w,RZ.me),rH=zoneNeed(s.w,RZ.hi),r=s.r;
   const act=!(r>0)?'':r<rG?'g':r<rT?'n':r<rH?'h':'s';
-  const c=(k,lab,txt)=>`<span${act===k?' class="on"':''}><i class="hz ${k}">!</i>${lab} ${txt}</span>`,out=[];
+  const c=(k,lab,txt,fill)=>`<span class="zc${act===k?' on':''}" data-act="zfill" data-i="${i}" data-r="${fill}"><i class="hz ${k}">!</i>${lab} ${txt}</span>`,out=[];
   const rg=(a,b)=>a>=b?a+'회':a+'~'+b+'회';
-  if(rG>1)out.push(c('g','리커버리',rG>E?'1~20회 · 아주 가벼운 무게예요':(rG-1===1?'1회':'~'+(rG-1)+'회')));
-  if(rG<=E&&rT>rG)out.push(c('n','노말',rg(rG,Math.min(rT-1,E))));
-  if(rT<=E&&rH>rT)out.push(c('h','하드',rg(rT,Math.min(rH-1,E))));
-  out.push(rH<=E?c('s','슬레이어',rH+'회~'):'<span><i class="hz s">!</i>슬레이어 20회 안에서는 어려워요</span>');
+  if(rG>1)out.push(c('g','리커버리',rG>E?'1~20회 · 아주 가벼운 무게예요':(rG-1===1?'1회':'~'+(rG-1)+'회'),Math.min(rG-1,E)));
+  if(rG<=E&&rT>rG)out.push(c('n','노말',rg(rG,Math.min(rT-1,E)),rG));
+  if(rT<=E&&rH>rT)out.push(c('h','하드',rg(rT,Math.min(rH-1,E)),rT));
+  out.push(rH<=E?c('s','슬레이어',rH+'회~',rH):'<span><i class="hz s">!</i>슬레이어 20회 안에서는 어려워요</span>');
   return out.join('');
 }
 const zoneRow=(x,i)=>`<div class="hn" id="hn${i}">${zoneInner(x,i)}</div>`;
@@ -1381,13 +1396,20 @@ function expGauge(x){
     const p=r.p,mu=R.multOf(S.level),pc=Math.round(p.pct*100);
     return `<div class="eg"><div class="egt"><span>${R.TIERS[p.tier]} ${p.stars}★ → ${p.stars>=R.MAX_STARS?'최대':(p.stars+1)+'★'}</span><b>${p.stars>=R.MAX_STARS?'최대 별 달성':pc+'% · 남은 EXP '+fmt(R.toKg(p.toNext,mu))+'kg'}</b></div><div class="egb"><i style="width:${pc}%"></i></div></div>`}catch(err){return ''}
 }
+let RF=-1,RFc=-1,RT=0;
+const recRe=()=>{const sh=$('#md .sheet'),y=sh?sh.scrollTop:0;openM(recHTML());const n=$('#md .sheet');if(n){n.style.animation='none';n.scrollTop=y}};
+const rtTxt=()=>RT>0?`⏱ 휴식: ${Math.floor(RT/60)}:${String(RT%60).padStart(2,'0')}`:'⏱ 휴식: --';
 function recHTML(){
   const x=draft().slots[RC],pv=prevOf(x.id);RZ=zoneCalc(x);
-  return expGauge(x)+`<div class="row"><div><b class="h2">${EX[x.id].name}</b><div class="mu">${P[EX[x.id].part]} · ${BIG[EX[x.id].part]?'대근육':'소근육'} · 볼륨 <b id="rv">${fmt(vol(x.sets))}</b>kg</div></div><button class="x" data-act="close">✕</button></div>
-  <div class="sg hd" style="margin-top:10px"><span>세트</span><span>이전</span><span>kg</span><span>회</span><span>완료</span><span></span></div>
+  if(RFc!==RC){RF=-1;RFc=RC}
+  if(!(RF>=0&&x.sets[RF]&&x.sets[RF].t!=='W')){RF=x.sets.findIndex(s=>s.t!=='W'&&!s.done);if(RF<0)RF=x.sets.findIndex(s=>s.t!=='W')}
+  const nd=x.sets.filter(s=>s.done).length;
+  return expGauge(x)+`<div class="row"><div><b class="h2">${EX[x.id].name}</b><div class="mu">${P[EX[x.id].part]} · ${BIG[EX[x.id].part]?'대근육':'소근육'}</div></div><button class="x" data-act="close">✕</button></div>
+  <div class="rtop"><div><span>볼륨</span><b id="rv">${fmt(vol(x.sets))}</b> kg</div><div><span>완료 세트</span><b>${nd}</b></div><button class="pill" id="rest" data-act="rest0">${rtTxt()}</button></div>
+  <div class="r2h"><span>세트</span><span>이전</span><span>kg</span><span>회</span><span>✓</span></div>
   ${x.sets.map((s,i)=>{const n=x.sets.slice(0,i+1).filter(q=>q.t==='M').length;const p=pv&&pv.sets[i];
-  return `<div class="sg"><button class="ty ${s.t}" data-act="ty" data-i="${i}">${s.t==='M'?'M'+n:s.t}</button><span class="prev">${p?p.w+'×'+p.r:'-'}</span><input type="number" inputmode="decimal" step="0.5" min="0" class="${s.tmp?'tmp':''}" value="${s.w}" data-f="w" data-i="${i}" aria-label="무게"><input type="number" inputmode="numeric" min="0" value="${s.r}" data-f="r" data-i="${i}" aria-label="횟수"><input type="checkbox" ${s.done?'checked':''} data-f="done" data-i="${i}" aria-label="완료"><button class="x" data-act="sdel" data-i="${i}" aria-label="세트 삭제">🗑</button></div>${zoneRow(x,i)}`}).join('')}
-  <input type="text" data-nf="1" placeholder="(통증 · 자극 부위 · 궁금증을 적어요)" value="${esc(x.note)}" style="margin:6px 0;border-style:dashed"><div class="mu" style="margin:4px 0 10px">W 웜업 · M 메인 · F 실패 (왼쪽 버튼을 누르면 바뀌어요). 웜업은 볼륨에서 빠져요. 회색 무게는 자동으로 채운 임시값이에요. 메인 세트 아래 작은 글씨는 이 무게에서 몇 회면 리커버리(초록, 컨디션이 안 좋을 때 권장)·노말·하드·슬레이어인지 알려 주는 참고 지표예요(내 현재 티어 기준).${pv?` 이전 기록: ${pv.d}`:''}</div>
+  return `<div class="sw" data-i="${i}"><button class="sdl" data-act="sdel" data-i="${i}">삭제하기</button><div class="r2${s.done?' dn':''}"><button class="ty ${s.t}" data-act="ty" data-i="${i}">${s.t==='M'?'M'+n:s.t}</button>${p?`<button class="pvb" data-act="pfill" data-i="${i}" title="누르면 지난번 값이 입력돼요">${p.w}×${p.r}</button>`:'<span class="pvb">-</span>'}<input type="number" inputmode="decimal" step="0.5" min="0" class="${s.tmp?'tmp':''}" value="${s.w}" data-f="w" data-i="${i}" aria-label="무게"><input type="number" inputmode="numeric" min="0" class="${(s.tr!==undefined?s.tr:s.tmp)?'tmp':''}" value="${s.r}" data-f="r" data-i="${i}" aria-label="횟수"><button class="ckb" data-act="sck" data-i="${i}" aria-label="세트 완료">✓</button></div></div>${RF===i?zoneRow(x,i):''}`}).join('')}
+  <input type="text" data-nf="1" placeholder="(통증 · 자극 부위 · 궁금증을 적어요)" value="${esc(x.note)}" style="margin:6px 0;border-style:dashed"><div class="mu" style="margin:4px 0 10px">W 웜업 · M 메인 · F 실패 (왼쪽 버튼을 누르면 바뀌어요). 웜업은 볼륨에서 빠져요. <b>이전</b>을 누르면 지난번 값이 입력되고, 회색 값은 ✓만 눌러도 그대로 저장돼요. 세트를 왼쪽으로 밀면 삭제 버튼이 나와요. 지금 입력 중인 메인 세트 아래 칩은 이 무게에서 몇 회면 리커버리(초록, 컨디션이 안 좋을 때 권장)·노말·하드·슬레이어인지 알려 주는 참고 지표예요(내 현재 티어 기준). 칩을 누르면 그 횟수가 입력돼요.${pv?` 이전 기록: ${pv.d}`:''}</div>
   <div class="row" style="margin-bottom:8px"><button class="btn ghost" data-act="sadd" data-t="W">+ 웜업 세트</button><button class="btn ghost" data-act="sadd" data-t="M">+ 메인 세트</button></div><button class="btn" data-act="close">기록 완료</button>`;
 }
 /* ---- 종목 관리(트레이너): 코드 수정·재배포 없이 종목 추가/숨김/이름·연결·기준표 변경 ---- */
@@ -1528,9 +1550,13 @@ const A={
   ptab:d=>{PK.part=d.v;PK.q='';$('#pq').value='';document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
   pick:d=>{const sl=draft().slots;if(sl.some(x=>x&&x.id===d.id)){toast('이미 장착된 종목이에요');return}sl[PK.slot]={id:d.id,nm:EX[d.id].name,sets:mkSets(d.id)};persist();RC=PK.slot;openM(recHTML())},
   close:()=>{persist();closeM()},
-  ty:d=>{const s=draft().slots[RC].sets[+d.i],o={W:'M',M:'F',F:'W'};s.t=o[s.t];persist();openM(recHTML())},
-  sdel:d=>{const x=draft().slots[RC];if(x.sets.length<=1){toast('세트는 최소 1개 필요해요');return}x.sets.splice(+d.i,1);persist();openM(recHTML())},
-  sadd:d=>{const x=draft().slots[RC],m=x.sets.filter(s=>s.t==='M'),l=m[m.length-1]||x.sets[x.sets.length-1],w=d.t==='W';const at=w?Math.max(0,x.sets.findIndex(s=>s.t==='M')):x.sets.length;x.sets.splice(at,0,{t:d.t,w:w?rnd(l.w/2):l.w,r:l.r,done:false,tmp:(w||l.tmp)?1:0});persist();openM(recHTML())},
+  ty:d=>{const s=draft().slots[RC].sets[+d.i],o={W:'M',M:'F',F:'W'};s.t=o[s.t];persist();recRe()},
+  sdel:d=>{const x=draft().slots[RC];if(x.sets.length<=1){toast('세트는 최소 1개 필요해요');return}x.sets.splice(+d.i,1);persist();recRe()},
+  sadd:d=>{const x=draft().slots[RC],m=x.sets.filter(s=>s.t==='M'),l=m[m.length-1]||x.sets[x.sets.length-1],w=d.t==='W';const at=w?Math.max(0,x.sets.findIndex(s=>s.t==='M')):x.sets.length;x.sets.splice(at,0,{t:d.t,w:w?rnd(l.w/2):l.w,r:l.r,done:false,tmp:(w||l.tmp)?1:0});persist();recRe()},
+  pfill:d=>{const x=draft().slots[RC],i=+d.i,s=x.sets[i],pv=prevOf(x.id),p=pv&&pv.sets[i];if(!p)return;s.w=p.w;s.r=p.r;s.tmp=0;s.tr=0;RF=i;persist();recRe()},
+  sck:d=>{const x=draft().slots[RC],i=+d.i,s=x.sets[i];s.done=!s.done;if(s.done){s.tmp=0;s.tr=0;RT=90;const nx=x.sets.findIndex((q,k)=>k>i&&q.t!=='W'&&!q.done);if(nx>=0)RF=nx}else RF=i;persist();recRe()},
+  zfill:d=>{const x=draft().slots[RC],i=+d.i,s=x.sets[i];s.r=+d.r;s.tr=0;RF=i;persist();recRe()},
+  rest0:()=>{RT=0;const b=$('#rest');if(b)b.textContent=rtTxt()},
   save:()=>{const sl=draft().slots.filter(Boolean);if(!sl.length){toast('먼저 룬에 종목을 장착해 주세요');return}
     putToday(sl);persist();toast(curNo()>1?`오늘 ${curNo()}번째 운동 기록을 저장했어요`:'오늘 기록을 저장했어요');openM(gradeHTML(sl))},
   grades:()=>{const sl=draft().slots.filter(Boolean);if(!sl.length){toast('먼저 룬에 종목을 장착해 주세요');return}openM(gradeHTML(sl))},
@@ -1546,9 +1572,23 @@ const A={
 };
 document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;e.stopPropagation();const f=A[el.dataset.act];if(f)f(el.dataset)});
 /* 회색(자동 채운 임시값) 칸은 누르는 순간 비워서, 새 숫자가 뒤에 붙지 않고 바로 대체되게 한다. 안 쓰고 나가면 원래 값 복원 */
-document.addEventListener('focusin',e=>{const t=e.target;if(!(t.matches&&t.matches('.sg input.tmp')))return;t.dataset.prev=t.value;t.placeholder=t.value;t.value=''});
-document.addEventListener('focusout',e=>{const t=e.target;if(!(t.matches&&t.matches('.sg input')))return;if(t.dataset.prev!==undefined&&t.value===''&&t.classList.contains('tmp'))t.value=t.dataset.prev;delete t.dataset.prev;if(t.classList.contains('tmp'))t.placeholder=''});
-document.addEventListener('input',e=>{const t=e.target;if(t.matches&&t.matches('.sg input.tmp')){t.classList.remove('tmp');delete t.dataset.prev;t.placeholder=''}},true);
+document.addEventListener('focusin',e=>{const t=e.target;if(!(t.matches&&t.matches('.r2 input')))return;
+  if(t.classList.contains('tmp')){t.dataset.prev=t.value;t.placeholder=t.value;t.value=''}else{t.dataset.sel='1';setTimeout(()=>{try{t.select()}catch(x){}},0)}
+  const i=+t.dataset.i;if(i!==RF){const x=draft().slots[RC],o=$('#hn'+RF);if(o)o.remove();RF=i;const w=t.closest('.sw');if(x&&w&&x.sets[i]&&x.sets[i].t!=='W')w.insertAdjacentHTML('afterend',zoneRow(x,i))}});
+document.addEventListener('mouseup',e=>{const t=e.target;if(t.matches&&t.matches('.r2 input')&&t.dataset.sel){e.preventDefault();delete t.dataset.sel}});
+document.addEventListener('focusout',e=>{const t=e.target;if(!(t.matches&&t.matches('.r2 input')))return;if(t.dataset.prev!==undefined&&t.value===''&&t.classList.contains('tmp'))t.value=t.dataset.prev;delete t.dataset.prev;if(t.classList.contains('tmp'))t.placeholder=''});
+document.addEventListener('input',e=>{const t=e.target;if(t.matches&&t.matches('.r2 input.tmp')){t.classList.remove('tmp');delete t.dataset.prev;t.placeholder=''}},true);
+/* 세트를 왼쪽으로 밀면 삭제 버튼 */
+let swp=null,swSup=0;
+const swClose=ex=>document.querySelectorAll('.sw.open').forEach(x=>{if(x!==ex){x.classList.remove('open');x.querySelector('.r2').style.transform=''}});
+document.addEventListener('click',e=>{if(Date.now()-swSup<150){e.stopImmediatePropagation();e.preventDefault()}},true);
+document.addEventListener('pointerdown',e=>{const w=e.target.closest&&e.target.closest('.sw');if(!w||e.target.closest('.sdl'))return;swClose(w);swp={w,row:w.querySelector('.r2'),x:e.clientX,y:e.clientY,base:w.classList.contains('open')?-96:0,drag:false,cur:0}});
+document.addEventListener('pointermove',e=>{if(!swp)return;const dx=e.clientX-swp.x,dy=e.clientY-swp.y;
+  if(!swp.drag){if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*1.5){swp.drag=true;swp.row.style.transition='none';const a=document.activeElement;if(a&&a.blur)a.blur()}else{if(Math.abs(dy)>10)swp=null;return}}
+  swp.cur=Math.max(-96,Math.min(0,swp.base+dx));swp.row.style.transform='translateX('+swp.cur+'px)'});
+const swEnd=()=>{if(!swp)return;if(swp.drag){const o=swp.cur<-48;swp.row.style.transition='';swp.row.style.transform=o?'translateX(-96px)':'';swp.w.classList.toggle('open',o);swSup=Date.now()}swp=null};
+document.addEventListener('pointerup',swEnd);document.addEventListener('pointercancel',swEnd);
+setInterval(()=>{if(RT>0){RT--;const b=$('#rest');if(b)b.textContent=rtTxt()}},1000);
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.pf){OB[t.dataset.pf]=t.value;obRefresh();return}
@@ -1562,8 +1602,10 @@ document.addEventListener('input',e=>{
   if(t.dataset.nf){const x=draft().slots[RC];if(x){x.note=t.value;persist()}return}
   if(!t.dataset.f)return;
   const s=draft().slots[RC].sets[+t.dataset.i];
-  if(t.dataset.f==='done'){s.done=t.checked;if(t.checked)s.tmp=0}else{s[t.dataset.f]=Math.max(0,Number(t.value)||0);if(t.dataset.f==='w')s.tmp=0}
-  if(!s.tmp){const g=t.closest('.sg').querySelector('input.tmp');if(g)g.classList.remove('tmp')}
+  if(s.tr===undefined)s.tr=s.tmp?1:0;
+  if(t.dataset.f==='done'){s.done=t.checked;if(t.checked){s.tmp=0;s.tr=0}}else{s[t.dataset.f]=Math.max(0,Number(t.value)||0);if(t.dataset.f==='w')s.tmp=0;else s.tr=0}
+  if(!s.tmp){const g=t.closest('.r2').querySelector('input[data-f=w].tmp');if(g)g.classList.remove('tmp')}
+  if(!s.tr){const g=t.closest('.r2').querySelector('input[data-f=r].tmp');if(g)g.classList.remove('tmp')}
   persist();const rv=$('#rv');if(rv)rv.textContent=fmt(vol(draft().slots[RC].sets));
   if(t.dataset.f==='w'||t.dataset.f==='r'){const hn=$('#hn'+t.dataset.i);if(hn)hn.innerHTML=zoneInner(draft().slots[RC],+t.dataset.i)}
 });
