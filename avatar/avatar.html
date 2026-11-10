@@ -1,0 +1,548 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>룬PT 상태창 아바타</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 레이아웃: 왼쪽 회전 아바타 무대, 오른쪽 상태창(부위별 티어). 좁은 화면에서는 위아래로 쌓음. 어두운 게임 UI 한 가지 룩으로 고정 */
+:root{
+  --bg:#050a15; --panel:#0a1325; --panel2:#0e1a31; --line:#1b2c4b; --fg:#dfe8f7; --mut:#8c9fbd; --acc:#5aa9ff;
+  --disp:'Chakra Petch','Noto Sans KR',sans-serif; --body:'Noto Sans KR',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.55;
+  padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto;display:grid;gap:18px}
+header{display:grid;gap:4px}
+.eyebrow{font-family:var(--disp);letter-spacing:.22em;font-size:12px;color:var(--acc);text-transform:uppercase}
+h1{margin:0;font-family:var(--disp);font-size:28px;letter-spacing:.04em;text-wrap:balance}
+header p{margin:0;color:var(--mut);max-width:60ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stage{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 38%,#0e2147 0%,#07101f 55%,#050a15 100%)}
+canvas{display:block;width:100%;aspect-ratio:4/5;max-height:78vh;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+canvas:active{cursor:grabbing}
+.stagebar{position:absolute;left:10px;right:10px;bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;pointer-events:none}
+.stagebar span{font-size:12px;color:var(--mut);text-shadow:0 1px 4px #050a15}
+.stagebar .bt{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.stagebar .btn{font-size:12px;padding:5px 10px}
+.pyr{position:absolute;left:8px;top:8px;width:118px;display:grid;gap:3px;z-index:2}
+.pyr h3{margin:0 0 2px;font-family:var(--disp);font-size:11px;letter-spacing:.08em;color:var(--acc);font-weight:600}
+.pyr .lay{justify-self:center;display:flex;justify-content:space-between;align-items:center;gap:4px;height:15px;padding:0 5px;border:0;border-radius:3px;font-size:9.5px;line-height:1;white-space:nowrap;color:#06101f;font-weight:700;cursor:pointer;background:var(--c);opacity:.5;transition:opacity .15s,transform .15s,box-shadow .15s}
+.pyr .lay small{font-size:8.5px;font-weight:600;opacity:.8}
+.pyr .lay.has{opacity:.85}
+.pyr .lay.top{opacity:1;box-shadow:0 0 12px 1px var(--c)}
+.pyr .lay.sel{opacity:1;transform:scale(1.06)}
+.pyr p{margin:4px 0 0;font-size:10px;line-height:1.4;color:var(--fg);background:#0a1325d9;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.pyr p b{color:var(--acc)}
+.pyr{transition:width .28s ease}
+.pyr.open{width:min(244px,calc(100% - 16px))}
+#pyrl{width:118px}
+.pyr .lay{justify-content:center;font-size:10.5px}
+.pyr .lay small{display:none}
+.pyr .pyh{font-size:9.5px;color:var(--mut);text-shadow:0 1px 4px #050a15;margin-top:1px}
+.pyr.open .pyh{display:none}
+.pyr p{display:none;margin:6px 0 0;font-size:11px;line-height:1.55;padding:9px 10px}
+.pyr.open p{display:block;animation:pyin .28s ease-out}
+.pyr p .pyt{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.04em}
+.pyr p .pys{display:block;margin-top:5px;color:var(--mut);font-size:10px}
+@keyframes pyin{from{opacity:0;transform:translateY(-5px)}}
+.pyr{width:auto;top:8px;bottom:auto;left:8px;right:8px;display:block;pointer-events:none}
+.pyr.open{width:auto}
+.pyr h3,#pyrl{display:none!important}
+.pyr .pyh{text-align:right}
+.pyr p{pointer-events:auto;cursor:pointer}
+.pyr p{order:-1;margin:0 0 4px}
+#pyrl{display:block!important;width:176px!important;position:relative}
+#pyrl .lay{position:absolute!important;left:0;top:0;width:1px!important;height:1px!important;padding:0!important;overflow:hidden;opacity:0!important;pointer-events:none}
+@media(prefers-reduced-motion:reduce){.pyr{transition:none}.pyr.open p{animation:none}}
+button,select{font:inherit;color:var(--fg)}
+.btn{pointer-events:auto;background:#0d1b35cc;border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--acc)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.status{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:16px;display:grid;gap:14px;min-width:0}
+.who{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.who b{font-family:var(--disp);font-size:17px;letter-spacing:.06em}
+.who small{color:var(--mut)}
+.presets,.seg{display:flex;flex-wrap:wrap;gap:6px}
+.chip.on{border-color:var(--acc);background:#10264a}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:13px}
+.chip:hover{border-color:var(--acc)}
+.rows{display:grid;gap:8px}
+.row{--c:#8b9099;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:center;
+  background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.row.on{border-color:var(--c);box-shadow:0 0 0 1px var(--c) inset}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 12px var(--c);grid-row:span 2}
+.part{font-weight:700}
+.part em{font-style:normal;font-weight:400;color:var(--mut);margin-left:6px;font-size:12.5px}
+.tier{font-family:var(--disp);font-weight:600;color:var(--c);text-align:right;letter-spacing:.04em;white-space:nowrap}
+.rank{color:var(--mut);font-size:12.5px;grid-column:2}
+.ctl{display:flex;gap:6px;justify-content:flex-end;grid-column:3}
+select{background:#0a1630;border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+.hint{color:var(--mut);font-size:12.5px;margin:0}
+.strip h2{font-family:var(--disp);font-size:13px;letter-spacing:.14em;color:var(--mut);margin:2px 0 10px;font-weight:600;text-transform:uppercase}
+.orbs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px 6px}
+.orb{background:none;border:0;cursor:pointer;display:grid;justify-items:center;gap:7px;padding:2px 0;min-width:0}
+.orb i{width:26px;height:26px;border-radius:50%;display:block}
+.orb span{font-size:11.5px;color:var(--mut);text-align:center}
+.orb:hover span{color:var(--fg)}
+.note{border-top:1px solid var(--line);padding-top:10px;color:var(--mut);font-size:12.5px;margin:0}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Rune PT · Status</div>
+    <h1>상태창</h1>
+    <p>부위의 색과 빛으로 현재 티어를 보여주는 아바타 시안이에요. 화면의 수치는 모두 예시입니다.</p>
+  </header>
+
+  <div class="grid">
+    <div class="stage">
+      <canvas id="cv" role="img" aria-label="천천히 회전하는 와이어프레임 회원 아바타. 어깨와 팔, 가슴, 등, 골반과 허벅지, 머리와 종아리와 발이 티어 색으로 빛나고 근육이 발달합니다."></canvas>
+      <div class="pyr" id="pyr" aria-label="티어 피라미드"><h3>상위 % 피라미드</h3><div id="pyrl" style="display:grid;gap:3px"></div><div class="pyh" id="pyrh">피라미드를 눌러 자세히 ▸</div><p id="pyrt"></p></div>
+      <div class="stagebar"><span id="stat">모델 불러오는 중…</span><div class="bt"><button class="btn" id="grab" type="button" aria-pressed="false">자유 회전</button><button class="btn" id="reset" type="button">초기화</button><button class="btn" id="spin" type="button">회전 멈춤</button></div></div>
+    </div>
+
+    <section class="status" aria-label="부위별 티어">
+      <div class="who"><b>회원 예시</b><small id="whoinfo">30대 남성 · 75kg · 175cm</small></div>
+      <div class="seg" role="group" aria-label="아바타 체형"><button type="button" class="chip on" data-sex="M">남성 · 클래식 피지크</button><button type="button" class="chip" data-sex="F">여성 · 비키니</button></div>
+      <div class="presets" id="presets"></div>
+      <div class="rows" id="rows"></div>
+      <p class="hint">★이 5개 이상이면 그 부위가 맥박처럼 깜빡여요(승급 시험을 볼 수 있다는 신호). 부위를 누르면 아바타에서 그 부위가 강조돼요.</p>
+      <div class="strip">
+        <h2>티어별 빛 느낌</h2>
+        <div class="orbs" id="orbs"></div>
+      </div>
+      <p class="note">티어가 오를수록 해당 부위 근육이 더 발달한 모습으로 바뀌어요. 남성은 클래식 피지크, 여성은 비키니 선수 체형을 기준으로 해요. 달리기(머리·종아리·발)는 아직 앱에 기록과 티어 규칙이 없어서 같은 티어 표를 빌려 보여줘요. 상위 %는 추정치예요.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  var TIERS=['아이언','브론즈','실버','골드','플래티넘','에메랄드','다이아몬드','마스터','그랜드마스터','챌린저'];
+  var COL=['#8b9099','#cf8a52','#d2dbe6','#ffc94d','#4fe0cf','#3ee08a','#6fb0ff','#c77dff','#ff5d73','#ffe27a'];
+  var GLOW=[.10,.18,.27,.37,.47,.57,.68,.79,.90,1];
+  var RANK=[null,50,40,25,15,10,6,3,.5,.1];
+  var REG=['shoulder','chest','back','legs','run'];          // 영역 번호 1~5, 0은 기본 몸체
+  var INFO={shoulder:['어깨·팔','오버헤드프레스'],chest:['가슴','벤치프레스'],back:['등','데드리프트'],legs:['골반·허벅지','스쿼트'],run:['머리·종아리·발','달리기 5km']};
+  var ST={shoulder:{t:3,s:2},chest:{t:4,s:5},back:{t:3,s:1},legs:{t:5,s:3},run:{t:2,s:4}};
+  var PRE=[
+    ['신규 회원',{shoulder:[0,1],chest:[1,2],back:[0,2],legs:[1,1],run:[0,0]}],
+    ['6개월차',{shoulder:[2,3],chest:[3,1],back:[2,4],legs:[3,2],run:[2,2]}],
+    ['1년차',{shoulder:[3,4],chest:[4,5],back:[4,3],legs:[5,3],run:[3,4]}],
+    ['상급자',{shoulder:[6,2],chest:[7,3],back:[7,6],legs:[8,1],run:[5,5]}],
+    ['챌린저',{shoulder:[9,8],chest:[9,8],back:[9,8],legs:[9,8],run:[9,8]}]
+  ];
+
+  function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+  var R=rng(11);
+  function hex(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+  var RGB=COL.map(hex);
+  function G(v,mu,sg){var d=(v-mu)/sg;return Math.exp(-d*d)}
+  /* ---------- 모델 데이터 ----------
+     몸 모양은 코드가 아니라 데이터 파일(models/avatar-male.json, avatar-female.json)에서 읽어요.
+     형식 rune-avatar-1: v(점 xyz) · n(방사 법선 xz) · reg(부위 0~5) · node(노드 점 번호) · e(선 연결) · f(면 삼각형) ·
+       morph{sh,ch,bk,lg,rn:{i:[점 번호],d:[변위]}} = 티어가 오를 때 부풀어 오르는 양(없으면 정적 모델).
+     좌표: 미터, y가 위쪽, 발바닥 y=0, 정면 +z. 부위 번호: 1 어깨·팔, 2 가슴, 3 등, 4 골반·허벅지, 5 머리·종아리·발, 0 기본 몸체 */
+  var SEX='M',URL={M:'models/avatar-male.json',F:'models/avatar-female.json'},MODELS={},MOD=null;
+  var V=[],E=[],F=[],N=0,POOL={},STARIDX={};
+  var Dv={sh:1,ch:1,bk:1,lg:1,rn:1},GK={shoulder:'sh',chest:'ch',back:'bk',legs:'lg',run:'rn'};
+  function devel(){REG.forEach(function(n){Dv[GK[n]]=(.35+.125*ST[n].t)/1.475})}
+  function build(m){
+    var n=m.v.length/3,i;MOD=m;V=new Array(n);E=[];F=[];
+    for(i=0;i<n;i++){
+      var rg=m.reg[i];
+      V[i]={x:m.v[3*i],y:m.v[3*i+1],y2:m.v[3*i+1],z:m.v[3*i+2],bx:m.v[3*i],bz:m.v[3*i+2],nx:m.n?m.n[2*i]:0,nz:m.n?m.n[2*i+1]:0,Nx:0,Ny:0,Nz:1,reg:rg,node:false};
+    }
+    if(m.node)m.node.forEach(function(k){V[k].node=true});
+    else{var q=rng(5);V.forEach(function(v){v.node=q()<(v.reg?.32:.12)})}
+    for(i=0;i<m.e.length;i+=2)E.push([m.e[i],m.e[i+1]]);
+    for(i=0;i<m.f.length;i+=3)F.push([m.f[i],m.f[i+1],m.f[i+2]]);
+    N=n;FZ=new Float32Array(N);PX=new Float32Array(N);PY=new Float32Array(N);PZ=new Float32Array(N);PF=new Float32Array(N);RIM=new Float32Array(N);
+    var Rn=rng(11);POOL={};STARIDX={};
+    for(var r=1;r<=5;r++){
+      var es=E.filter(function(e){return V[e[0]].reg===r&&V[e[1]].reg===r}),ids=[];
+      V.forEach(function(v,k){if(v.reg===r)ids.push(k)});
+      var pick=[];for(i=0;i<8;i++)pick.push(ids[Math.floor(Rn()*ids.length)]);STARIDX[r]=pick;
+      var pool=[];for(var q2=0;q2<46;q2++){var e=es[Math.floor(Rn()*es.length)];pool.push({a:e[0],b:e[1],t:Rn(),ph:Rn()*6.28})}
+      POOL[r]=pool;
+    }
+    shape();
+  }
+  /* 티어에 따른 근육 발달(morph)을 적용하고, 면에서 법선을 다시 계산(빛으로 굴곡이 드러남) */
+  function shape(){
+    if(!N)return;
+    devel();var i,k,g,mo;
+    for(i=0;i<N;i++){V[i].x=V[i].bx;V[i].z=V[i].bz}
+    if(MOD.morph)for(g in MOD.morph){
+      mo=MOD.morph[g];k=Dv[g];if(k==null)continue;
+      for(i=0;i<mo.i.length;i++){var v=V[mo.i[i]],d=mo.d[i]*k;v.x+=v.nx*d;v.z+=v.nz*d}
+    }
+    for(i=0;i<N;i++){var u=V[i];u.Nx=0;u.Ny=0;u.Nz=0}
+    for(i=0;i<F.length;i++){
+      var f=F[i],a=V[f[0]],b=V[f[1]],c=V[f[2]],
+        ux=b.x-a.x,uy=b.y2-a.y2,uz=b.z-a.z,wx=c.x-a.x,wy=c.y2-a.y2,wz=c.z-a.z,
+        cx_=uy*wz-uz*wy,cy_=uz*wx-ux*wz,cz_=ux*wy-uy*wx;
+      a.Nx+=cx_;a.Ny+=cy_;a.Nz+=cz_;b.Nx+=cx_;b.Ny+=cy_;b.Nz+=cz_;c.Nx+=cx_;c.Ny+=cy_;c.Nz+=cz_;
+    }
+    for(i=0;i<N;i++){
+      var p=V[i],l=Math.sqrt(p.Nx*p.Nx+p.Ny*p.Ny+p.Nz*p.Nz)||1;
+      p.Nx/=l;p.Ny/=l;p.Nz/=l;
+      if(p.nx||p.nz){if(p.Nx*p.nx+p.Nz*p.nz<0){p.Nx=-p.Nx;p.Ny=-p.Ny;p.Nz=-p.Nz}}
+    }
+  }
+  var statusEl=null;
+  var PEND={};
+  function fetchModel(s){
+    if(MODELS[s])return Promise.resolve(MODELS[s]);
+    return PEND[s]||(PEND[s]=fetch(URL[s]).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(m){
+      if(m.format!=='rune-avatar-1'||!m.v||!m.e||!m.f||!m.reg)throw new Error('format');
+      MODELS[s]=m;return m}));
+  }
+  function loadSex(s){
+    SEX=s;if(statusEl&&!MODELS[s])statusEl.textContent='모델 불러오는 중…';
+    return fetchModel(s).then(function(m){if(SEX===s){build(m);if(statusEl)statusEl.textContent=hintText()}})
+      .catch(function(){PEND[s]=null;if(statusEl)statusEl.textContent='모델 파일을 불러오지 못했어요'});
+  }
+  var DUST=[];for(var i=0;i<110;i++)DUST.push({x:(R()-.5)*1.3,y:R()*1.95-.08,z:(R()-.5)*.9,ph:R()*6.28,sp:.02+R()*.05});
+
+  /* ---------- 그리기 ---------- */
+  var cv=document.getElementById('cv'),cx=cv.getContext('2d');
+  var W=0,H=0,DPR=1,S=1,ang=0,auto=true,drag=false,pinch=false,last=0,sel=null,resumeAt=0;
+  var PITCH0=.12,PMAX=1.396,pitch=PITCH0,zoom=1,cp=Math.cos(pitch),spt=Math.sin(pitch);
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){auto=false}
+  function size(){
+    DPR=Math.min(1.5,window.devicePixelRatio||1);
+    var w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;
+    W=cv.width=Math.round(w*DPR);H=cv.height=Math.round(h*DPR);S=H*.47*zoom;
+  }
+  new ResizeObserver(size).observe(cv);
+
+  function tint(reg,now){
+    var t=ST[REG[reg-1]].t;
+    if(t===9){var k=.5+.5*Math.sin(now*.0016),a=RGB[9],b=[127,243,255];return[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k]}
+    return RGB[t];
+  }
+  function rgba(c,a){return'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+Math.max(0,Math.min(1,a)).toFixed(3)+')'}
+  var BASEC=[90,169,255];
+
+  var FZ,PX,PY,PZ,PF,RIM;
+  var qx,qy,qz,qf;
+  function pj(x,y,z,ca,sa){
+    var xr=x*ca+z*sa,zr=-x*sa+z*ca,yv=y-.9,y2=yv*cp+zr*spt,z2=-yv*spt+zr*cp,f=3.4/(3.4-z2);
+    qx=W/2+xr*S*f;qy=H/2-y2*S*f;qz=z2;qf=f;
+  }
+
+  function frame(now){
+    requestAnimationFrame(frame);
+    if(document.hidden||!W||!N)return;
+    var dt=Math.min(.05,(now-last)/1000);last=now;
+    if(!drag&&!pinch&&now>=resumeAt&&!reduce){pitch+=(PITCH0-pitch)*Math.min(1,dt*1.2);if(Math.abs(pitch-PITCH0)<.002)pitch=PITCH0}
+    cp=Math.cos(pitch);spt=Math.sin(pitch);S=H*.47*zoom;
+    if(auto&&!drag&&now>=resumeAt)ang+=dt*.35;
+    var ca=Math.cos(ang),sa=Math.sin(ang);
+    cx.globalCompositeOperation='source-over';cx.clearRect(0,0,W,H);cx.shadowBlur=0;
+    var top=0,topReg=1;
+    REG.forEach(function(n,i){if(ST[n].t>top){top=ST[n].t;topReg=i+1}});
+    var tc=tint(topReg,now);
+    if(top>=6){
+      var g=cx.createRadialGradient(W/2,H/2,S*.05,W/2,H/2,S*.95);
+      g.addColorStop(0,rgba(tc,.10+.035*(top-6)));g.addColorStop(1,rgba(tc,0));
+      cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    }
+    cx.globalCompositeOperation='lighter';
+    cx.lineWidth=DPR;cx.setLineDash([6*DPR,10*DPR]);cx.lineDashOffset=-now*.012*DPR;
+    [[.5,.34],[.72,.16]].forEach(function(r){
+      cx.strokeStyle=rgba(top>=1?tc:BASEC,r[1]*(.55+.45*GLOW[top]));
+      cx.beginPath();pj(0,0,0,1,0);cx.ellipse(W/2,qy,r[0]*S,r[0]*S*(.08+Math.abs(Math.sin(pitch))),0,0,6.2832);cx.stroke();
+    });
+    cx.setLineDash([]);
+
+    var i;
+    for(i=0;i<N;i++){
+      var v=V[i];pj(v.x,v.y2,v.z,ca,sa);PX[i]=qx;PY[i]=qy;PZ[i]=qz;PF[i]=qf;
+      var nxr=v.Nx*ca+v.Nz*sa,nzr0=-v.Nx*sa+v.Nz*ca,nzr=-v.Ny*spt+nzr0*cp,nyr=v.Ny*cp+nzr0*spt,lum=nxr*-.42+nyr*.55+nzr*.72,rm=1-Math.abs(nzr);
+      FZ[i]=nzr;lum=lum<0?0:lum;rm=rm*rm;var sh=.12+.62*lum+.5*rm;RIM[i]=sh>1?1:sh;
+    }
+    var AL=[],LW=[];
+    for(var rg=1;rg<=5;rg++){
+      var nm=REG[rg-1],st=ST[nm],g2=GLOW[st.t],p=st.s>=5?.78+.22*Math.sin(now*.0065):1;
+      if(sel===nm)p*=1.28+.12*Math.sin(now*.01);
+      AL[rg]=Math.min(1,(.17+.5*g2)*p);LW[rg]=(.8+.6*g2)*(sel===nm?1.3:1);
+    }
+    /* 간선: 영역·가장자리(림)·깊이별로 묶어서 한 번에 */
+    var bk={};
+    for(i=0;i<E.length;i++){
+      var e=E[i],a=V[e[0]],b=V[e[1]],reg=a.reg||b.reg,rim=(RIM[e[0]]+RIM[e[1]])*.5,rb=rim<.3?0:rim<.5?1:rim<.72?2:3,db=(FZ[e[0]]+FZ[e[1]])>-.12?1:0;
+      if(!db&&rb<3)continue;
+      var key=reg*8+rb*2+db;
+      (bk[key]=bk[key]||[]).push(PX[e[0]],PY[e[0]],PX[e[1]],PY[e[1]]);
+    }
+    var RF=[.3,.55,.85,1.15],DF=[.2,1];
+    Object.keys(bk).sort(function(x,y){return x-y}).forEach(function(k){
+      var reg=Math.floor(k/8),rb=Math.floor((k%8)/2),db=k%2,arr=bk[k],col,al,lw;
+      if(reg===0){col=BASEC;al=[.04,.08,.15,.26][rb]*DF[db];lw=.8*DPR;cx.shadowBlur=0}
+      else{
+        var t=ST[REG[reg-1]].t;col=tint(reg,now);al=AL[reg]*RF[rb]*DF[db];lw=LW[reg]*DPR;
+        if(t===0){col=[120,128,140];al*=.7}
+        cx.shadowColor=rgba(col,.9);cx.shadowBlur=(t>=2&&rb===3)?GLOW[t]*10*DPR:0;
+      }
+      cx.strokeStyle=rgba(col,al);cx.lineWidth=lw;cx.beginPath();
+      for(var q=0;q<arr.length;q+=4){cx.moveTo(arr[q],arr[q+1]);cx.lineTo(arr[q+2],arr[q+3])}
+      cx.stroke();
+    });
+    cx.shadowBlur=0;
+
+    /* 노드: 앞쪽·가장자리일수록 또렷 */
+    for(var reg2=0;reg2<=5;reg2++){
+      var col2,rad,al2;
+      if(reg2===0){col2=BASEC;rad=.8;al2=.55}
+      else{var t2=ST[REG[reg2-1]].t;col2=t2===0?[130,138,150]:tint(reg2,now);rad=.95+.13*t2;al2=Math.min(1,.35+.5*GLOW[t2])*(ST[REG[reg2-1]].s>=5?.8+.2*Math.sin(now*.0065):1)}
+      for(var side=0;side<2;side++){
+        cx.fillStyle=rgba(col2,al2*(side?1:.18));cx.beginPath();
+        for(i=0;i<N;i++){
+          var vv=V[i];if(vv.reg!==reg2||!vv.node)continue;
+          if((PZ[i]>-.02)!==!!side)continue;
+          var rr=rad*(.7+.7*RIM[i])*DPR*PF[i];cx.moveTo(PX[i]+rr,PY[i]);cx.arc(PX[i],PY[i],rr,0,6.2832);
+        }
+        cx.fill();
+      }
+    }
+    /* 추가 노드(티어가 높을수록 촘촘) + 마스터 이상 빛 띠 */
+    for(var rg3=1;rg3<=5;rg3++){
+      var t3=ST[REG[rg3-1]].t,cnt=Math.round(t3*3.2),pool=POOL[rg3],c3=t3===0?[130,138,150]:tint(rg3,now),j;
+      for(j=0;j<cnt&&j<pool.length;j++){
+        var pt=pool[j],A=V[pt.a],B=V[pt.b];
+        pj(A.x+(B.x-A.x)*pt.t,A.y2+(B.y2-A.y2)*pt.t,A.z+(B.z-A.z)*pt.t,ca,sa);
+        var tw=.55+.45*Math.sin(now*.003+pt.ph);
+        cx.fillStyle=rgba(c3,(qz>0?.9:.4)*tw);cx.beginPath();cx.arc(qx,qy,(1+.08*t3)*DPR*qf,0,6.2832);cx.fill();
+      }
+      if(t3>=7){
+        var yb=((now*.0006)%2.4)-.3;
+        cx.fillStyle='rgba(255,255,255,.85)';cx.beginPath();
+        for(i=0;i<N;i++){if(V[i].reg===rg3&&V[i].node&&Math.abs(V[i].y-yb)<.04&&PZ[i]>-.05){var r4=(1.0+.1*(t3-6))*DPR*PF[i];cx.moveTo(PX[i]+r4,PY[i]);cx.arc(PX[i],PY[i],r4,0,6.2832)}}
+        cx.fill();
+      }
+    }
+    /* 별: 별 수만큼 반짝임 */
+    cx.lineWidth=DPR;
+    for(var rg4=1;rg4<=5;rg4++){
+      var st4=ST[REG[rg4-1]],c4=tint(rg4,now),ids=STARIDX[rg4];
+      for(var s=0;s<st4.s;s++){
+        var vi=ids[s],sz=(3.2+2.4*Math.sin(now*.0042+s*1.9+rg4))*DPR*PF[vi],al4=PZ[vi]>-.02?1:.35;
+        if(sz<1)continue;
+        cx.strokeStyle='rgba(255,255,255,'+(.9*al4).toFixed(3)+')';
+        cx.beginPath();cx.moveTo(PX[vi]-sz,PY[vi]);cx.lineTo(PX[vi]+sz,PY[vi]);cx.moveTo(PX[vi],PY[vi]-sz);cx.lineTo(PX[vi],PY[vi]+sz);cx.stroke();
+        cx.fillStyle=rgba(c4,.9*al4);cx.beginPath();cx.arc(PX[vi],PY[vi],sz*.3,0,6.2832);cx.fill();
+      }
+    }
+    /* 떠다니는 점 */
+    cx.fillStyle='rgba(120,185,255,.35)';cx.beginPath();
+    DUST.forEach(function(d){
+      d.y+=d.sp*dt;if(d.y>1.9)d.y=-.08;
+      var tw=.5+.5*Math.sin(now*.002+d.ph);if(tw<.25)return;
+      pj(d.x,d.y,d.z,ca,sa);var rr=(.7+.7*tw)*DPR*qf;cx.moveTo(qx+rr,qy);cx.arc(qx,qy,rr,0,6.2832);
+    });
+    cx.fill();
+  }
+  requestAnimationFrame(frame);
+
+  /* 끌어서 돌리기: 가로=좌우 360°, 세로=위아래(±80°), 두 손가락 벌리기=확대. 손을 떼면 각도는 천천히 기본으로 돌아와요 */
+  var lx=0,ly=0,PT={},pd0=1,z0=1,coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches,grab=!coarse;
+  function clamp(v,a,b){return v<a?a:v>b?b:v}
+  function ptc(){return Object.keys(PT).length}
+  function pdist(){var k=Object.keys(PT),a=PT[k[0]],b=PT[k[1]];return Math.hypot(a.x-b.x,a.y-b.y)||1}
+  function hintText(){return coarse?'한 손가락 회전 · 두 손가락 확대':'끌어서 회전 · Ctrl+휠 확대'}
+  function setGrab(g){grab=g;cv.style.touchAction=g?'none':'pan-y';var b=document.getElementById('grab');if(b){b.textContent=g?'자유 회전 켬':'자유 회전 끔';b.setAttribute('aria-pressed',g?'true':'false');b.title=g?'터치로 위아래까지 돌릴 수 있어요. 이 영역에서는 화면이 스크롤되지 않아요':'세로로 끌면 화면이 스크롤돼요. 켜면 위아래로도 돌릴 수 있어요'}}
+  function resetView(){pitch=PITCH0;zoom=1;resumeAt=performance.now()}
+  cv.addEventListener('pointerdown',function(e){
+    PT[e.pointerId]={x:e.clientX,y:e.clientY};try{cv.setPointerCapture(e.pointerId)}catch(_){}
+    if(ptc()===1){drag=true;lx=e.clientX;ly=e.clientY}else if(ptc()===2){drag=false;pinch=true;pd0=pdist();z0=zoom}
+  });
+  cv.addEventListener('pointermove',function(e){
+    var p=PT[e.pointerId];if(!p)return;p.x=e.clientX;p.y=e.clientY;
+    if(pinch&&ptc()>=2){zoom=clamp(z0*pdist()/pd0,.7,2.2);return}
+    if(!drag)return;
+    ang+=(e.clientX-lx)*.012;pitch=clamp(pitch+(e.clientY-ly)*.009,-PMAX,PMAX);lx=e.clientX;ly=e.clientY;
+  });
+  function up(e){
+    delete PT[e.pointerId];
+    if(ptc()<2)pinch=false;
+    if(ptc()===1){var k=Object.keys(PT)[0];drag=true;lx=PT[k].x;ly=PT[k].y}
+    else if(ptc()===0&&drag){drag=false;resumeAt=performance.now()+1800}
+    else if(ptc()===0){resumeAt=performance.now()+1800}
+  }
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  cv.addEventListener('wheel',function(e){if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();zoom=clamp(zoom*Math.exp(-e.deltaY*.0025),.7,2.2)},{passive:false});
+  cv.addEventListener('dblclick',resetView);
+  cv.tabIndex=0;
+  cv.addEventListener('keydown',function(e){
+    var k=e.key,h=true;
+    if(k==='ArrowLeft')ang-=.16;else if(k==='ArrowRight')ang+=.16;
+    else if(k==='ArrowUp')pitch=clamp(pitch-.1,-PMAX,PMAX);else if(k==='ArrowDown')pitch=clamp(pitch+.1,-PMAX,PMAX);
+    else if(k==='+'||k==='=')zoom=clamp(zoom*1.1,.7,2.2);else if(k==='-')zoom=clamp(zoom/1.1,.7,2.2);
+    else if(k==='0'||k==='Escape')resetView();else h=false;
+    if(h){e.preventDefault();resumeAt=performance.now()+1800}
+  });
+  setGrab(grab);
+  document.getElementById('grab').addEventListener('click',function(){setGrab(!grab)});
+  document.getElementById('reset').addEventListener('click',resetView);
+  var spin=document.getElementById('spin');
+  if(reduce)spin.textContent='회전 시작';
+  spin.addEventListener('click',function(){auto=!auto;spin.textContent=auto?'회전 멈춤':'회전 시작'});
+
+  /* ---------- 상태창 ---------- */
+  var rowsEl=document.getElementById('rows'),rowEls={};
+  function opt(arr,v){return arr.map(function(n,i){return'<option value="'+i+'"'+(i===v?' selected':'')+'>'+n+'</option>'}).join('')}
+  REG.forEach(function(k){
+    var d=document.createElement('div');d.className='row';d.dataset.k=k;
+    d.innerHTML='<span class="dot"></span><div class="part">'+INFO[k][0]+'<em>'+INFO[k][1]+'</em></div><div class="tier"></div>'+
+      '<div class="rank"></div><div class="ctl"><select aria-label="'+INFO[k][0]+' 티어" data-f="t">'+opt(TIERS,ST[k].t)+'</select>'+
+      '<select aria-label="'+INFO[k][0]+' 별" data-f="s">'+opt([0,1,2,3,4,5,6,7,8].map(function(n){return n+'★'}),ST[k].s)+'</select></div>';
+    rowsEl.appendChild(d);rowEls[k]=d;
+  });
+  /* 티어 피라미드: 위쪽일수록 드문 수준. 내 부위들이 어느 층에 있는지 표시하고, 층을 누르면 '상위 몇 %' 설명 */
+  var pyrSel=null,pyrl=document.getElementById('pyrl'),pyrt=document.getElementById('pyrt'),pyrEls=[];
+  for(var pt=9;pt>=0;pt--){(function(t){
+    var b=document.createElement('button');b.type='button';b.className='lay';b.dataset.t=t;b.style.setProperty('--c',COL[t]);
+    b.style.width=(46+(9-t)*6).toFixed(0)+'%';b.setAttribute('aria-label',TIERS[t]+' 티어, '+(RANK[t]?'일반 성인 상위 약 '+RANK[t]+'%':'시작 단계')+' 자세히 보기');
+    b.innerHTML='<span>'+(RANK[t]?RANK[t]+'%':'입문')+'</span>';
+    b.addEventListener('click',function(){pyrSel=pyrSel===t?null:t;pyrUpdate()});
+    pyrl.appendChild(b);pyrEls[t]=b;
+  })(pt)}
+  var PD=['운동을 막 시작한 단계예요. 모든 티어는 여기서 출발해요.','기초 체력을 만든 단계예요. 일반 성인의 절반을 넘어선 수준이에요.','꾸준히 운동하는 사람의 수준이에요. 10명 중 4명 안에 들어요.','운동 습관이 몸에 밴 단계예요. 4명 중 1명만 도달해요.','헬스장에서도 눈에 띄는 수준이에요. 7명 중 1명 정도예요.','오랜 훈련의 결과예요. 10명 중 1명만 도달해요.','선수급 기반이에요. 약 17명 중 1명이에요.','극소수의 영역이에요. 약 33명 중 1명이에요.','200명 중 1명 꼴로 드문 수준이에요.','1,000명 중 1명. 피라미드의 꼭대기예요.'];
+  /* 3D 금속 피라미드 3조각 — 정점(머리 옆) · 고지(몸통 옆) · 기반(발목~허벅지 옆). 아바타와 같은 시점(위아래 각도·확대)으로 그려서 함께 움직여요 */
+  var pyHas={},pyTop=0,pyPoly=[],pyReduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches,
+      pyo=document.createElement('canvas'),pyx=pyo.getContext('2d'),pyW=0,pyH=0;
+  pyo.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1';
+  cv.parentNode.appendChild(pyo);
+  var PYZ=[
+    {n:'기반',t:[0,1,2,3],y0:.20,y1:.66,hb:[.150,.135,.120,.105],ht:[.142,.127,.112,.097]},
+    {n:'고지',t:[4,5,6],y0:.96,y1:1.36,hb:[.128,.112,.096],ht:[.120,.104,.088]},
+    {n:'정점',t:[7,8,9],y0:1.54,y1:1.78,hb:[.140,.110,.085],ht:[.120,.090,.030]}
+  ],PXC=-.58,STEEL=[205,214,228];
+  function mixc(c,k){return[c[0]+(STEEL[0]-c[0])*k,c[1]+(STEEL[1]-c[1])*k,c[2]+(STEEL[2]-c[2])*k]}
+  function rgbs(c,k,a){return'rgba('+(Math.max(0,Math.min(255,c[0]*k))|0)+','+(Math.max(0,Math.min(255,c[1]*k))|0)+','+(Math.max(0,Math.min(255,c[2]*k))|0)+','+a+')'}
+  function pyDraw(now){
+    requestAnimationFrame(pyDraw);
+    if(document.hidden)return;
+    var cw=cv.clientWidth,ch=cv.clientHeight;if(!cw||!ch)return;
+    var d=Math.min(2,window.devicePixelRatio||1);
+    if(pyW!==cw||pyH!==ch){pyW=cw;pyH=ch;pyo.width=cw*d;pyo.height=ch*d}
+    pyx.setTransform(d,0,0,d,0,0);pyx.clearRect(0,0,cw,ch);pyPoly=[];
+    var ang=pyReduce?.7:now*.0006,cs=Math.cos(ang),sn=Math.sin(ang),Sx=ch*.47*zoom,cpp=Math.cos(pitch),spp=Math.sin(pitch);
+    function pr(x,y,z){var xr=x*cs+z*sn,zr=-x*sn+z*cs,X=PXC+xr,y2=(y-.9)*cpp+zr*spp,z2=-(y-.9)*spp+zr*cpp,f=3.4/(3.4-z2);return[cw/2+X*Sx*f,ch/2-y2*Sx*f]}
+    var NX=[0,1,0,-1],NZ=[1,0,-1,0],IJ=[[3,2],[2,1],[1,0],[0,3]];
+    PYZ.forEach(function(Z,zi){
+      var n=Z.t.length,gap=.012,hh=(Z.y1-Z.y0-gap*(n-1))/n,zsel=false;
+      Z.t.forEach(function(t,k){
+        var c=mixc(RGB[t],.28),y0=Z.y0+k*(hh+gap),y1=y0+hh,hb=Z.hb[k],ht=Z.ht[k],sel=pyrSel===t,own=!!pyHas[t],al=sel?1:own?.96:.62;
+        if(sel)zsel=true;
+        var CB=[[-hb,-hb],[hb,-hb],[hb,hb],[-hb,hb]],CT=[[-ht,-ht],[ht,-ht],[ht,ht],[-ht,ht]];
+        var B=CB.map(function(q){return pr(q[0],y0,q[1])}),T=CT.map(function(q){return pr(q[0],y1,q[1])}),polys=[],bestN=-1,bestC=null,i;
+        pyx.shadowBlur=0;
+        if(t===pyTop){pyx.shadowColor=rgbs(RGB[t],1.2,.95);pyx.shadowBlur=16}
+        pyx.globalAlpha=al;
+        for(i=0;i<4;i++){
+          var nzr=-NX[i]*sn+NZ[i]*cs;if(nzr<=0)continue;
+          var a1=IJ[i][0],a2=IJ[i][1],pts=[B[a1],B[a2],T[a2],T[a1]];
+          /* 금속 면: 가로로 어둡 → 밝은 반사띠 → 어둡 (반사띠는 회전에 따라 이동) */
+          var g=pyx.createLinearGradient(B[a1][0],B[a1][1],B[a2][0],B[a2][1]),hp=.3+.28*Math.sin(ang*1.6+i*1.7+t*.4),base=.55+.4*nzr;
+          g.addColorStop(0,rgbs(c,base*.5,1));g.addColorStop(Math.max(.02,hp-.2),rgbs(c,base*.95,1));g.addColorStop(hp,rgbs(mixc(c,.55),base*1.45,1));g.addColorStop(Math.min(.98,hp+.2),rgbs(c,base*.8,1));g.addColorStop(1,rgbs(c,base*.42,1));
+          pyx.fillStyle=g;pyx.beginPath();pts.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.fill();
+          pyx.shadowBlur=0;pyx.lineWidth=sel?1.6:.8;pyx.strokeStyle=sel?'rgba(255,255,255,.95)':'rgba(10,16,30,.7)';pyx.stroke();
+          pyx.strokeStyle='rgba(255,255,255,'+(.25+.3*nzr)+')';pyx.lineWidth=1;pyx.beginPath();pyx.moveTo(T[a1][0],T[a1][1]);pyx.lineTo(T[a2][0],T[a2][1]);pyx.stroke(); // 윗모서리 하이라이트(모따기)
+          polys.push(pts);if(nzr>bestN){bestN=nzr;bestC=pts}
+        }
+        /* 윗면: 솔질한 강철판 + 안쪽 테두리 */
+        var tg=pyx.createLinearGradient(T[0][0],T[0][1],T[2][0],T[2][1]);
+        tg.addColorStop(0,rgbs(mixc(c,.5),1.5,1));tg.addColorStop(.5,rgbs(mixc(c,.7),1.1,1));tg.addColorStop(1,rgbs(c,.8,1));
+        pyx.fillStyle=tg;pyx.beginPath();T.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.fill();
+        pyx.lineWidth=sel?1.6:.8;pyx.strokeStyle=sel?'rgba(255,255,255,.95)':'rgba(10,16,30,.6)';pyx.stroke();
+        if(ht>.03){var ctr=pr(0,y1,0),inset=T.map(function(p){return[ctr[0]+(p[0]-ctr[0])*.62,ctr[1]+(p[1]-ctr[1])*.62]});
+          pyx.strokeStyle='rgba(255,255,255,.35)';pyx.lineWidth=.8;pyx.beginPath();inset.forEach(function(p,q){q?pyx.lineTo(p[0],p[1]):pyx.moveTo(p[0],p[1])});pyx.closePath();pyx.stroke()}
+        polys.push(T);pyPoly[t]=polys;pyx.globalAlpha=1;
+        var sx=0,sy=0;if(bestC){bestC.forEach(function(p){sx+=p[0];sy+=p[1]});sx/=4;sy/=4}
+        pyx.font='800 '+Math.max(8,Math.min(11,Sx*.046))+'px "Noto Sans KR",system-ui,sans-serif';pyx.textAlign='center';pyx.textBaseline='middle';
+        pyx.fillStyle='rgba(6,14,28,'+(own||sel?.95:.7)+')';pyx.fillText(RANK[t]?RANK[t]+'%':'입문',sx,sy+.5);
+      });
+      /* 구간 이름표 (조각 위) */
+      var tp=pr(0,Z.y1,0),pw=34,ph=15;
+      pyx.fillStyle='rgba(8,16,33,.82)';pyx.beginPath();pyx.roundRect(tp[0]-pw/2,tp[1]-ph-9,pw,ph,6);pyx.fill();
+      pyx.strokeStyle=zsel?'rgba(255,255,255,.95)':'rgba(159,198,255,.5)';pyx.lineWidth=zsel?1.4:1;pyx.stroke();
+      pyx.font='700 10.5px "Noto Sans KR",system-ui,sans-serif';pyx.textAlign='center';pyx.textBaseline='middle';
+      pyx.fillStyle=zsel?'#fff':'rgba(200,222,255,.95)';pyx.fillText(Z.n,tp[0],tp[1]-ph/2-8.5);
+    });
+  }
+  requestAnimationFrame(pyDraw);
+  function inPoly(pts,x,y){var ins=false;for(var i=0,j=pts.length-1;i<pts.length;j=i++){var xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))ins=!ins}return ins}
+  var tapX=0,tapY=0,tapT=0;
+  cv.addEventListener('pointerdown',function(e){tapX=e.clientX;tapY=e.clientY;tapT=performance.now()});
+  cv.addEventListener('pointerup',function(e){
+    if(pinch||Math.hypot(e.clientX-tapX,e.clientY-tapY)>6||performance.now()-tapT>600)return;
+    var r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+    for(var t=9;t>=0;t--){var ps=pyPoly[t]||[];for(var k=0;k<ps.length;k++)if(inPoly(ps[k],x,y)){pyrSel=pyrSel===t?null:t;pyrUpdate();return}}
+  });
+  pyrt.addEventListener('click',function(){pyrSel=null;pyrUpdate()});
+  function pyrCard(t,top){
+    var here=REG.filter(function(k){return ST[k].t===t}).map(function(k){return INFO[k][0]}).join(' · ');
+    var mine=here?'이 티어에 있는 내 부위: <b>'+here+'</b>':(top<t?'내 최고 티어는 <b>'+TIERS[top]+'</b>이에요. 이 티어까지 '+(t-top)+'단계 남았어요.':'지금은 이 티어에 있는 부위가 없어요.');
+    return '<span class="pys" style="margin:0 0 4px">'+['기반 구간 · 아이언~골드','고지 구간 · 플래티넘~다이아몬드','정점 구간 · 마스터~챌린저'][t<4?0:t<7?1:2]+'</span><span class="pyt" style="color:'+COL[t]+'">'+TIERS[t]+'</span> '+(RANK[t]?'<b>일반 성인 상위 약 '+RANK[t]+'%</b>의 운동수행능력을 뜻해요.':'<b>시작 단계</b>예요.')+'<br>'+PD[t]+'<br>'+mine+'<span class="pys">상위 %는 공개 기준표를 바탕으로 한 추정치예요. 회원 기록이 쌓이면 실제 분포로 다듬어요.</span>';
+  }
+  function pyrUpdate(){
+    var has={},top=0;REG.forEach(function(k){has[ST[k].t]=1;if(ST[k].t>top)top=ST[k].t});pyHas=has;pyTop=top;
+    pyrEls.forEach(function(b,t){b.classList.toggle('has',!!has[t]);b.classList.toggle('top',t===top);b.classList.toggle('sel',t===pyrSel)});
+    document.getElementById('pyr').classList.toggle('open',pyrSel!=null);
+    var t=pyrSel==null?top:pyrSel;
+    pyrt.innerHTML=pyrCard(t,top);
+  }
+  function refresh(k){
+    var st=ST[k],el=rowEls[k];
+    el.style.setProperty('--c',COL[st.t]);
+    el.querySelector('.tier').textContent=TIERS[st.t]+' '+(st.s>0?'★'.repeat(Math.min(st.s,5))+(st.s>5?'+'+(st.s-5):''):'');
+    el.querySelector('.rank').textContent=RANK[st.t]?'일반 성인 상위 약 '+RANK[st.t]+'%':'아직 시작 단계예요';
+    el.querySelector('[data-f=t]').value=st.t;el.querySelector('[data-f=s]').value=st.s;pyrUpdate();
+  }
+  function refreshAll(){REG.forEach(refresh);shape()}
+  rowsEl.addEventListener('change',function(e){
+    var row=e.target.closest('.row');if(!row)return;
+    ST[row.dataset.k][e.target.dataset.f]=+e.target.value;refresh(row.dataset.k);shape();
+  });
+  rowsEl.addEventListener('click',function(e){
+    if(e.target.closest('select'))return;
+    var row=e.target.closest('.row');if(!row)return;
+    var k=row.dataset.k;sel=sel===k?null:k;
+    REG.forEach(function(n){rowEls[n].classList.toggle('on',n===sel)});
+  });
+  var pr=document.getElementById('presets');
+  PRE.forEach(function(p){
+    var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=p[0];
+    b.addEventListener('click',function(){REG.forEach(function(k){ST[k].t=p[1][k][0];ST[k].s=p[1][k][1]});refreshAll()});
+    pr.appendChild(b);
+  });
+  var ob=document.getElementById('orbs');
+  TIERS.forEach(function(n,t){
+    var b=document.createElement('button');b.type='button';b.className='orb';b.setAttribute('aria-label',n+' 티어로 모든 부위 미리보기');
+    var g=GLOW[t],c=COL[t];
+    b.innerHTML='<i style="background:radial-gradient(circle at 50% 45%,'+c+' 0%,'+c+(t===0?'66':'cc')+' 45%,transparent 72%);box-shadow:0 0 '+(4+g*24)+'px '+(g*5)+'px '+c+(t===0?'22':'66')+'"></i><span>'+n+'</span>';
+    b.addEventListener('click',function(){REG.forEach(function(k){ST[k].t=t});refreshAll()});
+    ob.appendChild(b);
+  });
+  var segEl=document.querySelector('.seg'),who=document.getElementById('whoinfo');
+  segEl.addEventListener('click',function(e){
+    var b=e.target.closest('[data-sex]');if(!b)return;
+    loadSex(b.dataset.sex);
+    segEl.querySelectorAll('[data-sex]').forEach(function(x){x.classList.toggle('on',x===b)});
+    who.textContent=SEX==='M'?'30대 남성 · 75kg · 175cm':'30대 여성 · 58kg · 165cm';
+  });
+  statusEl=document.getElementById('stat');
+  refreshAll();
+  loadSex('M').then(function(){fetchModel('F').catch(function(){})});
+})();
+</script>
