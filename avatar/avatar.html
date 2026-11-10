@@ -132,7 +132,7 @@ html.embed canvas{max-height:none}
         <h2>티어별 빛 느낌</h2>
         <div class="orbs" id="orbs"></div>
       </div>
-      <p class="note">티어가 오를수록 해당 부위 근육이 더 발달한 모습으로 바뀌어요. 남성은 클래식 피지크, 여성은 비키니 선수 체형을 기준으로 해요. 달리기(머리·종아리·발)는 아직 앱에 기록과 티어 규칙이 없어서 같은 티어 표를 빌려 보여줘요. 상위 %는 추정치예요.</p>
+      <p class="note">티어가 오를수록 해당 부위 근육이 더 발달한 모습으로 바뀌어요. 남성은 클래식 피지크, 여성은 비키니 선수 체형을 기준으로 해요. 머리는 풀업, 종아리·발은 5km 달리기, 허리는 데드리프트, 등은 바벨로우 티어예요. 앱에서는 장비 착용창에서 입은 장비 등급대로 빛나요. 상위 %는 추정치예요.</p>
     </section>
   </div>
 </div>
@@ -143,15 +143,15 @@ html.embed canvas{max-height:none}
   var COL=['#8b9099','#cf8a52','#d2dbe6','#ffc94d','#4fe0cf','#3ee08a','#6fb0ff','#c77dff','#ff5d73','#ffe27a'];
   var GLOW=[.10,.18,.27,.37,.47,.57,.68,.79,.90,1];
   var RANK=[null,50,40,25,15,10,6,3,.5,.1];
-  var REG=['shoulder','chest','back','legs','run'];          // 영역 번호 1~5, 0은 기본 몸체
-  var INFO={shoulder:['어깨·팔','오버헤드프레스'],chest:['가슴','벤치프레스'],back:['등','데드리프트'],legs:['골반·허벅지','스쿼트'],run:['머리·종아리·발','달리기 5km']};
-  var ST={shoulder:{t:3,s:2},chest:{t:4,s:5},back:{t:3,s:1},legs:{t:5,s:3},run:{t:2,s:4}};
+  var REG=['shoulder','chest','back','legs','run','head','waist'];          // 영역 번호 1~7, 0은 기본 몸체
+  var INFO={shoulder:['어깨·팔','오버헤드프레스'],chest:['가슴','벤치프레스'],back:['등','바벨로우'],legs:['골반·허벅지','스쿼트'],run:['종아리·발','달리기 5km'],head:['머리','풀업'],waist:['허리','데드리프트']};
+  var ST={shoulder:{t:3,s:2},chest:{t:4,s:5},back:{t:3,s:1},legs:{t:5,s:3},run:{t:2,s:4},head:{t:3,s:3},waist:{t:3,s:1}};
   var PRE=[
-    ['신규 회원',{shoulder:[0,1],chest:[1,2],back:[0,2],legs:[1,1],run:[0,0]}],
-    ['6개월차',{shoulder:[2,3],chest:[3,1],back:[2,4],legs:[3,2],run:[2,2]}],
-    ['1년차',{shoulder:[3,4],chest:[4,5],back:[4,3],legs:[5,3],run:[3,4]}],
-    ['상급자',{shoulder:[6,2],chest:[7,3],back:[7,6],legs:[8,1],run:[5,5]}],
-    ['챌린저',{shoulder:[9,8],chest:[9,8],back:[9,8],legs:[9,8],run:[9,8]}]
+    ['신규 회원',{shoulder:[0,1],chest:[1,2],back:[0,2],legs:[1,1],run:[0,0],head:[0,0],waist:[0,1]}],
+    ['6개월차',{shoulder:[2,3],chest:[3,1],back:[2,4],legs:[3,2],run:[2,2],head:[1,3],waist:[2,2]}],
+    ['1년차',{shoulder:[3,4],chest:[4,5],back:[4,3],legs:[5,3],run:[3,4],head:[3,2],waist:[4,1]}],
+    ['상급자',{shoulder:[6,2],chest:[7,3],back:[7,6],legs:[8,1],run:[5,5],head:[6,4],waist:[7,2]}],
+    ['챌린저',{shoulder:[9,8],chest:[9,8],back:[9,8],legs:[9,8],run:[9,8],head:[9,8],waist:[9,8]}]
   ];
 
   function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -163,11 +163,11 @@ html.embed canvas{max-height:none}
      몸 모양은 코드가 아니라 데이터 파일(models/avatar-male.json, avatar-female.json)에서 읽어요.
      형식 rune-avatar-1: v(점 xyz) · n(방사 법선 xz) · reg(부위 0~5) · node(노드 점 번호) · e(선 연결) · f(면 삼각형) ·
        morph{sh,ch,bk,lg,rn:{i:[점 번호],d:[변위]}} = 티어가 오를 때 부풀어 오르는 양(없으면 정적 모델).
-     좌표: 미터, y가 위쪽, 발바닥 y=0, 정면 +z. 부위 번호: 1 어깨·팔, 2 가슴, 3 등, 4 골반·허벅지, 5 머리·종아리·발, 0 기본 몸체 */
+     좌표: 미터, y가 위쪽, 발바닥 y=0, 정면 +z. 부위 번호: 1 어깨·팔, 2 가슴, 3 등, 4 골반·허벅지, 5 종아리·발, 6 머리, 7 허리, 0 기본 몸체 */
   var SEX='M',URL={M:'models/avatar-male.json',F:'models/avatar-female.json'},MODELS={},MOD=null;
   var V=[],E=[],F=[],N=0,POOL={},STARIDX={};
   var Dv={sh:1,ch:1,bk:1,lg:1,rn:1},GK={shoulder:'sh',chest:'ch',back:'bk',legs:'lg',run:'rn'};
-  function devel(){REG.forEach(function(n){Dv[GK[n]]=(.35+.125*ST[n].t)/1.475})}
+  function devel(){REG.forEach(function(n){if(GK[n])Dv[GK[n]]=(.35+.125*ST[n].t)/1.475})}
   function build(m){
     var n=m.v.length/3,i;MOD=m;V=new Array(n);E=[];F=[];
     for(i=0;i<n;i++){
@@ -180,7 +180,7 @@ html.embed canvas{max-height:none}
     for(i=0;i<m.f.length;i+=3)F.push([m.f[i],m.f[i+1],m.f[i+2]]);
     N=n;FZ=new Float32Array(N);PX=new Float32Array(N);PY=new Float32Array(N);PZ=new Float32Array(N);PF=new Float32Array(N);RIM=new Float32Array(N);
     var Rn=rng(11);POOL={};STARIDX={};
-    for(var r=1;r<=5;r++){
+    for(var r=1;r<=REG.length;r++){
       var es=E.filter(function(e){return V[e[0]].reg===r&&V[e[1]].reg===r}),ids=[];
       V.forEach(function(v,k){if(v.reg===r)ids.push(k)});
       var pick=[];for(i=0;i<8;i++)pick.push(ids[Math.floor(Rn()*ids.length)]);STARIDX[r]=pick;
@@ -286,7 +286,7 @@ html.embed canvas{max-height:none}
       FZ[i]=nzr;lum=lum<0?0:lum;rm=rm*rm;var sh=.12+.62*lum+.5*rm;RIM[i]=sh>1?1:sh;
     }
     var AL=[],LW=[];
-    for(var rg=1;rg<=5;rg++){
+    for(var rg=1;rg<=REG.length;rg++){
       var nm=REG[rg-1],st=ST[nm],g2=GLOW[st.t],p=st.s>=5?.78+.22*Math.sin(now*.0065):1;
       if(sel===nm)p*=1.28+.12*Math.sin(now*.01);
       AL[rg]=Math.min(1,(.17+.5*g2)*p);LW[rg]=(.8+.6*g2)*(sel===nm?1.3:1);
@@ -315,7 +315,7 @@ html.embed canvas{max-height:none}
     cx.shadowBlur=0;
 
     /* 노드: 앞쪽·가장자리일수록 또렷 */
-    for(var reg2=0;reg2<=5;reg2++){
+    for(var reg2=0;reg2<=REG.length;reg2++){
       var col2,rad,al2;
       if(reg2===0){col2=BASEC;rad=.8;al2=.55}
       else{var t2=ST[REG[reg2-1]].t;col2=t2===0?[130,138,150]:tint(reg2,now);rad=.95+.13*t2;al2=Math.min(1,.35+.5*GLOW[t2])*(ST[REG[reg2-1]].s>=5?.8+.2*Math.sin(now*.0065):1)}
@@ -330,7 +330,7 @@ html.embed canvas{max-height:none}
       }
     }
     /* 추가 노드(티어가 높을수록 촘촘) + 마스터 이상 빛 띠 */
-    for(var rg3=1;rg3<=5;rg3++){
+    for(var rg3=1;rg3<=REG.length;rg3++){
       var t3=ST[REG[rg3-1]].t,cnt=Math.round(t3*3.2),pool=POOL[rg3],c3=t3===0?[130,138,150]:tint(rg3,now),j;
       for(j=0;j<cnt&&j<pool.length;j++){
         var pt=pool[j],A=V[pt.a],B=V[pt.b];
@@ -347,7 +347,7 @@ html.embed canvas{max-height:none}
     }
     /* 별: 별 수만큼 반짝임 */
     cx.lineWidth=DPR;
-    for(var rg4=1;rg4<=5;rg4++){
+    for(var rg4=1;rg4<=REG.length;rg4++){
       var st4=ST[REG[rg4-1]],c4=tint(rg4,now),ids=STARIDX[rg4];
       for(var s=0;s<st4.s;s++){
         var vi=ids[s],sz=(3.2+2.4*Math.sin(now*.0042+s*1.9+rg4))*DPR*PF[vi],al4=PZ[vi]>-.02?1:.35;

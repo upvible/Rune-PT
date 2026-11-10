@@ -64,6 +64,7 @@ input[type=text],input[type=number]{width:100%;padding:9px;border:1px solid var(
 .sg input[type=checkbox]{width:22px;height:22px;accent-color:var(--cy)}
 .ty{border:1px solid var(--ln);border-radius:6px;padding:7px 0;font-weight:900;background:transparent}
 .ty.W{background:#b45309;color:#fff;border-color:#b45309}.ty.F{background:#b91c1c;color:#fff;border-color:#b91c1c}.ty.M{background:var(--cy);color:#fff;border-color:var(--cy)}.sg input.tmp{color:var(--mu);font-style:italic}
+.eqc{padding:7px 11px;border-radius:999px;border:1.5px solid var(--c,#888);background:transparent;color:var(--c,#888);font-weight:700;font-size:13px;margin:3px 4px 3px 0;cursor:pointer}.eqc.on{background:var(--c,#888);color:#111}.eqn{font-size:10px;font-weight:800;color:#111;background:#ffb62e;border-radius:6px;padding:1px 5px;margin-left:3px}
 .gbox{width:100%;margin-top:8px;display:flex;justify-content:space-between;align-items:center;padding:12px 14px}.gcnt{min-width:26px;text-align:center;border-radius:999px;padding:2px 8px;background:var(--bg);color:var(--mu)}.gcnt.on{background:#d62f3a;color:#fff}
 .xts{display:flex;gap:6px;overflow-x:auto;margin:0 0 10px;padding-bottom:4px;-webkit-overflow-scrolling:touch}.xt{flex:0 0 auto;border:1px solid var(--ln);background:transparent;color:inherit;border-radius:16px;padding:7px 12px;font-size:12px;font-weight:700;white-space:nowrap}.xt small{margin-left:6px;opacity:.7;font-weight:600}.xt.on{background:var(--cy);color:#fff;border-color:var(--cy)}.xt.add{border-style:dashed;opacity:.8}
 .rtop{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:8px;align-items:center;margin:10px 0 4px}.rtop span{display:block;font-size:12px;color:var(--mu)}.rtop b{font-size:22px;font-variant-numeric:tabular-nums}
@@ -199,7 +200,7 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     ohp: [.35, .42, .51, .62, .75, .85, .95, 1.05, 1.2],
     bbrow: [.5, .59, .69, .81, .95, 1.05, 1.15, 1.3, 1.4],
     bbcurl: [.3, .36, .44, .54, .65, .72, .8, .88],
-    latpull: [.5, .59, .71, .84, 1, 1.15, 1.25],
+    latpull: [.475, .56, .655, .77, .9, 1, 1.09],
     cablerow: [.6, .7, .81, .95, 1.1, 1.25, 1.35],
     dbfly: [.24, .29, .36, .43, .53, .6, .67],
     chestfly: [.3, .37, .46, .57, .7, .8, .9],
@@ -208,10 +209,12 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
   const REPS = {
     main: [12, 12, 10, 5, 7, 3, 1, 20, 1],
     deadlift: [12, 12, 10, 5, 7, 3, 1, 10, 1],
-    pull: [15, 15, 10, 5, 15, 5, 5, 20, 5],      // 바벨로우(챌린저 5RM)
+    pull: [15, 12, 10, 5, 12, 5, 12, 20, 5],     // 바벨로우(5회·12회 섞음, 챌린저 5RM)
     curl: [15, 15, 10, 5, 15, 5, 5, 20],          // 바벨컬·라잉 트라이셉스 (GM까지)
     upperMD: [15, 20, 10, 30, 20, 20, 20],
-    legMD: [15, 20, 20, 30, 20, 25, 20]
+    lat: [15, 20, 15, 20, 20, 20, 20],            // 랫풀다운(골드 15·플래티넘 20: 무게가 줄지 않도록)
+    legMD: [15, 20, 20, 30, 20, 25, 20],
+    pullup: [15, 12, 10, 8, 5, 8, 12, 15, 10]    // 풀업·어시스티드 풀업 한 줄(챌린저는 가중 10회)
   };
 
   const E = (id, name, o) => Object.assign({ id, name, kind: 'machine', role: 'follower', quest: 'auto', maxTier: 7, head: null, region: 'upper', reps: 'upperMD', base: null }, o);
@@ -224,7 +227,7 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     E('bbrow', '바벨 로우', { kind: 'barbell', role: 'head', quest: 'trainer', maxTier: 9, reps: 'pull', base: BASE.bbrow }),
     // 바벨 보조 — GM까지 (헤드 격차 규칙은 적용하지 않음: 바벨은 트레이너 승인 구조)
     E('bbcurl', '바벨 컬', { kind: 'barbell', role: 'aux', quest: 'trainer', maxTier: 8, reps: 'curl', base: BASE.bbcurl }),
-    E('lyingtri', '스컬크러셔', { kind: 'barbell', role: 'aux', quest: 'trainer', maxTier: 8, reps: 'curl' }),
+    E('lyingtri', '라잉 트라이셉스 익스텐션', { kind: 'barbell', role: 'aux', quest: 'trainer', maxTier: 8, reps: 'curl', base: BASE.bbcurl }),
     // 머신·덤벨 — 마스터까지, 헤드 티어 +1 제한
     E('legpress_plate', '레그프레스', { head: 'squat', region: 'lower', reps: 'legMD', equip: 'plate' }),
     E('legpress_pin', '시티드 레그프레스', { head: 'squat', region: 'lower', reps: 'legMD', equip: 'pin' }),
@@ -232,21 +235,24 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     E('pushup', '푸시업', { kind: 'body', head: 'bench' }),
     E('dbfly', '체스트 플라이', { kind: 'dumbbell', head: 'bench', base: BASE.dbfly }),
     E('chestfly', '펙덱 플라이', { head: 'bench', base: BASE.chestfly }),
-    E('latpull', '랫풀다운', { head: 'bbrow', base: BASE.latpull }),
+    E('latpull', '랫풀다운', { head: 'bbrow', base: BASE.latpull, reps: 'lat' }),
     E('cablerow', '시티드 케이블 로우', { head: 'bbrow', base: BASE.cablerow }),
     E('reardelt', '리버스 펙덱', { head: 'bbrow', base: BASE.reardelt }),
-    E('assistpull', '어시스티드 풀업 머신', { head: 'bbrow', kind: 'machine' })
+    // 풀업 줄: 풀업(맨몸·가중)과 어시스티드 풀업 머신이 같은 티어를 공유. 투구 슬롯. 마스터 이상 승급은 트레이너 확인
+    E('pullup', '풀업', { kind: 'body', head: 'bbrow', maxTier: 9, reps: 'pullup' }),
+    // 5km 달리기: 신발 슬롯. 시간 기준(RUN_SEC), 트레이너 확인
+    E('run5k', '5km 달리기', { kind: 'run', role: 'aux', quest: 'trainer', maxTier: 9, region: 'lower', reps: null })
   ];
-  const BY_ID = {}; EXERCISES.forEach((e) => (BY_ID[e.id] = e));
+  const BY_ID = {}; EXERCISES.forEach((e) => (BY_ID[e.id] = e)); BY_ID.assistpull = BY_ID.pullup; // 옛 카탈로그 호환
 
   /* 앱 종목명 → 마스터 id / 헤드 연결 (앱의 EX 목록과 이름으로 연결, 신규 종목 추가에도 안전) */
-  const NAME_TO_ID = { '스쿼트': 'squat', '벤치프레스': 'bench', '데드리프트': 'deadlift', '오버헤드 프레스': 'ohp', '바벨 로우': 'bbrow', '바벨 컬': 'bbcurl', '스컬크러셔': 'lyingtri',
+  const NAME_TO_ID = { '스쿼트': 'squat', '벤치프레스': 'bench', '데드리프트': 'deadlift', '오버헤드 프레스': 'ohp', '바벨 로우': 'bbrow', '바벨 컬': 'bbcurl', '라잉 트라이셉스 익스텐션': 'lyingtri', '스컬크러셔': 'lyingtri',
     '레그프레스': 'legpress_plate', '시티드 레그프레스': 'legpress_pin', '런지': 'lunge', '푸시업': 'pushup', '체스트 플라이': 'dbfly', '펙덱 플라이': 'chestfly',
-    '랫풀다운': 'latpull', '시티드 케이블 로우': 'cablerow', '리버스 펙덱': 'reardelt', '어시스티드 풀업 머신': 'assistpull' };
+    '랫풀다운': 'latpull', '시티드 케이블 로우': 'cablerow', '리버스 펙덱': 'reardelt', '어시스티드 풀업 머신': 'pullup', '풀업': 'pullup' };
   // 마스터에 수치가 없는 종목: 헤드만 연결(무게는 트레이너 설정). 힌지 계열 → 데드, 숄더 → OHP, 가슴 프레스 → 벤치, 당기기 → 로우, 무릎계 → 스쿼트
   const HEAD_BY_NAME = {
     '인클라인 덤벨프레스': 'bench', '케이블 크로스오버': 'bench', '딥스': 'bench', '체스트 프레스 머신': 'bench', '인클라인 체스트 프레스 머신': 'bench', '스미스 머신 벤치프레스': 'bench', '디클라인 체스트 프레스 머신': 'bench',
-    '풀업': 'bbrow', '원암 덤벨 로우': 'bbrow', '시티드 로우 머신': 'bbrow', 'T바 로우 머신': 'bbrow', '풀오버 머신': 'bbrow', '하이 로우 머신': 'bbrow', '페이스 풀': 'bbrow', '리어델트 플라이': 'bbrow',
+    '원암 덤벨 로우': 'bbrow', '시티드 로우 머신': 'bbrow', 'T바 로우 머신': 'bbrow', '풀오버 머신': 'bbrow', '하이 로우 머신': 'bbrow', '페이스 풀': 'bbrow', '리어델트 플라이': 'bbrow',
     '루마니안 데드리프트': 'deadlift', '레그 컬': 'deadlift', '힙 쓰러스트': 'deadlift', '백 익스텐션 머신': 'deadlift',
     '레그 익스텐션': 'squat', '핵 스쿼트 머신': 'squat', '스미스 머신 스쿼트': 'squat',
     '숄더 프레스 머신': 'ohp', '스미스 머신 숄더 프레스': 'ohp', '사이드 레터럴 레이즈': 'ohp', '프론트 레이즈': 'ohp', '사이드 레터럴 레이즈 머신': 'ohp', '케이블 사이드 레터럴 레이즈': 'ohp', '슈러그 머신': 'ohp'
@@ -284,7 +290,7 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     BARBELL_NAMES.clear(); DEFAULTS.barbell.forEach((n) => BARBELL_NAMES.add(n));
     EXERCISES.length = 0; DEFAULTS.ex.forEach((e) => EXERCISES.push(Object.assign({}, e, { base: e.base && e.base.slice() })));
     EXERCISES.forEach((e) => { if (e.base && DEFAULTS.base[e.id]) e.base = BASE[e.id]; });
-    Object.keys(BY_ID).forEach((k) => delete BY_ID[k]); EXERCISES.forEach((e) => (BY_ID[e.id] = e));
+    Object.keys(BY_ID).forEach((k) => delete BY_ID[k]); EXERCISES.forEach((e) => (BY_ID[e.id] = e)); BY_ID.assistpull = BY_ID.pullup;
     // 2) 행 적용 (같은 이름이 여러 행이면 정렬 앞쪽이 우선)
     (rows || []).forEach((r) => {
       if (!r || !r.id || !r.name) return;
@@ -356,10 +362,10 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     return { headId, headName: (BY_ID[headId] || { name: headId }).name, headTier, maxTier: Math.min(ex.maxTier, headTier + 1) };
   }
 
-  function promote(state, stars, today) {
-    const t = state.tier + 1, c = carryOf(stars, state.tier);
+  function promote(state, stars, today, tbl) {
+    const t = state.tier + 1, c = carryOf(stars, state.tier), ST = tbl ? tbl.START : START, WD = tbl ? tbl.WIDTH : WIDTH;
     const d = new Date(today + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1);
-    return { tier: t, baseMp: START[t] + c * WIDTH[t], sinceDate: d.toISOString().slice(0, 10), carry: c };
+    return { tier: t, baseMp: ST[t] + c * WD[t], sinceDate: d.toISOString().slice(0, 10), carry: c };
   }
 
   /* ---------- 승급 목표(반복수·무게) ---------- */
@@ -443,12 +449,67 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
   const roundTo = (x, step) => Math.round(x / step) * step;
   const ceilTo = (x, step) => Math.ceil(x / step - 1e-9) * step;
 
+  /* ---------- 풀업 줄 · 5km 달리기 ---------- */
+  // 풀업: 순부하 L=(체중−보조+추가)/체중, 목표 환산 1RM(체중배수, 남성)·반복은 REPS.pullup. 여성 ×0.70, 나이·안전 규칙 적용
+  const PULL_E1 = [.68, .80, .93, 1.00, 1.15, 1.25, 1.43, 1.52, 1.58];
+  function pullTarget(t, member) {
+    const age = member.age == null ? 30 : member.age, sr = safeReps(REPS.pullup[t - 1], age, t), reps = sr.reps;
+    const c = (member.sex === 'F' ? .70 : 1) * ageCoef(age, reps), bw = member.bodyKg;
+    let L = PULL_E1[t - 1] * c * rmPct(reps), assist = 0, added = 0;
+    if (L < 1) { assist = roundTo(bw * (1 - L), 5); if (assist < 2.5) assist = 0; L = (bw - assist) / bw; }
+    else { added = roundTo(bw * (L - 1), 2.5); L = (bw + added) / bw; }
+    const text = assist > 0 ? '보조 ' + assist + 'kg × ' + reps + '회' : added > 0 ? '맨몸 +' + added + 'kg × ' + reps + '회' : '맨몸 × ' + reps + '회';
+    return { reps, L, assist, added, text, eqL: L / rmPct(reps), notes: sr.notes };
+  }
+  /* 시험 통과 판정: 5~15회 세트의 순부하 환산 1RM이 목표 이상 */
+  function pullPass(t, member, netL, reps) {
+    if (!(reps >= 5 && reps <= 15) || !(netL > 0) || !member || !member.bodyKg) return false;
+    return netL / rmPct(reps) >= pullTarget(t, member).eqL - 1e-9;
+  }
+  // 5km: 기준 시간(남 20~39세), 여성 ×1.12, 나이 시간계수(35세 1.00 → 80세 1.70 보간)
+  const RUN_SEC = [2700, 2280, 1920, 1680, 1500, 1350, 1230, 1110, 990];
+  const RUN_AGE = [[35, 1], [40, 1.03], [45, 1.07], [50, 1.12], [55, 1.17], [60, 1.24], [65, 1.32], [70, 1.42], [75, 1.55], [80, 1.70]];
+  function runAgeCoef(age) {
+    if (age == null || age <= 35) return 1; if (age >= 80) return 1.70;
+    for (let i = 1; i < RUN_AGE.length; i++) if (age <= RUN_AGE[i][0]) { const a = RUN_AGE[i - 1], b = RUN_AGE[i]; return a[1] + (b[1] - a[1]) * (age - a[0]) / (b[0] - a[0]); }
+  }
+  const fmtSec = (s) => Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0');
+  function runTarget(t, member) {
+    const sec = Math.round(RUN_SEC[t - 1] * runAgeCoef(member && member.age) * (member && member.sex === 'F' ? 1.12 : 1));
+    return { sec, text: '5km ' + fmtSec(sec) + ' 이내' + (t === 1 ? ' (걷기 혼합 가능)' : t === 2 ? ' (연속 달리기)' : '') + (t >= 6 ? ' · 7일 이상 떨어진 2회' : '') };
+  }
+  // 달리기 MP(km 환산): 거리 × (내 티어 기준 페이스 ÷ 실제 페이스)², 0.7~1.3 제한. 별 폭(km 환산)은 시뮬레이션 전 임시값
+  const RUN_W = [5, 10, 15, 25, 35, 50, 65, 90, 110, 130];
+  const RUN_START = [0]; RUN_W.forEach((w, i) => { if (i < 9) RUN_START.push(RUN_START[i] + 5 * w); });
+  const RUN_TBL = { START: RUN_START, WIDTH: RUN_W };
+  function runMP(r, tier, member) {
+    const refSec = tier >= 1 ? runTarget(tier, member).sec : runTarget(1, member).sec * 1.2;
+    const f = Math.max(.7, Math.min(1.3, Math.pow((refSec / 5) / (r.sec / r.km), 2)));
+    return r.km * f;
+  }
+  function runProgress(state, runs, member) {
+    let add = 0; (runs || []).forEach((r) => { if (r.date >= state.sinceDate && r.km > 0 && r.sec > 0) add += runMP(r, state.tier, member); });
+    const cap = RUN_START[state.tier] + MAX_STARS * RUN_W[state.tier], mp = Math.min(cap, state.baseMp + add);
+    const stars = Math.max(0, Math.min(MAX_STARS, Math.floor((mp - RUN_START[state.tier]) / RUN_W[state.tier] + 1e-9)));
+    const into = mp - RUN_START[state.tier] - Math.min(stars, MAX_STARS) * RUN_W[state.tier];
+    return { tier: state.tier, mp, stars, toNext: stars >= MAX_STARS ? 0 : RUN_W[state.tier] - into, pct: stars >= MAX_STARS ? 1 : into / RUN_W[state.tier], atCap: mp >= cap };
+  }
+  // 트레이너 확인이 필요한 승급인지: 바벨·달리기는 항상, 풀업은 마스터 이상(가중)
+  const needsTrainer = (ex, targetTier) => ex.quest === 'trainer' || (ex.id === 'pullup' && targetTier >= 7);
+
   /* 승급 목표 계산.
      member: { sex:'M'|'F', age, bodyKg }, targetTier: 올라갈 티어(1~9), opts: { dumbbellStep, variant } */
   function targetFor(ex, targetTier, member, opts) {
     opts = opts || {};
     const idx = targetTier - 1; // base/reps 배열은 브론즈(티어1)부터
     if (targetTier < 1 || targetTier > ex.maxTier) return { ok: false, reason: '범위 밖 티어' };
+    if (ex.id === 'pullup' || ex.id === 'run5k') {
+      const age0 = member && member.age != null ? member.age : 30, o2 = { ok: true, exId: ex.id, targetTier, kg: null, notes: [], variant: null };
+      if (ageTierCap(age0) < targetTier) { o2.blocked = true; o2.notes.push(age0 < 13 ? '12세 이하는 에메랄드까지만 부여' : age0 < 16 ? '13~15세는 다이아몬드까지만 부여' : '16~17세는 마스터까지만 부여'); }
+      if (ex.id === 'run5k') { if (!member) { o2.trainerSet = true; return o2; } const rt = runTarget(targetTier, member); o2.sec = rt.sec; o2.reps = null; o2.runText = rt.text; return o2; }
+      if (!member || !member.bodyKg) { o2.reps = REPS.pullup[idx]; o2.trainerSet = true; o2.notes.push('체중 정보 필요'); return o2; }
+      const pt = pullTarget(targetTier, member); o2.reps = pt.reps; o2.pull = pt; o2.pullText = pt.text; o2.notes.push(...pt.notes); return o2;
+    }
     const scheme = REPS[ex.reps];
     let reps = scheme && scheme[idx];
     if (reps == null) return { ok: false, reason: '반복 기준 없음' };
@@ -459,7 +520,7 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     if (ex.id === 'lunge' && targetTier <= 2) {
       out.kg = 0; out.variant = targetTier === 1 ? '지지 런지(합계)' : '맨몸 런지(합계)'; out.totalReps = reps; return out;
     }
-    if (ex.id === 'pushup' || ex.id === 'assistpull') { out.kg = null; out.trainerSet = true; out.notes.push('변형·보조 무게는 트레이너가 설정'); return out; }
+    if (ex.id === 'pushup') { out.kg = null; out.trainerSet = true; out.notes.push('변형·보조 무게는 트레이너가 설정'); return out; }
 
     // 기준값(남성 1RM 체중배수)
     let mul = null;
@@ -522,7 +583,8 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
 
   root.RuneTier = { IRON_RATIO, ageTierCap, ladderFor, BAR_MIN, TIERS, TIER_ID, TIER_RANK, rankLine, START, WIDTH, MAX_STARS, PROMO_STARS, MAX_CARRY, MULT, multOf, capMP, starsOf, toKg, volOf,
     EXERCISES, BY_ID, NAME_TO_ID, metaFor, applyCatalog, newState, progressOf, carryOf, promoStatus, headLimit, promote,
-    rmPct, repsForPct, ageCoef, bodyFactor, bodyBasis, lbm, safeReps, sexCoef, targetFor, platesFor, REPS, BASE };
+    rmPct, repsForPct, ageCoef, bodyFactor, bodyBasis, lbm, safeReps, sexCoef, targetFor, platesFor, REPS, BASE,
+    pullTarget, pullPass, runTarget, runProgress, runMP, RUN_TBL, RUN_SEC, fmtSec, needsTrainer };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.RuneTier;
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -655,9 +717,9 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     {"id":"back1","name":"랫풀다운","part":"back","aliases":"","is_machine":true,"status":"active","sort":12,"tier":{"core":"latpull"}},
     {"id":"back2","name":"바벨 로우","part":"back","aliases":"","is_machine":false,"status":"active","sort":13,"tier":{"core":"bbrow"}},
     {"id":"back3","name":"시티드 케이블 로우","part":"back","aliases":"","is_machine":true,"status":"active","sort":14,"tier":{"core":"cablerow"}},
-    {"id":"back4","name":"풀업","part":"back","aliases":"","is_machine":false,"status":"active","sort":15,"tier":{"head":"bbrow"}},
+    {"id":"back4","name":"풀업","part":"back","aliases":"","is_machine":false,"status":"active","sort":15,"tier":{"core":"pullup"}},
     {"id":"back5","name":"원암 덤벨 로우","part":"back","aliases":"","is_machine":false,"status":"active","sort":16,"tier":{"head":"bbrow"}},
-    {"id":"back6","name":"어시스티드 풀업 머신","part":"back","aliases":"어시스트 풀업/보조 풀업","is_machine":true,"status":"active","sort":17,"tier":{"core":"assistpull"}},
+    {"id":"back6","name":"어시스티드 풀업 머신","part":"back","aliases":"어시스트 풀업/보조 풀업","is_machine":true,"status":"active","sort":17,"tier":{"core":"pullup"}},
     {"id":"back7","name":"시티드 로우 머신","part":"back","aliases":"체스트 서포트 로우/머신 로우","is_machine":true,"status":"active","sort":18,"tier":{"head":"bbrow"}},
     {"id":"back8","name":"T바 로우 머신","part":"back","aliases":"티바 로우","is_machine":true,"status":"active","sort":19,"tier":{"head":"bbrow"}},
     {"id":"back9","name":"풀오버 머신","part":"back","aliases":"","is_machine":true,"status":"active","sort":20,"tier":{"head":"bbrow"}},
@@ -690,7 +752,7 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     {"id":"arm1","name":"해머 컬","part":"arm","aliases":"","is_machine":false,"status":"active","sort":47},
     {"id":"arm2","name":"프리처 컬","part":"arm","aliases":"","is_machine":false,"status":"active","sort":48},
     {"id":"arm3","name":"트라이셉스 푸시다운","part":"arm","aliases":"","is_machine":true,"status":"active","sort":49},
-    {"id":"arm4","name":"스컬크러셔","part":"arm","aliases":"","is_machine":false,"status":"active","sort":50,"tier":{"core":"lyingtri"}},
+    {"id":"arm4","name":"라잉 트라이셉스 익스텐션","part":"arm","aliases":"스컬크러셔,라트익","is_machine":false,"status":"active","sort":50,"tier":{"core":"lyingtri"}},
     {"id":"arm5","name":"덤벨 킥백","part":"arm","aliases":"","is_machine":false,"status":"active","sort":51},
     {"id":"arm6","name":"바이셉스 컬 머신","part":"arm","aliases":"이두 머신","is_machine":true,"status":"active","sort":52},
     {"id":"arm7","name":"프리처 컬 머신","part":"arm","aliases":"","is_machine":true,"status":"active","sort":53},
@@ -763,7 +825,7 @@ const RAW={chest:'벤치프레스,인클라인 덤벨프레스,체스트 플라�
 back:'데드리프트,랫풀다운,바벨 로우,시티드 케이블 로우,풀업,원암 덤벨 로우',
 leg:'스쿼트,레그프레스,루마니안 데드리프트,런지,레그 익스텐션,레그 컬,힙 쓰러스트,카프 레이즈',
 shoulder:'오버헤드 프레스,사이드 레터럴 레이즈,프론트 레이즈,리어델트 플라이,페이스 풀,숄더 프레스 머신',
-arm:'바벨 컬,해머 컬,프리처 컬,트라이셉스 푸시다운,스컬크러셔,덤벨 킥백',
+arm:'바벨 컬,해머 컬,프리처 컬,트라이셉스 푸시다운,라잉 트라이셉스 익스텐션,덤벨 킥백',
 core:'플랭크,크런치,레그 레이즈,러시안 트위스트,케이블 크런치,행잉 니레이즈'};
 const RAWM={chest:'체스트 프레스 머신|머신 벤치프레스/체프,인클라인 체스트 프레스 머신,펙덱 플라이|버터플라이/펙덱/팩덱,스미스 머신 벤치프레스,디클라인 체스트 프레스 머신',
 back:'어시스티드 풀업 머신|어시스트 풀업/보조 풀업,시티드 로우 머신|체스트 서포트 로우/머신 로우,T바 로우 머신|티바 로우,풀오버 머신,하이 로우 머신',
@@ -797,12 +859,63 @@ const LV={beginner:{n:3,v:600,t:'초급'},intermediate:{n:4,v:1600,t:'중급'},a
 const TIER=[[0,'브론즈'],[30000,'실버'],[100000,'골드'],[250000,'플래티넘'],[600000,'다이아']];
 const POS=[[7,6,30],[63,6,30],[2,236,22],[26,236,22],[52,236,22],[76,236,22]];
 const lvOf=d=>(S.lv&&S.lv[d])||'intermediate';
+/* ---- 승급 상태 저장(S.tiers): 줄(id)마다 {tier,baseMp,sinceDate,hist,pend}. 기록에서 시험 통과를 찾아 승급해요 ---- */
+function progAt(b,st,date,mem){
+  const R=window.RuneTier;
+  if(b.m.id==='run5k')return R.runProgress(st,b.recs.filter(r=>r.date<=date),mem);
+  const ex=b.m;return R.progressOf(st,b.recs.filter(r=>r.date<=date),d=>R.multOf(lvOf(d)),ex.id,t=>window.RuneRoutine.refFor(ex,t,mem));
+}
+function passDates(b,T,mem){
+  const R=window.RuneTier,ex=b.m,out={};
+  if(ex.id==='run5k'){
+    if(!mem.age&&mem.age!==0&&!mem.sex)return [];const tg=R.runTarget(T,mem);
+    const ok=b.recs.filter(r=>r.km>=4.95&&r.sec>0&&r.sec<=tg.sec).map(r=>r.date).sort();
+    if(T>=6)return ok.filter(d=>ok.some(e=>(new Date(d)-new Date(e))/864e5>=7));
+    return ok;
+  }
+  if(ex.id==='pullup'){
+    if(!mem.bodyKg)return [];
+    b.recs.forEach(r=>r.sets.forEach(s=>{if(s.done&&s.t!=='W'&&R.pullPass(T,mem,s.w/mem.bodyKg,+s.r))out[r.date]=1}));
+    return Object.keys(out).sort();
+  }
+  let L;try{L=R.ladderFor(ex,mem)}catch(e){return []}
+  const t=L[T-1];if(!t||!t.ok||t.blocked||t.trainerSet||!(t.kg>0)||!(t.reps>0))return [];
+  const need=t.perHandKg||t.kg;
+  b.recs.forEach(r=>r.sets.forEach(s=>{if(s.done&&s.t!=='W'&&+s.w>=need-1e-6&&+s.r>=t.reps)out[r.date]=1}));
+  return Object.keys(out).sort();
+}
+let NEWEQ=0;
+function settleTiers(by,mem){
+  const R=window.RuneTier;S.tiers=S.tiers||{};let ch=false;
+  const headT=id=>S.tiers[id]?S.tiers[id].tier:0;
+  Object.keys(by).sort((a,b)=>(by[b].m.role==='head')-(by[a].m.role==='head')).forEach(k=>{
+    const b=by[k],ex=b.m;let st=S.tiers[k];if(!st){st=S.tiers[k]=Object.assign(R.newState(),{hist:[]});ch=true}
+    st.hist=st.hist||[];
+    for(let g=0;g<12;g++){
+      if(st.pend)break;
+      if(R.promoStatus(ex,progAt(b,st,'9999-99-99',mem),headT).state!=='ready')break;
+      const T=st.tier+1;let hit=null;
+      for(const d of passDates(b,T,mem)){if(d<st.sinceDate)continue;const q=progAt(b,st,d,mem);if(q.stars>=R.PROMO_STARS){hit={d,stars:q.stars};break}}
+      if(!hit)break;ch=true;
+      if(R.needsTrainer(ex,T)){st.pend={t:T,d:hit.d,stars:hit.stars};break}
+      const ns=R.promote(st,hit.stars,hit.d,k==='run5k'?R.RUN_TBL:null);Object.assign(st,ns);st.hist.push({t:ns.tier,d:hit.d});NEWEQ++;
+    }
+  });
+  if(ch)DB.save(S);
+}
 function tierRows(){
-  const R=window.RuneTier,by={};
-  allDates().sort().forEach(d=>dayItems(d).forEach(x=>{if(!EX[x.id]||EX[x.id].missing)return;const e=EX[x.id],m=R.metaFor(e.name,{machine:e.m,region:e.part==='leg'?'lower':'upper'});(by[m.id]=by[m.id]||{m,name:e.name,part:e.part,recs:[]}).recs.push({date:d,sets:x.sets})}));
-  const pg={};Object.keys(by).forEach(k=>{{const ex=R.BY_ID[by[k].m.id],mem=memberCalc();pg[k]=R.progressOf(R.newState(),by[k].recs,d=>R.multOf(lvOf(d)),k,t=>window.RuneRoutine.refFor(ex,t,mem))}});
-  const headT=id=>pg[id]?pg[id].tier:0;
-  return Object.keys(by).map(k=>{const b=by[k],p=pg[k];return Object.assign({},b,{p,ps:R.promoStatus(b.m,p,headT)})}).sort((a,b)=>b.p.tier-a.p.tier||b.p.mp-a.p.mp);
+  const R=window.RuneTier,by={},mem=memberCalc(),bw=mem.bodyKg;
+  allDates().sort().forEach(d=>dayItems(d).forEach(x=>{if(!EX[x.id]||EX[x.id].missing)return;const e=EX[x.id],m=R.metaFor(e.name,{machine:e.m,region:e.part==='leg'?'lower':'upper'});
+    let sets=x.sets;
+    if(e.name==='푸시업'&&bw){sets=x.sets.map(q=>Object.assign({},q,{w:bw*puV(q)[3]}))}
+    if(m.id==='pullup'){if(!bw)return;const as=e.name==='어시스티드 풀업 머신';sets=x.sets.map(s=>Object.assign({},s,{w:as?Math.max(0,bw-(+s.w||0)):bw+(+s.w||0)}))}
+    (by[m.id]=by[m.id]||{m,name:m.id==='pullup'?'풀업':e.name,part:e.part,recs:[]}).recs.push({date:d,sets})}));
+  const runs=(S.runs||[]).filter(r=>r.km>0&&r.sec>0);
+  if(runs.length)by.run5k={m:R.BY_ID.run5k,name:'5km 달리기',part:'leg',recs:runs.map(r=>({date:r.date,km:r.km,sec:r.sec,sets:[]})).sort((a,b)=>a.date<b.date?-1:1)};
+  settleTiers(by,mem);
+  const pg={};Object.keys(by).forEach(k=>{pg[k]=progAt(by[k],S.tiers[k],'9999-99-99',mem)});
+  const headT=id=>S.tiers[id]?S.tiers[id].tier:0;
+  return Object.keys(by).map(k=>{const b=by[k],p=pg[k];return Object.assign({},b,{p,ps:R.promoStatus(b.m,p,headT),pend:S.tiers[k].pend||null,hist:S.tiers[k].hist||[]})}).sort((a,b)=>b.p.tier-a.p.tier||b.p.mp-a.p.mp);
 }
 function tierGuide(){
   const R=window.RuneTier,p=S.profile||{},c=bodyCur(),cur=Math.max.apply(null,[0].concat(tierRows().map(r=>r.p.tier)));
@@ -815,6 +928,11 @@ function tierGuide(){
 function examLine(r){
   try{
     const R=window.RuneTier,RR=window.RuneRoutine,mem=memberCalc(),ex=R.BY_ID[r.m.id];
+    if(r.m.id==='run5k'||r.m.id==='pullup'){
+      if(r.p.tier>=r.m.maxTier)return '';const t0=R.targetFor(r.m,r.p.tier+1,mem);if(!t0||!t0.ok)return '';
+      if(t0.blocked)return '<div class="mu">다음 시험: 나이 제한으로 아직 열리지 않아요</div>';
+      const tx=t0.runText||t0.pullText;return tx?`<div class="mu" style="color:#9ad">다음 시험(${R.TIERS[r.p.tier+1]}): ${esc(tx)}</div>`:'';
+    }
     if(!ex||!mem.bodyKg||r.p.tier>=ex.maxTier)return '';
     const L=R.ladderFor(ex,mem),t=L[r.p.tier];if(!t||!t.ok||!t.kg)return '';
     if(t.blocked)return '<div class="mu">다음 시험: 나이 제한으로 아직 열리지 않아요</div>';
@@ -832,6 +950,7 @@ function gradeCalc(x){
   const mem=memberCalc();
   if(!mem.bodyKg||!mem.sex||mem.age==null)return{ok:false,why:'몸 정보를 입력하면 평가할 수 있어요'};
   const m=R.metaFor(e.name,{machine:e.m,region:e.part==='leg'?'lower':'upper'});
+  if(m&&m.id==='pullup')return{ok:false,why:'풀업은 순부하 기준이라 세트 평가는 아직 지원하지 않아요 (승급 시험 기준은 티어 화면에서 확인)'};
   if(!m||m.kind==='dumbbell')return{ok:false,why:'덤벨 종목은 아직 세트 평가를 지원하지 않아요'};
   let L;try{L=R.ladderFor(m,mem)}catch(err){L=[]}
   const th=L.map((r,i)=>r&&r.ok&&!r.trainerSet&&r.kg>0&&r.reps>0?{t:i+1,eq:r.kg/R.rmPct(r.reps),kg:r.kg,reps:r.reps}:null).filter(Boolean);
@@ -866,9 +985,8 @@ function gradeHTML(sl){
 }
 /* ---- 홈: 서버에 들어가면 가장 먼저 뜨는 아바타 창 + 오늘/달력/통계/내 정보 버튼 ---- */
 function avatarState(){
-  const map={chest:'chest',back:'back',shoulder:'shoulder',leg:'legs'},st={};
-  try{tierRows().forEach(r=>{const k=map[r.part];if(!k)return;const o=st[k];if(!o||r.p.tier>o.t||(r.p.tier===o.t&&r.p.stars>o.s))st[k]={t:r.p.tier,s:r.p.stars}})}catch(e){}
-  Object.keys(map).forEach(p=>{if(!st[map[p]])st[map[p]]={t:0,s:0}});st.run=st.run||{t:0,s:0};
+  const st={};EQ_SLOTS.forEach(sl=>st[sl.k]={t:0,s:0});
+  try{eqInit();const o=eqOwned(),rows=tierRows();EQ_SLOTS.forEach(sl=>{const g=Math.min((S.equip||{})[sl.k]||0,o[sl.k]),r=rows.find(q=>q.m.id===sl.src);st[sl.k]={t:g,s:r&&r.p.tier===g?r.p.stars:0}})}catch(e){}
   const p=S.profile||{};return{type:'rune-state',st,sex:p.sex==='F'?'F':'M'};
 }
 function viewHome(){
@@ -917,14 +1035,55 @@ async function loadMP(){
   else{try{const r=await sb.rpc('trainer_member_list');if(r.error){MP.err=/function|does not exist|schema cache/i.test(r.error.message||'')?'서버에 5단계 SQL(phase5)을 먼저 실행해 주세요':(r.error.message||'목록을 불러오지 못했어요')}else{MP.list=r.data||[];MP.err=''}}catch(e){MP.err='연결을 확인해 주세요'}}
   const l=$('#mpl');if(l&&$('#md').classList.contains('on'))l.innerHTML=mpList();
 }
+/* ---- 장비 시스템: 승급으로 얻고, 착용해야 아바타 조명이 바뀐다 ---- */
+const EQ_SLOTS=[
+  {k:'head',n:'투구',ic:'⛑️',src:'pullup',lab:'풀업'},{k:'chest',n:'흉갑',ic:'🛡️',src:'bench',lab:'벤치프레스'},
+  {k:'shoulder',n:'견갑',ic:'🦺',src:'ohp',lab:'오버헤드 프레스'},{k:'back',n:'망토',ic:'🧥',src:'bbrow',lab:'바벨 로우'},
+  {k:'waist',n:'허리띠',ic:'🥋',src:'deadlift',lab:'데드리프트'},{k:'legs',n:'각반',ic:'🦵',src:'squat',lab:'스쿼트'},
+  {k:'run',n:'신발',ic:'👟',src:'run5k',lab:'5km 달리기'}];
+const EQ_G=['견습','정교','명품','고귀','영웅','전설','신화','태초','불멸'];
+const EQ_COL=['#8b9099','#cf8a52','#9aa7b8','#ffc94d','#4fe0cf','#3ee08a','#6fb0ff','#c77dff','#ff5d73','#ffe27a'];
+let EQN={};
+function eqOwned(){try{tierRows()}catch(e){}const o={};EQ_SLOTS.forEach(sl=>{const st=(S.tiers||{})[sl.src];o[sl.k]=st?Math.max(st.tier||0,...(st.hist||[]).map(h=>h.t)):0});return o}
+function eqInit(){if(S.equip)return;const o=eqOwned();S.equip={};S.equipSeen={};EQ_SLOTS.forEach(sl=>{S.equip[sl.k]=o[sl.k];S.equipSeen[sl.k]=o[sl.k]});DB.save(S)}
+function eqNewCount(){eqInit();const o=eqOwned();return EQ_SLOTS.filter(sl=>o[sl.k]>(S.equipSeen[sl.k]||0)).length}
+const eqName=(sl,g)=>g>0?EQ_G[g-1]+'의 '+sl.n:'기본 (아이언)';
+function hopeCard(){
+  const R=window.RuneTier,h=S.hopeTier!=null&&S.hopeTier>=0&&S.hopeTier<=9;
+  return `<div class="pn"><div class="row"><b class="h2">운동 기준 티어</b><span class="mu">${h?'희망 '+R.TIERS[S.hopeTier]:'자동 (내 현재 티어)'}</span></div><div class="mu" style="margin:6px 0;line-height:1.6">세트 입력 아래 리커버리·노말·하드·슬레이어 구간의 기준이에요. 기본은 종목별 내 현재 티어이고, 원하면 희망 티어로 바꿀 수 있어요. 승급 점수·장비에는 영향이 없어요.</div><select id="hope" class="fi" style="width:100%"><option value=""${h?'':' selected'}>자동 (내 현재 티어)</option>${R.TIERS.slice(0,10).map((n,i)=>`<option value="${i}"${h&&S.hopeTier===i?' selected':''}>희망 티어: ${n}</option>`).join('')}</select></div>`;
+}
+function eqCard(){
+  eqInit();const w=S.equip,n=eqNewCount();
+  return `<div class="pn"><div class="row"><b class="h2">장비</b><button class="btn ghost sm" data-act="eqwin">장비 착용창${n?` <span class="eqn">NEW ${n}</span>`:''}</button></div><div class="mu" style="margin-top:6px;line-height:1.8">${EQ_SLOTS.map(sl=>`<span style="color:${EQ_COL[w[sl.k]||0]}">${sl.ic} ${w[sl.k]?EQ_G[w[sl.k]-1]:'기본'}</span>`).join(' · ')}</div><div class="row" style="margin-top:8px"><span class="mu">5km 달리기는 신발 장비로 이어져요</span><button class="btn ghost sm" data-act="runrec">달리기 기록</button></div></div>`;
+}
+function eqHTML(){
+  eqInit();const o=eqOwned(),R=window.RuneTier;
+  return `<div class="row"><b class="h2">장비 착용창</b><button class="x" data-act="close">✕</button></div><div class="mu" style="margin:4px 0 8px;line-height:1.6">승급 시험에 합격하면 그 부위 장비를 얻어요. 착용한 장비의 등급대로 홈 아바타 부위 조명이 바뀌어요. 낮은 등급도 입을 수 있고, 얻은 장비는 사라지지 않아요.</div>`+EQ_SLOTS.map(sl=>{
+    const w=Math.min(S.equip[sl.k]||0,o[sl.k]),ow=o[sl.k];
+    return `<div class="pn" style="margin:8px 0"><div class="row"><b>${sl.ic} ${sl.n}</b><span class="mu">${sl.lab} · ${ow?R.TIERS[ow]:'기록 없음'}</span></div>
+    <div style="margin:6px 0;font-weight:700;color:${EQ_COL[w]}">착용 중: ${eqName(sl,w)}</div>
+    ${ow?`<div>${Array.from({length:ow},(_,i)=>i+1).map(g=>`<button class="eqc${g===w?' on':''}" style="--c:${EQ_COL[g]}" data-act="eqwear" data-k="${sl.k}" data-g="${g}">${EQ_G[g-1]}${g===ow&&EQN[sl.k]?'<span class="eqn">NEW</span>':''}</button>`).join('')}${w?`<button class="eqc" style="--c:#8b9099" data-act="eqwear" data-k="${sl.k}" data-g="0">벗기</button>`:''}</div>`:`<div class="mu">${sl.lab} ${R.TIERS[1]} 승급 시험에 합격하면 ${EQ_G[0]}의 ${sl.n}을 얻어요</div>`}</div>`}).join('');
+}
+/* ---- 5km 달리기 기록 ---- */
+const parseSec=t=>{t=String(t||'').trim();if(!t)return 0;const p=t.split(':').map(Number);if(p.some(x=>isNaN(x)))return 0;return p.length===1?p[0]*60:p.length===2?p[0]*60+p[1]:p[0]*3600+p[1]*60+p[2]};
+function runHTML(){
+  const R=window.RuneTier,rs=(S.runs||[]).slice().sort((a,b)=>a.date<b.date?1:b.date<a.date?-1:b.id-a.id).slice(0,15);
+  let row=null;try{row=tierRows().find(r=>r.m.id==='run5k')}catch(e){}const tier=row?row.p.tier:0,mem=memberCalc();
+  const nx=tier<9?R.runTarget(tier+1,mem).text:'';const pace=r=>R.fmtSec(r.sec/r.km)+'/km';
+  return `<div class="row"><b class="h2">달리기 기록</b><button class="x" data-act="close">✕</button></div>
+  <div class="mu" style="margin:4px 0 8px;line-height:1.6">현재 ${R.TIERS[tier]}${row?` ★${row.p.stars}`:''}${nx?` · 다음 시험: ${esc(nx)}`:''}<br>승급 시험은 5km(4.95km 이상) 완주 기록으로 판정해요. 트랙·트레드밀(경사 1%)·야외 모두 가능해요.</div>
+  <div class="pn"><div class="row" style="gap:6px"><input id="rd" type="date" value="${T}" style="flex:1"><select id="rp"><option>야외</option><option>트레드밀</option><option>트랙</option></select></div>
+  <div class="row" style="gap:6px;margin-top:6px"><input id="rk" type="number" inputmode="decimal" step="0.01" value="5" placeholder="거리 km" style="flex:1"><input id="rt" type="text" inputmode="numeric" placeholder="시간 예 27:30" style="flex:1"></div>
+  <button class="btn" style="margin-top:8px" data-act="runsave">기록 저장</button></div>`+(rs.length?rs.map(r=>`<div class="sp" style="margin-top:6px"><div class="row"><span>${esc(r.date)} · ${r.km}km · ${R.fmtSec(r.sec)} <span class="mu">(${pace(r)} · ${esc(r.place||'')})</span></span><button class="x" data-act="rundel" data-id="${r.id}">삭제</button></div></div>`).join(''):'<div class="mu" style="margin-top:8px">아직 기록이 없어요</div>');
+}
 function tierPanel(){
   const R=window.RuneTier,rows=tierRows(),mu=R.multOf(S.level);
   if(!rows.length)return `<div class="pn"><div class="h2">종목별 티어 <small class="mu">베타</small></div><div class="mu">기록을 저장하면 종목마다 별이 쌓여요</div></div>`;
-  const msg={ready:'5성 달성 · 승급 퀘스트는 다음 업데이트에서 열려요',locked:null,max:'이 종목의 최고 티어예요',notyet:''};
+  const msg={ready:'5성 달성 · 승급 시험에 도전해 보세요 (통과하면 승급)',locked:null,max:'이 종목의 최고 티어예요',notyet:''};
   return `<div class="pn"><div class="h2">종목별 티어 <small class="mu">베타</small></div><div class="mu">종목마다 티어가 따로예요 · 별은 8성까지 쌓이고, 5성부터 승급 퀘스트가 열려요</div>`+rows.map(r=>{
     const p=r.p,st=p.stars>5?'★'.repeat(5)+'<b style="color:#ff7a3c">+'+(p.stars-5)+'</b>':'★'.repeat(p.stars)+'<span style="opacity:.3">'+'★'.repeat(5-p.stars)+'</span>';
     const note=r.ps.state==='locked'?'🔒 '+esc(r.ps.reason):esc(msg[r.ps.state]||'');
-    return `<div class="sp"><div class="row"><b style="color:${PC[r.part]}">${esc(r.name)}</b><span>${R.TIERS[p.tier]} <span style="color:#ffb62e">${st}</span></span></div><div class="bar" style="--c:${PC[r.part]}"><i style="width:${Math.round(p.pct*100)}%"></i></div><div class="mu">${fmt(R.toKg(p.mp,mu))}kg 누적(기준 환산)${note?' · '+note:''}</div><div class="mu" style="color:#ffb62e">${esc(R.rankLine(p.tier))}</div>${examLine(r)}</div>`}).join('')+tierGuide()+`</div>`;
+    return `<div class="sp"><div class="row"><b style="color:${PC[r.part]}">${esc(r.name)}</b><span>${R.TIERS[p.tier]} <span style="color:#ffb62e">${st}</span></span></div><div class="bar" style="--c:${PC[r.part]}"><i style="width:${Math.round(p.pct*100)}%"></i></div><div class="mu">${fmt(R.toKg(p.mp,mu))}kg 누적(기준 환산)${note?' · '+note:''}</div><div class="mu" style="color:#ffb62e">${esc(R.rankLine(p.tier))}</div>${examLine(r)}${r.pend?`<div class="mu" style="margin-top:6px;color:#ffb62e">🏅 ${R.TIERS[r.pend.t]} 시험 통과 기록이 있어요 (${esc(r.pend.d)}). 트레이너 확인 후 승급을 확정하세요.</div><button class="btn sm" style="width:auto;margin-top:4px" data-act="tconf" data-k="${r.m.id}">승급 확정</button>`:''}</div>`}).join('')+tierGuide()+`</div>`;
 }
 const $=s=>document.querySelector(s);
 const ymd=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
@@ -945,7 +1104,12 @@ let sb=null,UID=null,PULLED=false,PULLING=false,SYNC='off',stmr=null;
 const persist=()=>{DB.save(S);queueSync()};
 let ADM={date:T,cur:null},tab=S.mode==='admin'?'acal':'home',PK={slot:0,part:'chest',q:''},RC=0,CM=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()}})(),CD=T;
 
-const vol=sets=>sets.reduce((a,s)=>a+(s.done&&s.t!=='W'?s.w*s.r:0),0);
+/* 푸시업 자세: kg 대신 자세를 고르고, 자세별 체중 부하 비율로 환산해요(연구 평균 근사치) */
+const PU_V=[['inc90','인클라인 높음 · 골반','인클 골반',.40,'골반 높이(약 90cm) · 벽·스미스 바'],['inc60','인클라인 중간 · 주머니 하단','인클 주머니',.50,'주머니 하단 높이(약 70cm) · 랙·스미스 바'],['inc40','인클라인 낮음 · 무릎','인클 무릎',.58,'무릎 높이(약 45cm) · 벤치·박스'],['floor','맨땅(바닥)','맨땅',.66,'표준 푸시업'],['dec30','디클라인 30cm','디클 30',.72,'발을 30cm 위에'],['dec60','디클라인 60cm','디클 60',.78,'발을 60cm 위에(벤치)']];
+const puV=s=>PU_V.find(v=>v[0]===s.v)||PU_V[3];
+const puKg=s=>(memberCalc().bodyKg||0)*puV(s)[3];
+const wTxt=s=>s.v?puV(s)[2]:s.w;
+const vol=sets=>sets.reduce((a,s)=>a+(s.done&&s.t!=='W'?(s.v?puKg(s):s.w)*s.r:0),0);
 const pvol=sets=>sets.reduce((a,s)=>a+(s.t!=='W'?s.w*s.r:0),0);
 const draft=()=>ADM.cur||S.drafts[T]||(S.drafts[T]={slots:Array(6).fill(null)});
 const rnd=x=>Math.max(2.5,Math.round(x/2.5)*2.5);
@@ -1039,7 +1203,7 @@ function viewCal(){
     cells+=`<button data-act="day" data-d="${k}" data-l="0" class="${v?'hl':''} ${k===CD?'sel':''} ${k===T?'td':''}">${i}${S.reviews&&S.reviews[k]&&S.reviews[k].g?'<i class="gr">'+S.reviews[k].g+'</i>':''}</button>`;
   }
   const gs=[S.sessions[CD]||[]].concat((S.more&&S.more[CD])||[]).map(g=>(g||[]).filter(Boolean)).filter(g=>g.length);
-  const one=x=>`<div class="sp row"><div><b style="color:${PC[EX[x.id].part]}">${P[EX[x.id].part]}</b> ${EX[x.id].name}<div class="mu">${x.sets.map(s=>(s.t==='W'?'W':s.t==='F'?'F':'')+s.w+'×'+s.r+(s.done?'':'(미완)')).join(' · ')}${x.note?'<br>📝 '+esc(x.note):''}</div></div><b>${fmt(vol(x.sets))}</b></div>`;
+  const one=x=>`<div class="sp row"><div><b style="color:${PC[EX[x.id].part]}">${P[EX[x.id].part]}</b> ${EX[x.id].name}<div class="mu">${x.sets.map(s=>(s.t==='W'?'W':s.t==='F'?'F':'')+wTxt(s)+'×'+s.r+(s.done?'':'(미완)')).join(' · ')}${x.note?'<br>📝 '+esc(x.note):''}</div></div><b>${fmt(vol(x.sets))}</b></div>`;
   const det=gs.length?gs.map((g,i)=>(gs.length>1?`<div class="mu" style="margin-top:8px"><b>${i+1}회차</b> · ${fmt(g.reduce((a,x)=>a+vol(x.sets),0))}kg</div>`:'')+g.map(one).join('')).join(''):'<div class="mu">이 날은 저장된 운동이 없어요</div>';
   return `<h1 class="h1">캘린더조회</h1><div class="pn"><div class="row"><button class="x" data-act="mon" data-v="-1">◀</button><b class="h2">${y}년 ${m+1}월</b><button class="x" data-act="mon" data-v="1">▶</button></div><div class="cal" style="margin-top:8px">${cells}</div></div>
   <div class="pn"><div class="row"><b class="h2">${CD}</b><span class="vb"><b style="font-size:16px">${fmt(dayVol(CD))}</b> kg</span></div>${revCal()}${det}</div>`;
@@ -1076,6 +1240,8 @@ function viewMe(){
   `<div class="h2">로그인하고 기록 이어가기</div><div class="mu" style="margin:4px 0 10px">로그인하면 기록이 계정에 저장돼서 기기를 바꿔도 이어져요. 카톡 안에서 열었다면 크롬·사파리로 열어 로그인해 주세요.</div>
   <button class="btn" style="background:#fee500;color:#191600;margin-bottom:8px" data-act="login" data-p="카카오">카카오로 시작하기</button>
   <button class="btn ghost" data-act="login" data-p="구글">구글로 시작하기</button>`}</div>
+  ${eqCard()}
+  ${hopeCard()}
   <div class="pn"><div class="row"><b class="h2">내 초기 정보</b><button class="btn ghost sm" data-act="editprofile">수정</button></div>${(()=>{const p=S.profile;if(!p)return '<div class="mu" style="margin-top:6px">아직 입력하지 않았어요</div>';const ex=(EXP.find(x=>x[0]===p.exp)||[0,''])[1];return `<div class="mu" style="line-height:1.8;margin-top:6px">만 ${p.age}세 · ${p.sex==='M'?'남성':'여성'}${p.heightCm?' · '+p.heightCm+'cm':''}${p.bodyKg?' · '+p.bodyKg+'kg':''} · 운동 경력 ${ex}<br>관심사: ${p.interests.map(esc).join(', ')||'-'}<br>부상·질병: ${p.injuries.map(esc).join(', ')||'-'}${p.note?' ('+esc(p.note)+')':''}</div>`})()}</div>
   ${bodyPanel()}
   <button class="btn ghost" data-act="reset">이 기기 데이터 모두 지우기</button>`;
@@ -1096,7 +1262,7 @@ const HRS=Array.from({length:18},(_,i)=>String(i+5).padStart(2,'0')+':00');
 const endT=t=>String(+t.slice(0,2)+1).padStart(2,'0')+':00';
 const plan=d=>{const p=AD().plans;return p[d]||(p[d]=[])};
 const fi=id=>plan(ADM.date).find(x=>x.id===id);
-const exTxt=sl=>sl.filter(Boolean).map(x=>EX[x.id].name+(x.note?' ('+x.note+')':'')+' '+x.sets.map(s=>(s.t==='W'?'W':s.t==='F'?'F':'')+s.w+'×'+s.r).join(' / ')).join('\n');
+const exTxt=sl=>sl.filter(Boolean).map(x=>EX[x.id].name+(x.note?' ('+x.note+')':'')+' '+x.sets.map(s=>(s.t==='W'?'W':s.t==='F'?'F':'')+wTxt(s)+'×'+s.r).join(' / ')).join('\n');
 function sessNo(it,d){
   if(it.no)return it.no;const m=AD().members.find(x=>x.id===it.mid)||AD().members.find(x=>it.name&&x.name===it.name.trim());if(!m)return 0;
   const ss=memSess(m),all=[];Object.keys(ss).sort().forEach(k=>ss[k].slice().sort((a,b)=>a.time<b.time?-1:1).forEach(x=>all.push({k,x})));
@@ -1210,7 +1376,7 @@ function memHTML2(){
   for(let i=1;i<=dim;i++){const k=`${y}-${String(mo+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
     cells+=`<button data-act='mday' data-d='${k}' data-l='0' class='${ss[k]?'hl':''} ${k===MC.d?'sel':''} ${k===T?'td':''}'>${i}</button>`}
   const day=(ss[MC.d]||[]).slice().sort((a,b)=>a.time<b.time?-1:1).map(it=>{
-    const rn=it.slots.filter(Boolean).map(x=>`<div class='sp'><b style='color:${PC[EX[x.id].part]}'>${P[EX[x.id].part]}</b> ${EX[x.id].name} <span class='mu'>${fmt(vol(x.sets))}kg</span><div class='mu'>${x.sets.map(s=>(s.t==='W'?'W ':s.t==='F'?'F ':'')+s.w+'×'+s.r+(s.done?' ✔':'')).join(' · ')}</div>${x.note?`<div class='mu'>📝 ${esc(x.note)}</div>`:''}</div>`).join('');
+    const rn=it.slots.filter(Boolean).map(x=>`<div class='sp'><b style='color:${PC[EX[x.id].part]}'>${P[EX[x.id].part]}</b> ${EX[x.id].name} <span class='mu'>${fmt(vol(x.sets))}kg</span><div class='mu'>${x.sets.map(s=>(s.t==='W'?'W ':s.t==='F'?'F ':'')+wTxt(s)+'×'+s.r+(s.done?' ✔':'')).join(' · ')}</div>${x.note?`<div class='mu'>📝 ${esc(x.note)}</div>`:''}</div>`).join('');
     const blk=(t,v,dn)=>v?`<div class='sp'><span class='mu'>${t}</span><br>${esc(v)}${dn?' ✔':''}</div>`:'';
     return `<div class='pn'><b class='h2'>${it.time}–${endT(it.time)}${it.no?' · '+it.no+'차시':''}</b>${rn||`<div class='mu' style='margin-top:6px'>룬 페이지 기록이 없어요</div>`}${blk('수업 내용',it.memo)}${blk('특이사항',it.special,it.spDone)}${blk('과제',it.hw,it.hwDone)}${blk('다음 수업 목표',it.goal)}</div>`}).join('');
   return `<div class='row'><button class='x' style='font-size:14px' data-act='amem' data-id='${m.id}'>◀ 회원정보</button><button class='x' data-act='close'>✕</button></div><b class='h2'>${esc(m.name)}${m.temp?' (임시)':''} 운동일지</b><div class='row' style='margin:8px 0'><button class='x' data-act='mmon' data-v='-1'>◀</button><b>${y}년 ${mo+1}월</b><button class='x' data-act='mmon' data-v='1'>▶</button></div><div class='cal'>${cells}</div><div class='mu' style='margin:6px 0 10px'>형광펜 날짜는 PT 수업이 있던 날이에요. 날짜를 누르면 그날의 진행 내용이 나와요.</div>${MC.d?(day||`<div class='mu'>${MC.d}에는 수업 기록이 없어요</div>`):''}`;
@@ -1221,7 +1387,7 @@ function memInfo(id){
   all.forEach((e,i)=>{e.n=e.it.no||i+1});
   const nx=Math.max(0,...all.map(e=>e.n))+1,rev=all.slice().reverse(),lg=(rev.map(e=>e.it.goal).find(g=>g&&g.trim()))||'';
   const hist=rev.map(e=>{const it=e.it,rn=(it.slots||[]).filter(Boolean);
-    const rl=rn.map(x=>`<div class='mu'>${P[EX[x.id].part]} ${EX[x.id].name} · ${x.sets.map(s=>(s.t==='W'?'W ':s.t==='F'?'F ':'')+s.w+'×'+s.r+(s.done?'✔':'')).join(' ')}${x.note?' · 📝 '+esc(x.note):''}</div>`).join('')||`<div class='mu'>룬 페이지 기록 없음</div>`;
+    const rl=rn.map(x=>`<div class='mu'>${P[EX[x.id].part]} ${EX[x.id].name} · ${x.sets.map(s=>(s.t==='W'?'W ':s.t==='F'?'F ':'')+wTxt(s)+'×'+s.r+(s.done?'✔':'')).join(' ')}${x.note?' · 📝 '+esc(x.note):''}</div>`).join('')||`<div class='mu'>룬 페이지 기록 없음</div>`;
     const blk=(t,v)=>v?`<div class='sp'><span class='mu'>${t}</span><br>${esc(v)}</div>`:'';
     return `<div class='pn'><div class='row'><b class='h2'>${e.n}회차</b><span class='mu'>${e.d.slice(5).replace('-','/')} ${it.time}</span></div><div style='margin:8px 0;font-size:15px'><span class='mu'>과제</span><br><b>${esc(it.hw)||`<span class='mu'>없음</span>`}</b>${it.hw&&it.hwDone?' ✔ 인지':''}</div><details><summary class='mu'>특이사항 · 룬 페이지 · 수업 내용 보기</summary>${blk('특이사항',it.special)}<div class='sp'><span class='mu'>룬 페이지</span>${rl}</div>${blk('수업 내용',it.memo)}${blk('다음 수업 목표',it.goal)}</details></div>`}).join('');
   return `<div class='row'><b class='h2'>${esc(m.name)}${m.temp?' (임시)':''}</b><div style='display:flex;gap:6px;align-items:center'><button class='btn sm' data-act='mcal' data-id='${m.id}'>캘린더</button><button class='x' data-act='close'>✕</button></div></div><div class='pn' style='margin-top:10px;border-color:var(--gd)'><div class='row'><b class='h2'>다음 수업 중점사항 · 도전과제</b><span class='mu'>${nx}회차 예정</span></div><textarea class='fi' rows='3' data-mf='${m.id}' style='width:100%;margin-top:8px' placeholder='(다음 수업에서 집중할 점, 도전할 목표를 적어요)'>${esc(m.focus)}</textarea>${lg?`<div class='mu' style='margin-top:6px'>최근 수업에서 적은 다음 수업 목표: ${esc(lg)}</div>`:''}</div><div class='mu' style='margin:10px 0 4px'>수업 흐름 (최신순)</div>${hist||`<div class='mu'>아직 수업 기록이 없어요</div>`}`;
@@ -1297,6 +1463,19 @@ function obRefresh(){const b=$('#obgo');if(b)b.disabled=!obValid();const n=$('#o
   const l=$('#oblv');if(l)l.textContent=''}
 function srvSave(v){try{if(v)sessionStorage.setItem('rpt-srv',v);else sessionStorage.removeItem('rpt-srv')}catch(e){}}
 function srvLoad(){try{return sessionStorage.getItem('rpt-srv')}catch(e){return null}}
+/* 희망 티어: 계정(member_body.hope_tier)에 저장. 컬럼이 아직 없으면(SQL 미실행) 조용히 이 기기에만 저장 */
+async function loadHope(){
+  if(!sb||!UID)return;
+  try{const r=await sb.from('member_body').select('hope_tier').maybeSingle();if(r.error||!r.data)return;
+    const v=r.data.hope_tier;
+    if(v!=null){if(S.hopeTier!==+v){S.hopeTier=+v;DB.save(S)}}
+    else if(S.hopeTier!=null)saveHope(true)}catch(e){}
+}
+async function saveHope(quiet){
+  if(!sb||!UID)return;
+  try{const r=await sb.from('member_body').update({hope_tier:S.hopeTier==null?null:S.hopeTier}).eq('member_id',UID);
+    if(r.error&&!quiet)toast('희망 티어를 계정에 저장하지 못했어요 (이 기기에는 저장됨). 관리자 설정(SQL)이 필요할 수 있어요')}catch(e){}
+}
 async function loadMe(){
   loadCat();
   try{
@@ -1305,6 +1484,7 @@ async function loadMe(){
     if(b.data&&b.data.onboarded_at){const d=b.data;S.profile={done:true,age:new Date().getFullYear()-d.birth_year,sex:d.sex,heightCm:d.height_cm?+d.height_cm:0,bodyKg:d.body_kg?+d.body_kg:0,exp:d.experience,interests:d.interests||[],injuries:d.injuries||[],note:d.injury_note||''};S.lvSet=true;DB.save(S)}
     else if(S.profile&&S.profile.done)upProfile();
   }catch(e){}
+  await loadHope();
   try{const m=await sb.from('body_measurements').select('measured_on,body_kg,body_fat_pct,source').order('measured_on',{ascending:false}).limit(60);if(!m.error&&m.data&&m.data.length){S.bodyLog=m.data.slice().reverse().map(x=>({d:x.measured_on,kg:+x.body_kg,bf:x.body_fat_pct==null?null:+x.body_fat_pct,src:x.source}));DB.save(S)}}catch(e){}
 }
 async function upProfile(){
@@ -1418,13 +1598,14 @@ function zoneCalc(x){
   const eqT={};L.forEach((r,i)=>{if(r&&r.ok&&!r.trainerSet&&r.kg>0&&r.reps>0)eqT[i+1]=r.kg/R.rmPct(r.reps)});
   const ks=Object.keys(eqT).map(Number);if(!ks.length)return null;
   let row=null;try{row=tierRows().find(r=>r.m.id===m.id)}catch(err){}
-  const T=row?row.p.tier:0,mx=Math.max(...ks),mn=Math.min(...ks);
+  const hope=S.hopeTier!=null&&S.hopeTier>=0&&S.hopeTier<=9,T=hope?S.hopeTier:(row?row.p.tier:((S.tiers&&S.tiers[m.id]&&S.tiers[m.id].tier)||(S.tiers&&m.head&&S.tiers[m.head]&&S.tiers[m.head].tier)||0)),mx=Math.max(...ks),mn=Math.min(...ks);
   const eqAt=t=>{if(eqT[t])return eqT[t];if(t<mn)return eqT[mn]/Math.pow(1.2,mn-t);if(t>mx){const a=eqT[mx],b=eqT[mx-1]||a/1.1;return a*Math.pow(a/b,t-mx)}return null};
   const lo=eqAt(T-1),me=eqAt(T),hi=eqAt(T+1);if(!lo||!me||!hi)return null;
-  return{lo,me,hi,T};
+  return{lo,me,hi,T,hope};
 }
 function zoneNeed(w,eq){const R=window.RuneTier;for(let r=1;r<=20;r++)if(w/R.rmPct(r)>=eq-1e-9)return r;return 99}
-function zoneInner(x,i){
+function zoneInner(x,i){const h=zoneInner0(x,i);return h&&RZ?`<div class="mu" style="font-size:11px;margin-bottom:3px">기준 티어: ${window.RuneTier.TIERS[RZ.T]} (${RZ.hope?'희망':'현재'})</div>`+h:h}
+function zoneInner0(x,i){
   const s=x.sets[i];if(!RZ||!s||s.t==='W'||!(s.w>0))return '';
   const E=20,rG=zoneNeed(s.w,RZ.lo),rT=zoneNeed(s.w,RZ.me),rH=zoneNeed(s.w,RZ.hi),r=s.r;
   const act=!(r>0)?'':r<rG?'g':r<rT?'n':r<rH?'h':'s';
@@ -1437,7 +1618,8 @@ function zoneInner(x,i){
   return out.join('');
 }
 const zoneRow=(x,i)=>`<div class="hn" id="hn${i}">${zoneInner(x,i)}</div>`;
-function expGauge(x){
+function expGauge(x){const nm=EX[x.id]&&EX[x.id].name,h=nm==='풀업'?'<div class="mu" style="margin-bottom:4px">kg 칸 = 추가 무게 (0 = 맨몸)</div>':nm==='어시스티드 풀업 머신'?'<div class="mu" style="margin-bottom:4px">kg 칸 = 보조 무게 (클수록 쉬워요)</div>':'';return h+expGauge0(x)}
+function expGauge0(x){
   try{const R=window.RuneTier,e=EX[x.id],m=R.metaFor(e.name,{machine:e.m,region:e.part==='leg'?'lower':'upper'}),r=tierRows().find(q=>q.m.id===m.id);
     if(!r)return `<div class="eg"><div class="egt"><span>다음 ★까지</span><b>첫 기록을 저장하면 시작돼요</b></div><div class="egb"><i style="width:0%"></i></div></div>`;
     const p=r.p,mu=R.multOf(S.level),pc=Math.round(p.pct*100);
@@ -1457,10 +1639,10 @@ function recHTML(){
   const nd=x.sets.filter(s=>s.done).length;
   return recTabs()+expGauge(x)+`<div class="row"><div><b class="h2">${EX[x.id].name}</b><div class="mu">${P[EX[x.id].part]} · ${BIG[EX[x.id].part]?'대근육':'소근육'}</div></div><button class="x" data-act="close">✕</button></div>
   <div class="rtop"><div><span>볼륨</span><b id="rv">${fmt(vol(x.sets))}</b> kg</div><div><span>완료 세트</span><b>${nd}</b></div><button class="pill" id="rest" data-act="rest0">${rtTxt()}</button></div>
-  <div class="r2h"><span>세트</span><span>이전</span><span>kg</span><span>회</span><span>✓</span></div>
+  <div class="r2h"><span>세트</span><span>이전</span><span>${EX[x.id].name==='푸시업'?'자세':'kg'}</span><span>회</span><span>✓</span></div>
   ${x.sets.map((s,i)=>{const n=x.sets.slice(0,i+1).filter(q=>q.t==='M').length;const p=pv&&pv.sets[i];
-  return `<div class="sw" data-i="${i}"><button class="sdl" data-act="sdel" data-i="${i}">삭제하기</button><div class="r2${s.done?' dn':''}"><button class="ty ${s.t}" data-act="ty" data-i="${i}">${s.t==='M'?'M'+n:s.t}</button>${p?`<button class="pvb" data-act="pfill" data-i="${i}" title="누르면 지난번 값이 입력돼요">${p.w}×${p.r}</button>`:'<span class="pvb">-</span>'}<input type="number" inputmode="decimal" step="0.5" min="0" class="${s.tmp?'tmp':''}" value="${s.w}" data-f="w" data-i="${i}" aria-label="무게"><input type="number" inputmode="numeric" min="0" class="${(s.tr!==undefined?s.tr:s.tmp)?'tmp':''}" value="${s.r}" data-f="r" data-i="${i}" aria-label="횟수"><button class="ckb" data-act="sck" data-i="${i}" aria-label="세트 완료">✓</button></div></div>${RF===i?zoneRow(x,i):''}`}).join('')}
-  <input type="text" data-nf="1" placeholder="(통증 · 자극 부위 · 궁금증을 적어요)" value="${esc(x.note)}" style="margin:6px 0;border-style:dashed"><div class="mu" style="margin:4px 0 10px">W 웜업 · M 메인 · F 실패 (왼쪽 버튼을 누르면 바뀌어요). 웜업은 볼륨에서 빠져요. <b>이전</b>을 누르면 지난번 값이 입력되고, 회색 값은 ✓만 눌러도 그대로 저장돼요. 세트를 왼쪽으로 밀면 삭제 버튼이 나와요. 지금 입력 중인 메인 세트 아래 칩은 이 무게에서 몇 회면 리커버리(초록, 컨디션이 안 좋을 때 권장)·노말·하드·슬레이어인지 알려 주는 참고 지표예요(내 현재 티어 기준). 칩을 누르면 그 횟수가 입력돼요.${pv?` 이전 기록: ${pv.d}`:''}</div>
+  return `<div class="sw" data-i="${i}"><button class="sdl" data-act="sdel" data-i="${i}">삭제하기</button><div class="r2${s.done?' dn':''}"><button class="ty ${s.t}" data-act="ty" data-i="${i}">${s.t==='M'?'M'+n:s.t}</button>${p?`<button class="pvb" data-act="pfill" data-i="${i}" title="누르면 지난번 값이 입력돼요">${wTxt(p)}×${p.r}</button>`:'<span class="pvb">-</span>'}${EX[x.id].name==='푸시업'?(s.v=s.v||'floor',`<select data-f="v" data-i="${i}" aria-label="푸시업 자세" style="min-width:0;font-size:13px">${PU_V.map(v=>`<option value="${v[0]}"${s.v===v[0]?' selected':''}>${v[1]}</option>`).join('')}</select>`):`<input type="number" inputmode="decimal" step="0.5" min="0" class="${s.tmp?'tmp':''}" value="${s.w}" data-f="w" data-i="${i}" aria-label="무게">`}<input type="number" inputmode="numeric" min="0" class="${(s.tr!==undefined?s.tr:s.tmp)?'tmp':''}" value="${s.r}" data-f="r" data-i="${i}" aria-label="횟수"><button class="ckb" data-act="sck" data-i="${i}" aria-label="세트 완료">✓</button></div></div>${RF===i?zoneRow(x,i):''}`}).join('')}
+  <input type="text" data-nf="1" placeholder="(통증 · 자극 부위 · 궁금증을 적어요)" value="${esc(x.note)}" style="margin:6px 0;border-style:dashed">${EX[x.id].name==='푸시업'?'<div class="mu" style="margin:4px 0">자세를 고르면 체중의 약 40%(인클라인 높음)~78%(디클라인 60cm)를 든 것으로 계산해요. 낮은 인클라인일수록 쉽고, 디클라인일수록 어려워요.</div>':''}<div class="mu" style="margin:4px 0 10px">W 웜업 · M 메인 · F 실패 (왼쪽 버튼을 누르면 바뀌어요). 웜업은 볼륨에서 빠져요. <b>이전</b>을 누르면 지난번 값이 입력되고, 회색 값은 ✓만 눌러도 그대로 저장돼요. 세트를 왼쪽으로 밀면 삭제 버튼이 나와요. 지금 입력 중인 메인 세트 아래 칩은 이 무게에서 몇 회면 리커버리(초록, 컨디션이 안 좋을 때 권장)·노말·하드·슬레이어인지 알려 주는 참고 지표예요(내 현재 티어 기준). 칩을 누르면 그 횟수가 입력돼요.${pv?` 이전 기록: ${pv.d}`:''}</div>
   <div class="row" style="margin-bottom:8px"><button class="btn ghost" data-act="sadd" data-t="W">+ 웜업 세트</button><button class="btn ghost" data-act="sadd" data-t="M">+ 메인 세트</button></div><button class="btn" data-act="close">기록 완료</button>`;
 }
 /* ---- 종목 관리(트레이너): 코드 수정·재배포 없이 종목 추가/숨김/이름·연결·기준표 변경 ---- */
@@ -1609,10 +1791,20 @@ const A={
   ptab:d=>{PK.part=d.v;PK.q='';$('#pq').value='';document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
   pick:d=>{const sl=draft().slots;if(sl.some(x=>x&&x.id===d.id)){toast('이미 장착된 종목이에요');return}sl[PK.slot]={id:d.id,nm:EX[d.id].name,sets:mkSets(d.id)};persist();RC=PK.slot;openM(recHTML())},
   close:()=>{persist();closeM()},
+  eqwin:()=>{eqInit();const o=eqOwned();EQN={};EQ_SLOTS.forEach(sl=>{if(o[sl.k]>(S.equipSeen[sl.k]||0))EQN[sl.k]=1;S.equipSeen[sl.k]=o[sl.k]});DB.save(S);openM(eqHTML())},
+  eqwear:d=>{eqInit();const g=+d.g,o=eqOwned();if(!(g>=0)||g>o[d.k])return;S.equip[d.k]=g;DB.save(S);openM(eqHTML());toast(g?'장비를 착용했어요':'장비를 벗었어요')},
+  runrec:()=>openM(runHTML()),
+  runsave:()=>{const d=$('#rd').value||T,km=parseFloat($('#rk').value),sec=parseSec($('#rt').value),pl=$('#rp').value;
+    if(!(km>=0.5&&km<=60)){toast('거리를 확인해 주세요 (0.5~60km)');return}
+    if(!(sec>=60)){toast('시간을 mm:ss로 입력해 주세요 (예 27:30)');return}
+    const pace=sec/km;if(pace<150||pace>900){toast('페이스가 1km당 2:30~15:00 범위를 벗어났어요. 거리·시간을 확인해 주세요');return}
+    (S.runs=S.runs||[]).push({id:Date.now(),date:d,km:Math.round(km*100)/100,sec:Math.round(sec),place:pl});persist();openM(runHTML());toast('달리기를 기록했어요')},
+  rundel:d=>{S.runs=(S.runs||[]).filter(r=>String(r.id)!==String(d.id));persist();openM(runHTML())},
+  tconf:d=>{const st=(S.tiers||{})[d.k];if(!st||!st.pend)return;const R=window.RuneTier,pd=st.pend,ns=R.promote(st,pd.stars,pd.d,d.k==='run5k'?R.RUN_TBL:null);Object.assign(st,ns);st.hist=(st.hist||[]).concat([{t:ns.tier,d:pd.d}]);st.pend=null;persist();toast(R.TIERS[ns.tier]+' 승급 확정! 내 정보의 장비 착용창에서 새 장비를 확인하세요');render()},
   ty:d=>{const s=draft().slots[RC].sets[+d.i],o={W:'M',M:'F',F:'W'};s.t=o[s.t];persist();recRe()},
   sdel:d=>{const x=draft().slots[RC];if(x.sets.length<=1){toast('세트는 최소 1개 필요해요');return}x.sets.splice(+d.i,1);persist();recRe()},
   sadd:d=>{const x=draft().slots[RC],m=x.sets.filter(s=>s.t==='M'),l=m[m.length-1]||x.sets[x.sets.length-1],w=d.t==='W';const at=w?Math.max(0,x.sets.findIndex(s=>s.t==='M')):x.sets.length;x.sets.splice(at,0,{t:d.t,w:w?rnd(l.w/2):l.w,r:l.r,done:false,tmp:(w||l.tmp)?1:0});persist();recRe()},
-  pfill:d=>{const x=draft().slots[RC],i=+d.i,s=x.sets[i],pv=prevOf(x.id),p=pv&&pv.sets[i];if(!p)return;s.w=p.w;s.r=p.r;s.tmp=0;s.tr=0;RF=i;persist();recRe()},
+  pfill:d=>{const x=draft().slots[RC],i=+d.i,s=x.sets[i],pv=prevOf(x.id),p=pv&&pv.sets[i];if(!p)return;s.w=p.w;if(p.v)s.v=p.v;s.r=p.r;s.tmp=0;s.tr=0;RF=i;persist();recRe()},
   sck:d=>{const x=draft().slots[RC],i=+d.i,s=x.sets[i];s.done=!s.done;if(s.done){s.tmp=0;s.tr=0;RT=90;const nx=x.sets.findIndex((q,k)=>k>i&&q.t!=='W'&&!q.done);if(nx>=0)RF=nx}else RF=i;persist();recRe()},
   zfill:d=>{const x=draft().slots[RC],i=+d.i,s=x.sets[i];s.r=+d.r;s.tr=0;RF=i;persist();recRe()},
   rest0:()=>{RT=0;const b=$('#rest');if(b)b.textContent=rtTxt()},
@@ -1657,11 +1849,13 @@ document.addEventListener('input',e=>{
   if(t.id==='ad'){ADM.date=t.value||T;render();return}
   const af=t.dataset.af;
   if(af){ADM.cur[af]=af==='no'?(Number(t.value)||0):t.value;if(af==='hw')ADM.cur.hwDone=false;if(af==='special')ADM.cur.spDone=false;if(af==='name'){ADM.cur.mid=null;$('#sug').innerHTML=sugHTML()}persist();return}
+  if(t.id==='hope'){S.hopeTier=t.value===''?null:+t.value;persist();saveHope();const hd=t.closest('.pn').querySelector('.row .mu');if(hd)hd.textContent=S.hopeTier==null?'자동 (내 현재 티어)':'희망 '+window.RuneTier.TIERS[S.hopeTier];return}
   if(t.id==='rvt'){S.reviews=S.reviews||{};const r=S.reviews[T]||(S.reviews[T]={r:0,t:''});r.t=t.value;persist();return}
   if(t.dataset.mf){const m=AD().members.find(x=>x.id===t.dataset.mf);if(m){m.focus=t.value;persist()}return}
   if(t.dataset.nf){const x=draft().slots[RC];if(x){x.note=t.value;persist()}return}
   if(!t.dataset.f)return;
   const s=draft().slots[RC].sets[+t.dataset.i];
+  if(t.dataset.f==='v'){s.v=t.value;persist();return}
   if(s.tr===undefined)s.tr=s.tmp?1:0;
   if(t.dataset.f==='done'){s.done=t.checked;if(t.checked){s.tmp=0;s.tr=0}}else{s[t.dataset.f]=Math.max(0,Number(t.value)||0);if(t.dataset.f==='w')s.tmp=0;else s.tr=0}
   if(!s.tmp){const g=t.closest('.r2').querySelector('input[data-f=w].tmp');if(g)g.classList.remove('tmp')}
