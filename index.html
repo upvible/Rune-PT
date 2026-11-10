@@ -64,6 +64,8 @@ input[type=text],input[type=number]{width:100%;padding:9px;border:1px solid var(
 .sg input[type=checkbox]{width:22px;height:22px;accent-color:var(--cy)}
 .ty{border:1px solid var(--ln);border-radius:6px;padding:7px 0;font-weight:900;background:transparent}
 .ty.W{background:#b45309;color:#fff;border-color:#b45309}.ty.F{background:#b91c1c;color:#fff;border-color:#b91c1c}.ty.M{background:var(--cy);color:#fff;border-color:var(--cy)}.sg input.tmp{color:var(--mu);font-style:italic}
+.gbox{width:100%;margin-top:8px;display:flex;justify-content:space-between;align-items:center;padding:12px 14px}.gcnt{min-width:26px;text-align:center;border-radius:999px;padding:2px 8px;background:var(--bg);color:var(--mu)}.gcnt.on{background:#d62f3a;color:#fff}
+.xts{display:flex;gap:6px;overflow-x:auto;margin:0 0 10px;padding-bottom:4px;-webkit-overflow-scrolling:touch}.xt{flex:0 0 auto;border:1px solid var(--ln);background:transparent;color:inherit;border-radius:16px;padding:7px 12px;font-size:12px;font-weight:700;white-space:nowrap}.xt small{margin-left:6px;opacity:.7;font-weight:600}.xt.on{background:var(--cy);color:#fff;border-color:var(--cy)}.xt.add{border-style:dashed;opacity:.8}
 .rtop{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:8px;align-items:center;margin:10px 0 4px}.rtop span{display:block;font-size:12px;color:var(--mu)}.rtop b{font-size:22px;font-variant-numeric:tabular-nums}
 .pill{border:0;border-radius:14px;background:var(--bg);color:var(--tx);min-height:44px;font:inherit;font-size:14px;padding:0 10px}
 .r2h,.r2{display:grid;grid-template-columns:44px 1fr 1fr 1fr 46px;gap:7px;align-items:center;text-align:center}
@@ -870,11 +872,51 @@ function avatarState(){
   const p=S.profile||{};return{type:'rune-state',st,sex:p.sex==='F'?'F':'M'};
 }
 function viewHome(){
+  setTimeout(()=>loadGifts(false),0);
   return `<div class="home"><iframe id="avf" class="avf" src="avatar/avatar.html?embed=1" title="내 아바타" loading="eager"></iframe>
+  <button class="btn ghost gbox" data-act="gifts"><span>🎁 선물함 <small class="mu">트레이너가 보낸 루틴</small></span><b class="gcnt${GIFTS.length?' on':''}">${GIFTS.length}</b></button>
   <div class="hgo"><button class="btn" data-act="tab" data-v="today">운동시작</button><button class="btn" data-act="tab" data-v="cal">캘린더조회</button><button class="btn" data-act="tab" data-v="stat">통계분석</button><button class="btn" data-act="tab" data-v="me">계정 정보</button></div>
   <div class="mu" style="text-align:center;margin-top:6px">아바타 화면이 안 보이면 avatar 폴더가 같은 저장소에 올라가 있는지 확인해 주세요</div></div>`;
 }
 addEventListener('message',e=>{if(e.data&&e.data.type==='rune-ready'){const f=document.getElementById('avf');if(f&&f.contentWindow&&e.source===f.contentWindow){try{f.contentWindow.postMessage(avatarState(),'*')}catch(x){}}}});
+/* ---- 구글·카카오 연동 / 트레이너 → 회원 선물함 ---- */
+let UIDENT=[],GIFTS=[],GT=0,MP={list:null,q:'',target:'',err:''};
+function linkHTML(){
+  if(!sb||!UID)return '';const has=p=>UIDENT.includes(p);
+  return `<div class="mu" style="margin-top:10px;line-height:1.7">연동된 계정: ${has('kakao')?'✔ 카카오':'카카오 없음'} · ${has('google')?'✔ 구글':'구글 없음'}</div><div class="row" style="gap:8px;margin-top:6px">${has('kakao')?'':'<button class="btn ghost sm" data-act="linkid" data-p="카카오">카카오 연동하기</button>'}${has('google')?'':'<button class="btn ghost sm" data-act="linkid" data-p="구글">구글 연동하기</button>'}</div><div class="mu" style="margin-top:6px">연동하면 카카오·구글 어느 쪽으로 로그인해도 같은 기록이 나와요.</div>`;
+}
+async function loadGifts(force){
+  if(!sb||!UID||S.mode==='admin')return;if(!force&&Date.now()-GT<20000)return;GT=Date.now();
+  try{const r=await sb.from('routine_gifts').select('id,gift_date,title,payload,created_at').eq('status','sent').order('created_at',{ascending:false});
+    if(r.error){console.error(r.error);return}const d=r.data||[],ch=d.length!==GIFTS.length||d.some((g,i)=>GIFTS[i]&&GIFTS[i].id!==g.id);GIFTS=d;
+    if(ch&&typeof tab!=='undefined'&&tab==='home'&&!$('#md').classList.contains('on'))render()}catch(e){console.error(e)}
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadGifts(true)});
+function giftsHTML(){
+  const exn=x=>{const e=x&&EX[x.id];return e&&!e.missing?e.name:'(없는 종목)'};
+  return `<div data-gifts="1"></div><div class="row"><b class="h2">선물함</b><button class="x" data-act="close">✕</button></div><div class="mu" style="margin:4px 0 8px">트레이너가 보낸 수업 루틴이에요. 받으면 오늘 운동의 빈 룬 칸에 들어가요.</div>`+(GIFTS.length?GIFTS.map(g=>{const p=g.payload||{},sl=(p.slots||[]).filter(Boolean);
+    return `<div class="pn" style="margin:8px 0"><div class="row"><b>${esc(g.title||'수업 루틴')}</b><span class="mu">${esc(p.from||'트레이너')}</span></div><div class="mu" style="margin:6px 0;line-height:1.6">${sl.map(x=>esc(exn(x))).join(' → ')||'(종목 없음)'}</div>${p.memo?`<div class="mu">메모: ${esc(p.memo)}</div>`:''}${p.goal?`<div class="mu">목표: ${esc(p.goal)}</div>`:''}${p.hw?`<div class="mu">과제: ${esc(p.hw)}</div>`:''}<button class="btn" style="margin-top:8px" data-act="gaccept" data-id="${g.id}">오늘 운동으로 받기</button></div>`}).join(''):'<div class="mu" style="margin:14px 0">받은 루틴이 없어요</div>');
+}
+async function sendGift(it){
+  const m=AD().members.find(x=>x.id===it.mid)||AD().members.find(x=>x.name===(it.name||'').trim());
+  if(!m||!m.uid)return 'nolink';
+  const sl=(it.slots||[]).filter(Boolean);if(!sl.length)return 'empty';
+  try{const r=await sb.from('routine_gifts').insert({member_id:m.uid,gift_date:ADM.date,title:`${ADM.date.slice(5).replace('-','/')} ${it.time} 수업 루틴`,payload:{from:(S.user&&S.user.name)||'트레이너',time:it.time,no:sessNo(it,ADM.date)||0,memo:it.memo||'',goal:it.goal||'',hw:it.hw||'',slots:sl}});
+    if(r.error){console.error(r.error);return 'err:'+(r.error.message||'')}it.sent=true;return 'ok'}catch(e){return 'err:연결 오류'}
+}
+const sendMsg=(x,it)=>x==='ok'?`${it.name}님에게 루틴을 보냈어요`:x==='nolink'?'이 회원은 가입 계정이 연결되지 않았어요. 내 회원에서 계정을 연결해 주세요':x==='empty'?'보낼 룬이 없어요. 룬을 먼저 채워 주세요':'보내지 못했어요: '+x.slice(4);
+const linkRow=m=>m.uid?`<div class='sp' style='margin-bottom:8px'>🔗 가입 계정 연결됨${m.acct?' · '+esc(m.acct):''} <button class='btn ghost sm' style='width:auto;margin-left:6px' data-act='aunlink' data-id='${m.id}'>해제</button></div>`:`<div class='sp' style='margin-bottom:8px'><span class='mu'>가입 계정이 연결되지 않았어요. 연결해야 루틴을 보낼 수 있어요.</span> <button class='btn sm' style='width:auto;margin-top:6px' data-act='apicker' data-id='${m.id}'>가입 계정 연결</button></div>`;
+const mpList=()=>{
+  if(MP.err)return `<div class="mu" style="color:#c0392b">${esc(MP.err)}</div>`;if(!MP.list)return '<div class="mu">불러오는 중…</div>';
+  const q=MP.q.trim(),l=MP.list.filter(x=>!q||(x.nickname||'').includes(q)),linked=id=>AD().members.some(m=>m.uid===id);
+  return l.map(x=>`<button class="ex" data-act="apick2" data-uid="${x.id}" data-nm="${esc(x.nickname||'회원')}"><span>${esc(x.nickname||'회원')}${linked(x.id)?' <small class="mu">(연결됨)</small>':''}</span><span class="mu">${String(x.created_at||'').slice(0,10)} 가입</span></button>`).join('')||'<div class="mu">가입한 회원이 없어요</div>';
+};
+const pickerHTML=()=>`<div class="row"><b class="h2">가입 회원 선택</b><button class="x" data-act="close">✕</button></div><div class="mu" style="margin:4px 0 8px">앱에 가입한 회원의 카카오·구글 닉네임이에요. 이름이 같은 사람이 있을 수 있어서 가입일도 함께 보고 골라 주세요.</div><input type="text" id="mpq" placeholder="닉네임 검색" value="${esc(MP.q)}"><div id="mpl" style="margin-top:6px">${mpList()}</div>`;
+async function loadMP(){
+  if(!sb||!UID){MP.err='서버에 로그인해야 가입 회원 목록을 볼 수 있어요';}
+  else{try{const r=await sb.rpc('trainer_member_list');if(r.error){MP.err=/function|does not exist|schema cache/i.test(r.error.message||'')?'서버에 5단계 SQL(phase5)을 먼저 실행해 주세요':(r.error.message||'목록을 불러오지 못했어요')}else{MP.list=r.data||[];MP.err=''}}catch(e){MP.err='연결을 확인해 주세요'}}
+  const l=$('#mpl');if(l&&$('#md').classList.contains('on'))l.innerHTML=mpList();
+}
 function tierPanel(){
   const R=window.RuneTier,rows=tierRows(),mu=R.multOf(S.level);
   if(!rows.length)return `<div class="pn"><div class="h2">종목별 티어 <small class="mu">베타</small></div><div class="mu">기록을 저장하면 종목마다 별이 쌓여요</div></div>`;
@@ -1030,7 +1072,7 @@ function viewStat(){
 }
 function viewMe(){
   const u=S.user;
-  return `<h1 class="h1">계정 정보</h1><div class="pn">${u?`<div class="row"><div><b class="h2">${u.name}</b><div class="mu">${u.provider} 계정 연결됨 · 서버 저장: ${syncTxt()}</div></div><button class="btn ghost" style="width:auto;padding:8px 14px" data-act="logout">로그아웃</button></div>`:
+  return `<h1 class="h1">계정 정보</h1><div class="pn">${u?`<div class="row"><div><b class="h2">${u.name}</b><div class="mu">${u.provider} 계정 연결됨 · 서버 저장: ${syncTxt()}</div></div><button class="btn ghost" style="width:auto;padding:8px 14px" data-act="logout">로그아웃</button></div>${linkHTML()}`:
   `<div class="h2">로그인하고 기록 이어가기</div><div class="mu" style="margin:4px 0 10px">로그인하면 기록이 계정에 저장돼서 기기를 바꿔도 이어져요. 카톡 안에서 열었다면 크롬·사파리로 열어 로그인해 주세요.</div>
   <button class="btn" style="background:#fee500;color:#191600;margin-bottom:8px" data-act="login" data-p="카카오">카카오로 시작하기</button>
   <button class="btn ghost" data-act="login" data-p="구글">구글로 시작하기</button>`}</div>
@@ -1055,8 +1097,12 @@ const endT=t=>String(+t.slice(0,2)+1).padStart(2,'0')+':00';
 const plan=d=>{const p=AD().plans;return p[d]||(p[d]=[])};
 const fi=id=>plan(ADM.date).find(x=>x.id===id);
 const exTxt=sl=>sl.filter(Boolean).map(x=>EX[x.id].name+(x.note?' ('+x.note+')':'')+' '+x.sets.map(s=>(s.t==='W'?'W':s.t==='F'?'F':'')+s.w+'×'+s.r).join(' / ')).join('\n');
-const briefText=(it,d)=>`[PT 브리핑] ${d.slice(5).replace('-','/')} ${it.time} ${it.name||'회원'}님${it.no?' '+it.no+'차시':''}\n`+(exTxt(it.slots)||'(룬 페이지 미작성)')+(it.memo?`\n\n수업 내용: ${it.memo}`:'')+(it.hw?`\n과제: ${it.hw}`:'')+(it.goal?`\n다음 수업 목표: ${it.goal}`:'');
-const calURL=(it,d)=>{const f=t=>d.replace(/-/g,'')+'T'+t.replace(':','')+'00';return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('[PT] '+(it.name||'회원')+' 님')+'&dates='+f(it.time)+'/'+f(endT(it.time))+'&details='+encodeURIComponent(briefText(it,d))};
+function sessNo(it,d){
+  if(it.no)return it.no;const m=AD().members.find(x=>x.id===it.mid)||AD().members.find(x=>it.name&&x.name===it.name.trim());if(!m)return 0;
+  const ss=memSess(m),all=[];Object.keys(ss).sort().forEach(k=>ss[k].slice().sort((a,b)=>a.time<b.time?-1:1).forEach(x=>all.push({k,x})));
+  let c=0,hit=0;all.forEach((e,i)=>{c=e.x.no||c+1;if(!hit&&(e.x===it||(e.k===d&&e.x.time===it.time))){hit=c}});return hit}
+const briefText=(it,d)=>`[PT 브리핑] ${d.slice(5).replace('-','/')} ${it.time} ${it.name||'회원'}님${sessNo(it,d)?' '+sessNo(it,d)+'차시':''}\n`+(exTxt(it.slots)||'(룬 페이지 미작성)')+(it.memo?`\n\n수업 내용: ${it.memo}`:'')+(it.hw?`\n과제: ${it.hw}`:'')+(it.goal?`\n다음 수업 목표: ${it.goal}`:'');
+const calURL=(it,d)=>{const f=t=>d.replace(/-/g,'')+'T'+t.replace(':','')+'00';return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('[PT] '+(it.name||'회원')+'님'+(sessNo(it,d)?' '+sessNo(it,d)+'차시':''))+'&dates='+f(it.time)+'/'+f(endT(it.time))+'&details='+encodeURIComponent(briefText(it,d))};
 function copyText(t,m){const ok=()=>toast(m||'카톡용 텍스트를 복사했어요');const fb=()=>{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();try{document.execCommand('copy')?ok():toast('복사에 실패했어요')}catch(e){toast('복사에 실패했어요')}a.remove()};try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}}
 function sugHTML(){const c=ADM.cur,q=c.name.trim();if(!q)return '';if(c.mid)return `<div class='mu'>✔ 연결된 회원</div>`;
   const ms=AD().members.filter(m=>m.name.includes(q)).slice(0,5),ex=AD().members.some(m=>m.name===q);
@@ -1073,7 +1119,7 @@ function viewAdmEdit(){
 }
 function viewMem(){
   const ms=AD().members,cnt=m=>Object.values(AD().plans).reduce((a,l)=>a+l.filter(x=>x.name===m.name).length,0);
-  return `<h1 class='h1'>내 회원</h1><div class='pn'><div class='h2'>회원 추가</div><div class='mu'>가입 회원은 서버 연동 후 초대 코드로 자동 연결돼요. 지금은 직접 추가해요.</div><div class='row' style='gap:8px;margin-top:8px'><input type='text' id='mn' placeholder='회원 이름'><button class='btn sm' style='white-space:nowrap' data-act='amadd'>추가</button></div></div><div class='pn'>`+ms.map(m=>`<button class='ex' data-act='amem' data-id='${m.id}'><span>${esc(m.name)}${m.temp?` <small class='mu'>(임시)</small>`:''}</span><span class='mu'>수업 ${cnt(m)}회 · 기록 ${(m.log||[]).length}건</span></button>`).join('')+`</div>`;
+  return `<h1 class='h1'>내 회원</h1><div class='pn'><div class='h2'>회원 추가</div><div class='mu'>가입한 회원은 [가입 회원에서 추가]로 계정을 연결해요. 계정이 연결된 회원에게만 루틴을 보낼 수 있어요. 이름만 직접 추가할 수도 있어요.</div><div class='row' style='gap:8px;margin-top:8px'><input type='text' id='mn' placeholder='회원 이름'><button class='btn sm' style='white-space:nowrap' data-act='amadd'>추가</button></div><button class='btn ghost' style='margin-top:8px' data-act='apicker' data-id=''>가입 회원에서 추가</button></div><div class='pn'>`+ms.map(m=>`<button class='ex' data-act='amem' data-id='${m.id}'><span>${esc(m.name)}${m.uid?' 🔗':''}${m.temp?` <small class='mu'>(임시)</small>`:''}</span><span class='mu'>수업 ${cnt(m)}회 · 기록 ${(m.log||[]).length}건</span></button>`).join('')+`</div>`;
 }
 function reviewHTML(d){
   const fl=d.slots.filter(Boolean);
@@ -1153,7 +1199,7 @@ function viewQuest2(){
 }
 function memHTML(id){
   const m=AD().members.find(x=>x.id===id),lg=(m.log||[]).slice().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
-  return `<div class='row'><b class='h2'>${esc(m.name)}${m.temp?' (임시)':''}</b><button class='x' data-act='close'>✕</button></div><div class='mu' style='margin:4px 0 8px'>주간 리포트에서 저장된 특이사항·과제 기록 (관리자 전용)</div>`+(lg.map(e=>`<div class='sp'><b>${e.date.slice(5).replace('-','/')}</b> <span class='mu'>${e.time}${e.no?' · '+e.no+'차시':''}</span><div>특이사항: ${esc(e.special)||'없음'} ${e.special&&e.spDone?'✔':''}</div><div>과제: ${esc(e.hw)||'없음'} ${e.hw?(e.hwDone?'✔ 인지':'(미인지)'):''}</div></div>`).join('')||`<div class='mu'>아직 저장된 기록이 없어요. 주간 탭의 [회원정보에 저장]을 눌러 주세요.</div>`);
+  return `<div class='row'><b class='h2'>${esc(m.name)}${m.temp?' (임시)':''}</b><button class='x' data-act='close'>✕</button></div><div class='mu' style='margin:4px 0 8px'>주간 리포트에서 저장된 특이사항·과제 기록 (관리자 전용)</div>${linkRow(m)}`+(lg.map(e=>`<div class='sp'><b>${e.date.slice(5).replace('-','/')}</b> <span class='mu'>${e.time}${e.no?' · '+e.no+'차시':''}</span><div>특이사항: ${esc(e.special)||'없음'} ${e.special&&e.spDone?'✔':''}</div><div>과제: ${esc(e.hw)||'없음'} ${e.hw?(e.hwDone?'✔ 인지':'(미인지)'):''}</div></div>`).join('')||`<div class='mu'>아직 저장된 기록이 없어요. 주간 탭의 [회원정보에 저장]을 눌러 주세요.</div>`);
 }
 let MC={id:null,y:0,m:0,d:null};
 function memSess(m){const o={};Object.keys(AD().plans).forEach(d=>AD().plans[d].forEach(it=>{if(it.mid===m.id||(it.name&&it.name.trim()===m.name))(o[d]=o[d]||[]).push(it)}));(m.log||[]).forEach(e=>{const a=o[e.date]||(o[e.date]=[]);if(!a.some(x=>x.time===e.time))a.push({time:e.time,no:e.no,special:e.special,hw:e.hw,hwDone:e.hwDone,slots:[],memo:'',goal:''})});return o}
@@ -1204,13 +1250,14 @@ async function pull(){
   const rowsT=r.data.filter(x=>x.session_date===T).sort((a,b)=>(a.session_no||1)-(b.session_no||1)),d0=rowsT[rowsT.length-1];
   if(d0){const cur=S.drafts[T];if(!cur||!cur.slots.some(Boolean)){const sl=(d0.items||[]).slice(0,6);while(sl.length<6)sl.push(null);S.drafts[T]={slots:sl};S.curNo[T]=d0.session_no||1}}
   for(const d of allDates()){const gs=[S.sessions[d]||[]].concat(S.more[d]||[]);for(let i=0;i<gs.length;i++){const g=gs[i];if(!g||!g.length||srv[d+'#'+(i+1)])continue;const rv=S.reviews[d]||{};await sb.from('workout_sessions').upsert({member_id:UID,session_date:d,session_no:i+1,level:'intermediate',items:g,grade:i===0?(rv.g||null):null,review:i===0?(rv.t||null):null},{onConflict:'member_id,session_date,session_no'})}}
-  PULLED=true;PULLING=false;SYNC='ok';DB.save(S);render();
+  PULLED=true;PULLING=false;SYNC='ok';DB.save(S);render();loadGifts(true);
 }
 async function onSession(sess){
   if(!sess){UID=null;ROLE=null;PULLED=false;PULLING=false;SYNC='off';if(S.user){S.user=null;DB.save(S)}if(!GUEST)SCR='auth';render();return}
   if(UID===sess.user.id&&(PULLED||PULLING))return;
   UID=sess.user.id;const m=sess.user.user_metadata||{};
-  S.user={name:m.name||m.full_name||m.nickname||'카카오 회원',provider:'카카오'};
+  const pvd=(sess.user.app_metadata&&sess.user.app_metadata.provider)||'kakao';UIDENT=(sess.user.identities||[]).map(i=>i.provider);if(!UIDENT.length)UIDENT=[pvd];
+  S.user={name:m.name||m.full_name||m.nickname||(pvd==='google'?'구글 회원':'카카오 회원'),provider:pvd==='google'?'구글':'카카오'};
   DB.save(S);SCR='boot';render();
   await loadMe();
   await pull();
@@ -1399,12 +1446,16 @@ function expGauge(x){
 let RF=-1,RFc=-1,RT=0;
 const recRe=()=>{const sh=$('#md .sheet'),y=sh?sh.scrollTop:0;openM(recHTML());const n=$('#md .sheet');if(n){n.style.animation='none';n.scrollTop=y}};
 const rtTxt=()=>RT>0?`⏱ 휴식: ${Math.floor(RT/60)}:${String(RT%60).padStart(2,'0')}`:'⏱ 휴식: --';
+function recTabs(){
+  const sl=draft().slots,ch=sl.map((q,i)=>q&&EX[q.id]?`<button class="xt${i===RC?' on':''}" data-act="rtab" data-i="${i}">${esc(EX[q.id].name)}<small>${q.sets.filter(s=>s.t!=='W'&&s.done).length}/${q.sets.filter(s=>s.t!=='W').length}</small></button>`:'').join(''),em=sl.findIndex(q=>!q);
+  return `<div class="xts">${ch}${em>=0?`<button class="xt add" data-act="rtadd" data-i="${em}">+ 종목</button>`:''}</div>`;
+}
 function recHTML(){
   const x=draft().slots[RC],pv=prevOf(x.id);RZ=zoneCalc(x);
   if(RFc!==RC){RF=-1;RFc=RC}
   if(!(RF>=0&&x.sets[RF]&&x.sets[RF].t!=='W')){RF=x.sets.findIndex(s=>s.t!=='W'&&!s.done);if(RF<0)RF=x.sets.findIndex(s=>s.t!=='W')}
   const nd=x.sets.filter(s=>s.done).length;
-  return expGauge(x)+`<div class="row"><div><b class="h2">${EX[x.id].name}</b><div class="mu">${P[EX[x.id].part]} · ${BIG[EX[x.id].part]?'대근육':'소근육'}</div></div><button class="x" data-act="close">✕</button></div>
+  return recTabs()+expGauge(x)+`<div class="row"><div><b class="h2">${EX[x.id].name}</b><div class="mu">${P[EX[x.id].part]} · ${BIG[EX[x.id].part]?'대근육':'소근육'}</div></div><button class="x" data-act="close">✕</button></div>
   <div class="rtop"><div><span>볼륨</span><b id="rv">${fmt(vol(x.sets))}</b> kg</div><div><span>완료 세트</span><b>${nd}</b></div><button class="pill" id="rest" data-act="rest0">${rtTxt()}</button></div>
   <div class="r2h"><span>세트</span><span>이전</span><span>kg</span><span>회</span><span>✓</span></div>
   ${x.sets.map((s,i)=>{const n=x.sets.slice(0,i+1).filter(q=>q.t==='M').length;const p=pv&&pv.sets[i];
@@ -1535,8 +1586,14 @@ const A={
   admdone:()=>{closeEdit();toast('수업 칸에 저장했어요')},
   adel:d=>{const l=plan(ADM.date),i=l.findIndex(x=>x.id===d.id);if(i>=0)l.splice(i,1);persist();render()},
   acopy:d=>copyText(briefText(fi(d.id),ADM.date)),
-  asend:d=>{const it=fi(d.id);if(!it.name.trim()){toast('회원을 먼저 지정해 주세요');return}it.sent=true;persist();render();toast('발송 처리했어요 (데모: 서버 연동 후 회원 선물함에 도착)')},
-  asendall:()=>{let n=0;plan(ADM.date).forEach(it=>{if(it.name.trim()&&!it.sent){it.sent=true;n++}});persist();render();toast(n+'건 발송 처리했어요')},
+  asend:d=>{const it=fi(d.id);if(!it.name.trim()){toast('회원을 먼저 지정해 주세요');return}if(!sb||!UID){toast('서버에 로그인해야 보낼 수 있어요');return}sendGift(it).then(x=>{persist();render();toast(sendMsg(x,it))})},
+  asendall:async()=>{if(!sb||!UID){toast('서버에 로그인해야 보낼 수 있어요');return}let ok=0,no=0,bad=0;for(const it of plan(ADM.date)){if(!it.name.trim()||it.sent)continue;const x=await sendGift(it);if(x==='ok')ok++;else if(x==='nolink')no++;else bad++}persist();render();toast(`${ok}건 보냈어요${no?' · 계정 미연결 '+no+'건':''}${bad?' · 실패 '+bad+'건':''}`)},
+  apicker:async d=>{MP.target=d.id||'';MP.q='';MP.list=null;MP.err='';openM(pickerHTML());await loadMP()},
+  apick2:d=>{if(MP.target){const m=AD().members.find(x=>x.id===MP.target);if(m){m.uid=d.uid;m.acct=d.nm}}else{const ex=AD().members.find(x=>x.uid===d.uid);if(ex){toast('이미 연결된 회원이에요');return}AD().members.push({id:'m'+Date.now(),name:d.nm,uid:d.uid,acct:d.nm})}persist();closeM();render();toast('가입 계정을 연결했어요')},
+  aunlink:d=>{const m=AD().members.find(x=>x.id===d.id);if(m){m.uid=null;m.acct=''}persist();openM(memInfo(d.id));toast('연결을 해제했어요')},
+  gifts:()=>{openM(giftsHTML());loadGifts(true).then(()=>{const m=$('#md');if(m.classList.contains('on')&&m.querySelector('[data-gifts]'))openM(giftsHTML())})},
+  gaccept:async d=>{const g=GIFTS.find(x=>x.id===d.id);if(!g)return;const p=g.payload||{},src=(p.slots||[]).filter(Boolean),dr=S.drafts[T]||(S.drafts[T]={slots:Array(6).fill(null)}),free=dr.slots.map((q,i)=>q?-1:i).filter(i=>i>=0);if(!free.length){toast('오늘 룬 6칸이 모두 찼어요. 빈 칸을 만든 뒤 받아 주세요');return}let n=0;src.forEach(x=>{if(!free.length||!x||!EX[x.id]||EX[x.id].missing)return;const i=free.shift(),sets=(x.sets&&x.sets.length?x.sets:mkSets(x.id)).map(q=>({t:q.t||'M',w:+q.w||0,r:+q.r||0,done:false,tmp:0}));dr.slots[i]={id:x.id,sets,note:x.note||''};n++});if(!n){toast('받을 수 있는 종목이 없어요');return}persist();const r=await sb.from('routine_gifts').update({status:'accepted',accepted_at:new Date().toISOString()}).eq('id',g.id);if(r.error){console.error(r.error);toast('받았지만 받은 표시를 저장하지 못했어요')}GIFTS=GIFTS.filter(x=>x.id!==g.id);closeM();tab='today';render();toast(`${n}개 종목을 오늘 운동에 넣었어요`)},
+  linkid:d=>{const pv={'카카오':'kakao','구글':'google'}[d.p];if(!pv||!sb)return;sb.auth.linkIdentity({provider:pv,options:{redirectTo:APP_URL}}).then(r=>{if(r&&r.error)toast('연동하지 못했어요: '+(/manual/i.test(r.error.message)?'Supabase에서 계정 수동 연동을 켜야 해요':r.error.message))})},
   agcal:()=>toast('구글 로그인 연동 후 사용할 수 있어요 (다음 단계)'),
   apick:d=>{const m=AD().members.find(x=>x.id===d.id);ADM.cur.name=m.name;ADM.cur.mid=m.id;persist();render()},
   atemp:()=>{const q=ADM.cur.name.trim(),m={id:'t'+Date.now(),name:q,temp:1};AD().members.push(m);ADM.cur.mid=m.id;persist();render()},
@@ -1545,6 +1602,8 @@ const A={
   tab:d=>{tab=d.v;ADM.cur=null;ADM.pop=false;render()},
   wm:d=>setMode(d.v),
   wmrec:()=>setMode(recMode().mode),
+  rtab:d=>{const i=+d.i;if(i===RC)return;RC=i;RF=-1;RFc=-1;recRe();const e=$('#md .xt.on');if(e&&e.scrollIntoView)e.scrollIntoView({inline:'center',block:'nearest'})},
+  rtadd:d=>{openPick(+d.i)},
   slot:d=>{const i=+d.i,x=draft().slots[i];if(x){RC=i;openM(recHTML())}else openPick(i)},
   rm:d=>{draft().slots[+d.i]=null;persist();render()},
   ptab:d=>{PK.part=d.v;PK.q='';$('#pq').value='';document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
@@ -1566,7 +1625,7 @@ const A={
     const n=curNo()+1;S.curNo[T]=n;S.drafts[T]={slots:Array(6).fill(null)};DB.save(S);render();toast(`오늘 ${n}번째 운동을 시작했어요`)},
   mon:d=>{CM.m+=+d.v;if(CM.m<0){CM.m=11;CM.y--}if(CM.m>11){CM.m=0;CM.y++}render()},
   day:d=>{CD=d.d;render()},
-  login:d=>{if(d.p!=='카카오'){toast('구글 로그인은 다음 단계에서 연결해요');return}if(!sb){toast('로그인은 GitHub 주소(upvible.github.io)에서만 동작해요');return}sb.auth.signInWithOAuth({provider:'kakao',options:{redirectTo:APP_URL}}).then(r=>{if(r.error)toast('로그인을 시작하지 못했어요: '+r.error.message)})},
+  login:d=>{const pv={'카카오':'kakao','구글':'google'}[d.p];if(!pv)return;if(!sb){toast('로그인은 GitHub 주소(upvible.github.io)에서만 동작해요');return}sb.auth.signInWithOAuth({provider:pv,options:{redirectTo:APP_URL}}).then(r=>{if(r.error)toast('로그인을 시작하지 못했어요: '+r.error.message)})},
   logout:async()=>{if(sb&&UID){await upProfile();await syncToday();if(SYNC==='err'){toast('저장이 끝나지 않았어요. 연결을 확인하고 다시 시도해 주세요');return}await sb.auth.signOut()}S.user=null;UID=null;ROLE=null;GUEST=false;PULLED=false;SYNC='off';S.sessions={};S.more={};S.curNo={};S.reviews={};S.drafts={};S.profile=null;S.lvSet=false;S.bodyLog=[];srvSave(null);SCR='auth';persist();render()},
   reset:()=>{S={user:null,level:'intermediate',sessions:{},more:{},curNo:{},drafts:{},wm:{}};ADM.cur=null;tab='today';persist();render();toast('데이터를 지웠어요')}
 };
@@ -1592,6 +1651,7 @@ setInterval(()=>{if(RT>0){RT--;const b=$('#rest');if(b)b.textContent=rtTxt()}},1
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.pf){OB[t.dataset.pf]=t.value;obRefresh();return}
+  if(t.id==='mpq'){MP.q=t.value;const l=$('#mpl');if(l)l.innerHTML=mpList();return}
   if(t.id==='pq'){PK.q=t.value;pickList();return}
   if(t.id==='pm'){PK.m=t.checked;pickList();return}
   if(t.id==='ad'){ADM.date=t.value||T;render();return}
