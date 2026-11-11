@@ -1268,6 +1268,37 @@ function sessNo(it,d){
   const ss=memSess(m),all=[];Object.keys(ss).sort().forEach(k=>ss[k].slice().sort((a,b)=>a.time<b.time?-1:1).forEach(x=>all.push({k,x})));
   let c=0,hit=0;all.forEach((e,i)=>{c=e.x.no||c+1;if(!hit&&(e.x===it||(e.k===d&&e.x.time===it.time))){hit=c}});return hit}
 const briefText=(it,d)=>`[PT 브리핑] ${d.slice(5).replace('-','/')} ${it.time} ${it.name||'회원'}님${sessNo(it,d)?' '+sessNo(it,d)+'차시':''}\n`+(exTxt(it.slots)||'(룬 페이지 미작성)')+(it.memo?`\n\n수업 내용: ${it.memo}`:'')+(it.hw?`\n과제: ${it.hw}`:'')+(it.goal?`\n다음 수업 목표: ${it.goal}`:'');
+/* ---- 수업내용 → 종목 자동 인식: "덤벨풀오버 > 덤벨플라이 > 머신 플라이 > 어시스트 풀업" 같은 글에서 종목을 찾아요 ---- */
+const PZ_SYN=[[/어시스트|어시스티트|어씨스트/g,'어시스티드'],[/턱걸이/g,'풀업'],[/씨티드|시티트/g,'시티드'],[/래이즈|레이스|레이쥬/g,'레이즈'],[/플래이|후라이|프라이|플라이즈/g,'플라이'],[/프래스|프레쓰/g,'프레스'],[/익스텐숀|익스텐젼|익스텐션|extension/g,'익스텐션'],[/ohp|오헤프|오버헤드/g,'오버헤드프레스'],[/덤벨플라이|덤벨체스트플라이/g,'체스트플라이'],[/rdl/g,'루마니안데드리프트'],[/db/g,'덤벨'],[/bb/g,'바벨'],[/데드(?!리프트)/g,'데드리프트'],[/스쿼(?!트)/g,'스쿼트'],[/랫풀(?!다운)/g,'랫풀다운'],[/레그프(?!레스)/g,'레그프레스'],[/레프(?!레스)/g,'레그프레스'],[/레컬/g,'레그컬'],[/레익/g,'레그익스텐션'],[/^벤치$/,'벤치프레스'],[/케이블로우|케로우/g,'시티드케이블로우'],[/펙덱|팩덱|버터플라이/g,'펙덱플라이'],[/풀업머신/g,'어시스티드풀업'],[/숄프|숄더프/g,'숄더프레스']];
+const PZ_MOVE=['플라이','프레스','로우','컬','레이즈','익스텐션','풀다운','풀업','스쿼트','런지','데드리프트','크런치','플랭크','풀오버','딥스','쓰러스트','킥백','슈러그','익스텐션','푸시업','풀스루','트위스트'];
+function pzNorm(s){s=String(s||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,'');PZ_SYN.forEach(([a,b])=>{s=s.replace(a,b)});return s}
+function pzDice(a,b){if(a===b)return 1;if(a.length<2||b.length<2)return 0;const g=x=>{const m={};for(let i=0;i<x.length-1;i++){const k=x.slice(i,i+2);m[k]=(m[k]||0)+1}return m},A=g(a),B=g(b);let n=0;for(const k in A)if(B[k])n+=Math.min(A[k],B[k]);return 2*n/((a.length-1)+(b.length-1))}
+function pzKeys(e){const ks=[];const add=t=>{const k=pzNorm(t);if(k&&ks.indexOf(k)<0)ks.push(k)};add(e.name);add(e.name.replace(/머신/g,''));String(e.al||'').split('/').forEach(add);return ks}
+function pzScore(a,e){let best=0;for(const k of pzKeys(e)){let s;if(a===k)s=1;else if(Math.min(a.length,k.length)>=3&&(a.includes(k)||k.includes(a))){s=Math.min(.95,.8+.15*Math.min(a.length,k.length)/Math.max(a.length,k.length))}else{s=pzDice(a,k)*.9;const mv=PZ_MOVE.find(m=>a.includes(m)&&k.includes(m));if(mv)s=Math.max(s,.35+s*.5)}if(s>best)best=s}return best}
+function pzSplit(text){
+  let t=String(text||'').replace(/\([^)]*\)|\[[^\]]*\]|（[^）]*）/g,' ');
+  t=t.replace(/([가-힣]{2,})(과|와|랑|하고)\s+/g,'$1>').replace(/\s(및|그리고|후에?|다음)\s/g,'>');
+  return t.split(/>|›|»|→|->|=>|[\n,，、&+·]|\s\/\s/).map(x=>x.trim()).filter(Boolean);
+}
+function pzClean(seg){return seg.replace(/\d+(\.\d+)?\s*(kg|키로|킬로|k|개|회|세트|set|렙|rep|번|분|초|x|×)?/gi,' ').replace(/(진행|하기|연습|반복|완료|통과|수행|시작|가보자|해보자|해봄|했음|했다|함|위주|느낌)/g,' ').replace(/\s+/g,' ').trim()}
+function pzParse(text,list){
+  const rows=[],miss=[];
+  pzSplit(text).forEach(raw=>{
+    const a=pzNorm(pzClean(raw));if(a.length<2){return}
+    const sc=list.map(e=>({id:e.id,name:e.name,s:pzScore(a,e)})).filter(x=>x.s>=.35).sort((x,y)=>y.s-x.s);
+    const top=sc.slice(0,4);
+    if(!top.length||(a.length>14&&top[0].s<.8)){miss.push(raw);return}
+    const lv=top[0].s>=.9&&(!top[1]||top[0].s-top[1].s>=.08)?'ok':top[0].s>=.55?'chk':'low';
+    if(rows.some(r=>r.cand[0].id===top[0].id)){return}
+    rows.push({raw,cand:top,pick:lv==='low'?'':top[0].id,lv});
+  });
+  return{rows,miss};
+}
+let PZ={rows:[],miss:[]};
+function parseHTML(){
+  const free=draft().slots.filter(x=>!x).length,icon={ok:'✅',chk:'⚠️',low:'❓'};
+  return `<div class="row"><b class="h2">종목 자동 인식</b><button class="x" data-act="close">✕</button></div><div class="mu" style="margin:4px 0 8px;line-height:1.6">수업내용 글에서 찾은 종목이에요. ✅ 확실 · ⚠️ 비슷한 종목(확인) · ❓ 후보만 제안. 틀린 건 목록에서 바꾸거나 건너뛰기를 고르세요. 빈 룬 칸은 ${free}개예요.</div>`+(PZ.rows.length?PZ.rows.map((r,i)=>`<div class="pn" style="margin:6px 0"><div class="mu">${icon[r.lv]} “${esc(r.raw)}”</div><select data-pr="${i}" class="fi" style="width:100%;margin-top:6px"><option value="">건너뛰기</option>${r.cand.map(c=>`<option value="${c.id}"${r.pick===c.id?' selected':''}>${esc(c.name)}</option>`).join('')}</select></div>`).join('')+`<button class="btn" style="margin-top:8px" data-act="parseok">룬에 넣기</button>`:'<div class="mu" style="margin:10px 0">인식된 종목이 없어요. 종목 이름을 ">" 나 쉼표로 구분해서 적어 보세요.</div>')+(PZ.miss.length?`<div class="mu" style="margin-top:10px;font-size:11px;line-height:1.6">인식 못 한 글: ${PZ.miss.map(esc).join(' · ')}</div>`:'');
+}
 /* 카톡 발송용: 읽기 쉬운 회원 안내문 (빈 항목은 자동으로 빠져요) */
 const kakaoText=(it,d)=>{
   const nm=(it.name||'').trim(),n=sessNo(it,d),memo=(it.memo||'').trim(),hw=(it.hw||'').trim(),goal=(it.goal||'').trim(),rec=exTxt(it.slots||[]);
@@ -1295,7 +1326,7 @@ function viewAdm(){
 }
 function viewAdmEdit(){
   const c=ADM.cur;
-  return `<div data-edit='1'></div><div class='row'><button class='x' style='font-size:14px' data-act='aback'>◀ 닫기</button><span class='mu'>${ADM.date} ${c.time}–${endT(c.time)}</span></div><button class='btn ghost sm' style='margin-top:8px' data-act='alive'>${ADM.live?'상세 입력 열기 ▶':'◀ 수업 중 모드 (룬 페이지만)'}</button><div class='dual'><div class='pn fm' style='margin-top:8px;${ADM.live?'display:none':''}'><div class='h2'>수업 정보</div><input type='text' id='an' data-af='name' placeholder='회원 이름 (검색 또는 직접 입력)' value='${esc(c.name)}' autocomplete='off' style='margin:8px 0'><div id='sug'>${sugHTML()}</div><div class='row' style='gap:8px;margin:8px 0'><input type='number' inputmode='numeric' data-af='no' placeholder='차시' value='${c.no||''}'><button class='btn ghost sm' style='white-space:nowrap' data-act='aprev'>지난 루틴 불러오기</button></div><input type='text' data-af='memo' placeholder='수업 상세 내용' value='${esc(c.memo)}' style='margin-bottom:8px'><input type='text' data-af='hw' placeholder='과제 내용 (선택)' value='${esc(c.hw)}' style='margin-bottom:8px'><input type='text' data-af='goal' placeholder='다음 수업 목표' value='${esc(c.goal)}' style='margin-bottom:8px'><input type='text' data-af='special' placeholder='(특이사항 · 관리자 전용, 회원에게 전송되지 않아요)' value='${esc(c.special)}' style='border-style:dashed'><div style='display:flex;flex-wrap:wrap;gap:6px;margin-top:8px'><button class='btn ghost sm' data-act='acal' data-id='${c.id}'>캘린더</button><button class='btn ghost sm' data-act='acopy' data-id='${c.id}'>카톡 복사</button><button class='btn ghost sm' data-act='asend' data-id='${c.id}'>발송</button></div></div><div>`+viewToday()+`</div></div>`;
+  return `<div data-edit='1'></div><div class='row'><button class='x' style='font-size:14px' data-act='aback'>◀ 닫기</button><span class='mu'>${ADM.date} ${c.time}–${endT(c.time)}</span></div><button class='btn ghost sm' style='margin-top:8px' data-act='alive'>${ADM.live?'상세 입력 열기 ▶':'◀ 수업 중 모드 (룬 페이지만)'}</button><div class='dual'><div class='pn fm' style='margin-top:8px;${ADM.live?'display:none':''}'><div class='h2'>수업 정보</div><input type='text' id='an' data-af='name' placeholder='회원 이름 (검색 또는 직접 입력)' value='${esc(c.name)}' autocomplete='off' style='margin:8px 0'><div id='sug'>${sugHTML()}</div><div class='row' style='gap:8px;margin:8px 0'><input type='number' inputmode='numeric' data-af='no' placeholder='차시' value='${c.no||''}'><button class='btn ghost sm' style='white-space:nowrap' data-act='aprev'>지난 루틴 불러오기</button></div><input type='text' data-af='memo' placeholder='수업 상세 내용' value='${esc(c.memo)}' style='margin-bottom:4px'><button class='btn ghost sm' style='margin-bottom:8px' data-act='aparse'>수업내용에서 종목 인식 → 룬에 넣기</button><input type='text' data-af='hw' placeholder='과제 내용 (선택)' value='${esc(c.hw)}' style='margin-bottom:8px'><input type='text' data-af='goal' placeholder='다음 수업 목표' value='${esc(c.goal)}' style='margin-bottom:8px'><input type='text' data-af='special' placeholder='(특이사항 · 관리자 전용, 회원에게 전송되지 않아요)' value='${esc(c.special)}' style='border-style:dashed'><div style='display:flex;flex-wrap:wrap;gap:6px;margin-top:8px'><button class='btn ghost sm' data-act='acal' data-id='${c.id}'>캘린더</button><button class='btn ghost sm' data-act='acopy' data-id='${c.id}'>카톡 복사</button><button class='btn ghost sm' data-act='asend' data-id='${c.id}'>발송</button></div></div><div>`+viewToday()+`</div></div>`;
 }
 function viewMem(){
   const ms=AD().members,cnt=m=>Object.values(AD().plans).reduce((a,l)=>a+l.filter(x=>x.name===m.name).length,0);
@@ -1781,6 +1812,8 @@ const A={
   aback:()=>closeEdit(),
   admdone:()=>{closeEdit();toast('수업 칸에 저장했어요')},
   adel:d=>{const l=plan(ADM.date),i=l.findIndex(x=>x.id===d.id);if(i>=0)l.splice(i,1);persist();render()},
+  aparse:()=>{const c=ADM.cur;PZ=pzParse(c.memo||'',CAT.list());openM(parseHTML())},
+  parseok:()=>{const sl=draft().slots;let n=0,dup=0,full=0;PZ.rows.forEach(r=>{if(!r.pick)return;if(sl.some(x=>x&&x.id===r.pick)){dup++;return}const i=sl.findIndex(x=>!x);if(i<0){full++;return}sl[i]={id:r.pick,nm:EX[r.pick].name,sets:mkSets(r.pick)};n++});persist();closeM();render();toast(n+'개 종목을 룬에 넣었어요'+(dup?` (중복 ${dup}개 제외)`:'')+(full?` (칸이 부족해 ${full}개 못 넣음)`:''))},
   acopy:d=>copyText(kakaoText(fi(d.id),ADM.date)),
   asend:d=>{const it=fi(d.id);if(!it.name.trim()){toast('회원을 먼저 지정해 주세요');return}if(!sb||!UID){toast('서버에 로그인해야 보낼 수 있어요');return}sendGift(it).then(x=>{persist();render();toast(sendMsg(x,it))})},
   asendall:async()=>{if(!sb||!UID){toast('서버에 로그인해야 보낼 수 있어요');return}let ok=0,no=0,bad=0;for(const it of plan(ADM.date)){if(!it.name.trim()||it.sent)continue;const x=await sendGift(it);if(x==='ok')ok++;else if(x==='nolink')no++;else bad++}persist();render();toast(`${ok}건 보냈어요${no?' · 계정 미연결 '+no+'건':''}${bad?' · 실패 '+bad+'건':''}`)},
@@ -1863,6 +1896,7 @@ document.addEventListener('input',e=>{
   if(t.id==='ad'){ADM.date=t.value||T;render();return}
   const af=t.dataset.af;
   if(af){ADM.cur[af]=af==='no'?(Number(t.value)||0):t.value;if(af==='hw')ADM.cur.hwDone=false;if(af==='special')ADM.cur.spDone=false;if(af==='name'){ADM.cur.mid=null;$('#sug').innerHTML=sugHTML()}persist();return}
+  if(t.dataset.pr!==undefined){const r=PZ.rows[+t.dataset.pr];if(r)r.pick=t.value;return}
   if(t.id==='hope'){S.hopeTier=t.value===''?null:+t.value;persist();saveHope();const hd=t.closest('.pn').querySelector('.row .mu');if(hd)hd.textContent=S.hopeTier==null?'자동 (내 현재 티어)':'희망 '+window.RuneTier.TIERS[S.hopeTier];return}
   if(t.id==='rvt'){S.reviews=S.reviews||{};const r=S.reviews[T]||(S.reviews[T]={r:0,t:''});r.t=t.value;persist();return}
   if(t.dataset.mf){const m=AD().members.find(x=>x.id===t.dataset.mf);if(m){m.focus=t.value;persist()}return}
