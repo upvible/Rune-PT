@@ -1268,6 +1268,20 @@ function sessNo(it,d){
   const ss=memSess(m),all=[];Object.keys(ss).sort().forEach(k=>ss[k].slice().sort((a,b)=>a.time<b.time?-1:1).forEach(x=>all.push({k,x})));
   let c=0,hit=0;all.forEach((e,i)=>{c=e.x.no||c+1;if(!hit&&(e.x===it||(e.k===d&&e.x.time===it.time))){hit=c}});return hit}
 const briefText=(it,d)=>`[PT 브리핑] ${d.slice(5).replace('-','/')} ${it.time} ${it.name||'회원'}님${sessNo(it,d)?' '+sessNo(it,d)+'차시':''}\n`+(exTxt(it.slots)||'(룬 페이지 미작성)')+(it.memo?`\n\n수업 내용: ${it.memo}`:'')+(it.hw?`\n과제: ${it.hw}`:'')+(it.goal?`\n다음 수업 목표: ${it.goal}`:'');
+/* 카톡 발송용: 읽기 쉬운 회원 안내문 (빈 항목은 자동으로 빠져요) */
+const kakaoText=(it,d)=>{
+  const nm=(it.name||'').trim(),n=sessNo(it,d),memo=(it.memo||'').trim(),hw=(it.hw||'').trim(),goal=(it.goal||'').trim(),rec=exTxt(it.slots||[]);
+  const L=[`${nm?nm+' 회원님':'회원님'}, 오늘도 발전을 축하드립니다. 🔥`,''];
+  if(memo)L.push(n?`오늘 진행한 수업은 [ ${n}차시 ] 수업이었고,`:'오늘 수업에 대해',  '오늘 수업의 핵심 내용을 요약하면');
+  else if(n)L.push(`오늘 진행한 수업은 [ ${n}차시 ] 수업이었습니다.`);
+  else L.pop();
+  if(memo)L.push('','📌 [수업내용]',memo,'','입니다.');
+  if(rec)L.push('','🏋️ [오늘 운동 기록]',rec);
+  if(hw)L.push('','다음 수업 이전까지 최소 1번 이상','연습하길 권장드리는 내용은','','💡 [과제내용]',hw,'','입니다.');
+  if(goal)L.push('','🎯 [다음 수업 목표]',goal);
+  L.push('','다음 시간에도 이어서 멋지게 달려보겠습니다. 수고 많으셨습니다! 💪');
+  return L.join('\n').replace(/\n{3,}/g,'\n\n');
+};
 const calURL=(it,d)=>{const f=t=>d.replace(/-/g,'')+'T'+t.replace(':','')+'00';return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('[PT] '+(it.name||'회원')+'님'+(sessNo(it,d)?' '+sessNo(it,d)+'차시':''))+'&dates='+f(it.time)+'/'+f(endT(it.time))+'&details='+encodeURIComponent(briefText(it,d))};
 function copyText(t,m){const ok=()=>toast(m||'카톡용 텍스트를 복사했어요');const fb=()=>{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();try{document.execCommand('copy')?ok():toast('복사에 실패했어요')}catch(e){toast('복사에 실패했어요')}a.remove()};try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}}
 function sugHTML(){const c=ADM.cur,q=c.name.trim();if(!q)return '';if(c.mid)return `<div class='mu'>✔ 연결된 회원</div>`;
@@ -1767,7 +1781,7 @@ const A={
   aback:()=>closeEdit(),
   admdone:()=>{closeEdit();toast('수업 칸에 저장했어요')},
   adel:d=>{const l=plan(ADM.date),i=l.findIndex(x=>x.id===d.id);if(i>=0)l.splice(i,1);persist();render()},
-  acopy:d=>copyText(briefText(fi(d.id),ADM.date)),
+  acopy:d=>copyText(kakaoText(fi(d.id),ADM.date)),
   asend:d=>{const it=fi(d.id);if(!it.name.trim()){toast('회원을 먼저 지정해 주세요');return}if(!sb||!UID){toast('서버에 로그인해야 보낼 수 있어요');return}sendGift(it).then(x=>{persist();render();toast(sendMsg(x,it))})},
   asendall:async()=>{if(!sb||!UID){toast('서버에 로그인해야 보낼 수 있어요');return}let ok=0,no=0,bad=0;for(const it of plan(ADM.date)){if(!it.name.trim()||it.sent)continue;const x=await sendGift(it);if(x==='ok')ok++;else if(x==='nolink')no++;else bad++}persist();render();toast(`${ok}건 보냈어요${no?' · 계정 미연결 '+no+'건':''}${bad?' · 실패 '+bad+'건':''}`)},
   apicker:async d=>{MP.target=d.id||'';MP.q='';MP.list=null;MP.err='';openM(pickerHTML());await loadMP()},
