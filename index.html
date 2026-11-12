@@ -752,7 +752,7 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     {"id":"arm1","name":"해머 컬","part":"arm","aliases":"","is_machine":false,"status":"active","sort":47},
     {"id":"arm2","name":"프리처 컬","part":"arm","aliases":"","is_machine":false,"status":"active","sort":48},
     {"id":"arm3","name":"트라이셉스 푸시다운","part":"arm","aliases":"","is_machine":true,"status":"active","sort":49},
-    {"id":"arm4","name":"라잉 트라이셉스 익스텐션","part":"arm","aliases":"스컬크러셔,라트익","is_machine":false,"status":"active","sort":50,"tier":{"core":"lyingtri"}},
+    {"id":"arm4","name":"라잉 트라이셉스 익스텐션","part":"arm","aliases":"스컬크러셔/라트익","is_machine":false,"status":"active","sort":50,"tier":{"core":"lyingtri"}},
     {"id":"arm5","name":"덤벨 킥백","part":"arm","aliases":"","is_machine":false,"status":"active","sort":51},
     {"id":"arm6","name":"바이셉스 컬 머신","part":"arm","aliases":"이두 머신","is_machine":true,"status":"active","sort":52},
     {"id":"arm7","name":"프리처 컬 머신","part":"arm","aliases":"","is_machine":true,"status":"active","sort":53},
@@ -773,6 +773,22 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     {"id":"leg100","name":"시티드 레그프레스","part":"leg","aliases":"핀로드 레그프레스","is_machine":true,"status":"active","sort":68,"tier":{"core":"legpress_pin"}}
   ];
 
+  /* ---- 도구(장비) 구분: barbell 바벨 · dumbbell 덤벨 · cable 케이블 · machine 머신(미구분) · plate 머신(플레이트 로드) · pin 머신(핀 로드) · smith 스미스 · body 맨몸 ---- */
+  const EQ_LABEL = { barbell: '바벨', dumbbell: '덤벨', cable: '케이블', machine: '머신', plate: '머신·플레이트', pin: '머신·핀', smith: '스미스', body: '맨몸' };
+  const EQ_ORDER = ['barbell', 'dumbbell', 'cable', 'plate', 'pin', 'machine', 'smith', 'body'];
+  const EQ_MACH = ['cable', 'machine', 'plate', 'pin', 'smith'];
+  const EQN = { B: 'barbell', D: 'dumbbell', C: 'cable', M: 'machine', P: 'plate', N: 'pin', S: 'smith', W: 'body' };
+  const EQ0 = {"chest0":"barbell","chest1":"dumbbell","chest2":"dumbbell","chest3":"body","chest4":"cable","chest5":"body","chest6":"machine","chest7":"machine","chest8":"pin","chest9":"smith","chest10":"machine","back0":"barbell","back1":"cable","back2":"barbell","back3":"cable","back4":"body","back5":"dumbbell","back6":"pin","back7":"machine","back8":"plate","back9":"machine","back10":"machine","leg0":"barbell","leg1":"plate","leg2":"barbell","leg3":"dumbbell","leg4":"pin","leg5":"pin","leg6":"barbell","leg7":"body","leg8":"plate","leg9":"pin","leg10":"pin","leg11":"smith","leg12":"machine","leg100":"pin","shoulder0":"barbell","shoulder1":"dumbbell","shoulder2":"dumbbell","shoulder3":"dumbbell","shoulder4":"cable","shoulder5":"machine","shoulder6":"pin","shoulder7":"machine","shoulder8":"smith","shoulder9":"machine","shoulder10":"cable","arm0":"barbell","arm1":"dumbbell","arm2":"barbell","arm3":"cable","arm4":"barbell","arm5":"dumbbell","arm6":"machine","arm7":"machine","arm8":"machine","arm9":"machine","arm10":"cable","core0":"body","core1":"body","core2":"body","core3":"body","core4":"cable","core5":"body","core6":"machine","core7":"machine","core8":"machine","core9":"cable","core10":"machine"};
+  const AL0 = {"chest2":"덤벨 플라이/덤벨플라이/플랫 덤벨 플라이","back9":"풀오버 (머신)/머신 풀오버","back1":"랫풀다운 (케이블)/케이블 랫풀다운/랫풀","shoulder1":"덤벨 사이드 레터럴 레이즈/덤벨 레터럴/사레레","shoulder3":"벤트오버 레터럴 레이즈/덤벨 리어델트","shoulder10":"원암 케이블 레터럴 레이즈","arm2":"바벨 프리처 컬/EZ바 프리처 컬","arm3":"케이블 푸시다운/바 푸시다운/삼두 푸시다운","leg6":"바벨 힙 쓰러스트/바벨 힙쓰러스트","core9":"하이투로우 우드찹","leg3":"덤벨 런지"};
+  /* 보디빌딩 대표 동작을 도구별로 추가한 종목 (id 고정: 앞으로는 뒤에만 덧붙여요) [id, 부위, 이름, 도구, 별칭, 왕룬, 종류, 코어] */
+  const NEWX = [["ch201","chest","인클라인 벤치프레스 (바벨)","B","인클라인 바벨 프레스/인클 벤치/인클라인벤치","bench","barbell",""],["ch202","chest","디클라인 벤치프레스 (바벨)","B","디클라인 벤치/디클 벤치","bench","barbell",""],["ch203","chest","클로즈그립 벤치프레스 (바벨)","B","클그벤/클로즈 그립 벤치/좁은 벤치","bench","barbell",""],["ch204","chest","덤벨 벤치프레스","D","덤벨 프레스/플랫 덤벨 프레스/DB 벤치","bench","",""],["ch205","chest","디클라인 덤벨프레스","D","디클라인 덤벨","bench","",""],["ch206","chest","인클라인 덤벨 플라이","D","인클라인 플라이","bench","",""],["ch207","chest","덤벨 스퀴즈 프레스","D","스퀴즈 프레스","bench","",""],["ch208","chest","미들 케이블 플라이","C","케이블 플라이/미들 크로스오버","bench","",""],["ch209","chest","하이투로우 케이블 플라이","C","하이 로우 케이블 플라이/하부 가슴 케이블","bench","",""],["ch210","chest","로우투하이 케이블 플라이","C","인클라인 케이블 플라이/상부 가슴 케이블","bench","",""],["ch211","chest","케이블 체스트 프레스","C","스탠딩 케이블 프레스","bench","",""],["ch212","chest","원암 케이블 체스트 프레스","C","싱글암 케이블 프레스","bench","",""],["ch213","chest","아이소래터럴 체스트 프레스 (플레이트)","P","해머 체스트 프레스/아이소 체스트 프레스/플레이트 체스트 프레스","bench","",""],["ch214","chest","아이소래터럴 인클라인 프레스 (플레이트)","P","해머 인클라인 프레스/플레이트 인클라인 프레스","bench","",""],["ch215","chest","아이소래터럴 디클라인 프레스 (플레이트)","P","해머 디클라인 프레스","bench","",""],["ch216","chest","어시스티드 딥스 머신 (핀)","N","딥 어시스트/보조 딥스","bench","",""],["ch217","chest","스미스 머신 인클라인 벤치프레스","S","스미스 인클라인","bench","",""],["ch218","chest","스미스 머신 디클라인 벤치프레스","S","스미스 디클라인","bench","",""],["ch219","chest","스미스 머신 클로즈그립 벤치프레스","S","스미스 클그벤","bench","",""],["bk201","back","펜들레이 로우 (바벨)","B","펜들레이/펜들리 로우","bbrow","barbell",""],["bk202","back","언더핸드 바벨 로우","B","역수 로우/리버스그립 바벨 로우","bbrow","barbell",""],["bk203","back","랙 풀 (바벨)","B","랙풀/블록 풀","deadlift","barbell",""],["bk204","back","스모 데드리프트","B","스모 데드","deadlift","barbell",""],["bk205","back","트랩바 데드리프트","B","핵스바 데드/육각바 데드","deadlift","barbell",""],["bk206","back","풀오버 (바벨)","B","바벨 풀오버/EZ바 풀오버","bbrow","barbell",""],["bk207","back","체스트 서포트 덤벨 로우","D","덤벨 로우/인클라인 벤치 덤벨 로우/양손 덤벨 로우","bbrow","",""],["bk208","back","렌게이드 로우 (덤벨)","D","렌게이드 로우","bbrow","",""],["bk209","back","풀오버 (덤벨)","D","덤벨 풀오버/덤벨풀오버/DB 풀오버","bbrow","",""],["bk210","back","풀오버 (케이블)","C","케이블 풀오버","bbrow","",""],["bk211","back","스트레이트암 풀다운 (케이블)","C","스트레이트 암 풀다운/랫 프레스다운/암 풀다운","bbrow","",""],["bk212","back","와이드그립 랫풀다운","C","와이드 랫풀/와이드 풀다운","bbrow","",""],["bk213","back","클로즈그립 랫풀다운","C","클로즈 랫풀/V바 랫풀다운","bbrow","",""],["bk214","back","언더그립 랫풀다운","C","리버스그립 랫풀다운","bbrow","",""],["bk215","back","원암 랫풀다운 (케이블)","C","싱글암 랫풀다운","bbrow","",""],["bk216","back","원암 시티드 케이블 로우","C","싱글암 케이블 로우","bbrow","",""],["bk217","back","와이드그립 시티드 케이블 로우","C","와이드 케이블 로우","bbrow","",""],["bk218","back","랫풀다운 머신 (핀)","N","랫풀 머신/머신 랫풀다운","bbrow","",""],["bk219","back","아이소래터럴 로우 (플레이트)","P","해머 로우/아이소 로우/플레이트 로우","bbrow","",""],["bk220","back","아이소래터럴 하이로우 (플레이트)","P","하이로우 플레이트/해머 하이로우","bbrow","",""],["bk221","back","아이소래터럴 랫풀다운 (플레이트)","P","아이소 랫풀/플레이트 랫풀다운","bbrow","",""],["bk222","back","체스트 서포트 T바 로우 (플레이트)","P","체스트서포트 티바/플레이트 T바 로우","bbrow","",""],["bk223","back","스미스 머신 바벨 로우","S","스미스 로우","bbrow","",""],["bk224","back","스미스 머신 인버티드 로우","S","스미스 인버티드","bbrow","",""],["bk225","back","친업","W","언더핸드 풀업/역수 풀업/친 업","","","pullup"],["bk226","back","중립그립 풀업","W","뉴트럴 풀업/해머 풀업","","","pullup"],["bk227","back","와이드그립 풀업","W","와이드 풀업","","","pullup"],["bk228","back","인버티드 로우","W","바디웨이트 로우/호주식 풀업/TRX 로우/인버티드로우","bbrow","",""],["bk229","back","슈퍼맨","W","백 익스텐션 바닥","","",""],["lg201","leg","프론트 스쿼트 (바벨)","B","프런트 스쿼트/프론트스쿼트","squat","barbell",""],["lg202","leg","박스 스쿼트 (바벨)","B","박스스쿼트","squat","barbell",""],["lg203","leg","바벨 런지","B","바벨 워킹 런지","squat","barbell",""],["lg204","leg","스티프 레그 데드리프트","B","스티프 데드/SLDL/스티프레그","deadlift","barbell",""],["lg205","leg","굿모닝 (바벨)","B","굿모닝","deadlift","barbell",""],["lg206","leg","고블릿 스쿼트 (덤벨)","D","골블릿 스쿼트/덤벨 스쿼트/컵 스쿼트","squat","",""],["lg207","leg","불가리안 스플릿 스쿼트 (덤벨)","D","불가리안/BSS/불가리안 스쿼트","squat","",""],["lg208","leg","덤벨 워킹 런지","D","워킹 런지","squat","",""],["lg209","leg","덤벨 리버스 런지","D","리버스 런지","squat","",""],["lg210","leg","덤벨 스텝업","D","스텝업","squat","",""],["lg211","leg","덤벨 루마니안 데드리프트","D","덤벨 RDL/덤벨 루마니안","deadlift","",""],["lg212","leg","원레그 덤벨 RDL","D","싱글렉 RDL/원레그 루마니안","deadlift","",""],["lg213","leg","덤벨 힙 쓰러스트","D","덤벨 힙쓰러스트","deadlift","",""],["lg214","leg","케이블 풀스루","C","풀스루","deadlift","",""],["lg215","leg","케이블 글루트 킥백","C","케이블 킥백 힙/글루트 킥백 케이블","","",""],["lg216","leg","케이블 힙 어브덕션","C","케이블 어브덕션","","",""],["lg217","leg","케이블 힙 어덕션","C","케이블 어덕션","","",""],["lg218","leg","시티드 레그 컬 (핀)","N","시티드 햄스트링 컬/앉아서 레그 컬","deadlift","",""],["lg219","leg","라잉 레그 컬 (핀)","N","엎드려 레그 컬/라잉 햄스트링 컬","deadlift","",""],["lg220","leg","스탠딩 레그 컬 (핀)","N","스탠딩 햄 컬/싱글 레그 컬","deadlift","",""],["lg221","leg","글루트 킥백 머신 (핀)","N","힙 킥백 머신/글루트 머신","","",""],["lg222","leg","힙 쓰러스트 머신 (핀)","N","핀 힙 쓰러스트","deadlift","",""],["lg223","leg","힙 쓰러스트 머신 (플레이트)","P","플레이트 힙 쓰러스트","deadlift","",""],["lg224","leg","리버스 핵 스쿼트 (플레이트)","P","리버스 핵스쿼트","squat","",""],["lg225","leg","펜들럼 스쿼트 머신 (플레이트)","P","펜듈럼 스쿼트/펜들럼 스쿼트","squat","",""],["lg226","leg","벨트 스쿼트 머신 (플레이트)","P","벨트 스쿼트","squat","",""],["lg227","leg","스탠딩 카프 레이즈 머신 (플레이트)","P","스탠딩 카프 머신/플레이트 카프 레이즈","","",""],["lg228","leg","스탠딩 카프 레이즈 머신 (핀)","N","핀 스탠딩 카프","","",""],["lg229","leg","레그프레스 카프 레이즈","P","레그프레스 카프","","",""],["lg230","leg","리버스 하이퍼 (플레이트)","P","리버스 하이퍼익스텐션/리버스 하이퍼","deadlift","",""],["lg231","leg","스미스 머신 런지","S","스미스 런지","squat","",""],["lg232","leg","스미스 머신 힙 쓰러스트","S","스미스 힙쓰러스트","deadlift","",""],["lg233","leg","스미스 머신 루마니안 데드리프트","S","스미스 RDL","deadlift","",""],["lg234","leg","스미스 머신 카프 레이즈","S","스미스 카프","","",""],["lg235","leg","맨몸 스쿼트","W","에어 스쿼트/바디웨이트 스쿼트","squat","",""],["lg236","leg","월 싯","W","벽 스쿼트/월싯","","",""],["lg237","leg","글루트 브릿지","W","힙 브릿지/브릿지","","",""],["lg238","leg","노르딕 햄스트링 컬","W","노르딕 컬","","",""],["lg239","leg","점프 스쿼트","W","","","",""],["sh201","shoulder","시티드 바벨 숄더 프레스","B","시티드 바벨 프레스/시티드 밀리터리 프레스","ohp","barbell",""],["sh202","shoulder","푸시 프레스 (바벨)","B","푸시프레스","ohp","barbell",""],["sh203","shoulder","바벨 업라이트 로우","B","업라이트 로우","ohp","barbell",""],["sh204","shoulder","바벨 슈러그","B","슈러그/트랩 슈러그","ohp","barbell",""],["sh205","shoulder","덤벨 숄더 프레스","D","시티드 덤벨 숄더 프레스/덤벨 어깨 프레스","ohp","",""],["sh206","shoulder","스탠딩 덤벨 숄더 프레스","D","스탠딩 덤벨 프레스","ohp","",""],["sh207","shoulder","원암 덤벨 숄더 프레스","D","싱글암 덤벨 프레스","ohp","",""],["sh208","shoulder","아놀드 프레스 (덤벨)","D","아놀드 프레스/아놀드","ohp","",""],["sh209","shoulder","덤벨 슈러그","D","","ohp","",""],["sh210","shoulder","덤벨 업라이트 로우","D","","ohp","",""],["sh211","shoulder","케이블 프론트 레이즈","C","","ohp","",""],["sh212","shoulder","케이블 리어델트 플라이","C","케이블 후면 어깨 플라이/리버스 케이블 크로스오버","bbrow","",""],["sh213","shoulder","케이블 업라이트 로우","C","","ohp","",""],["sh214","shoulder","케이블 숄더 프레스","C","","ohp","",""],["sh215","shoulder","케이블 슈러그","C","","ohp","",""],["sh216","shoulder","아이소래터럴 숄더 프레스 (플레이트)","P","해머 숄더 프레스/플레이트 숄더 프레스","ohp","",""],["sh217","shoulder","사이드 레터럴 레이즈 머신 (플레이트)","P","플레이트 레터럴","ohp","",""],["sh218","shoulder","스미스 머신 업라이트 로우","S","","ohp","",""],["sh219","shoulder","스미스 머신 슈러그","S","","ohp","",""],["sh220","shoulder","파이크 푸시업","W","","ohp","",""],["ar201","arm","EZ바 컬","B","이지바 컬/EZ컬/이지 컬","","",""],["ar202","arm","리버스 바벨 컬","B","리버스 컬","","",""],["ar203","arm","바벨 리스트 컬","B","리스트 컬","","",""],["ar204","arm","바벨 리버스 리스트 컬","B","리버스 리스트 컬","","",""],["ar205","arm","덤벨 컬","D","얼터네이트 덤벨 컬/덤벨 바이셉스 컬/덤벨 이두 컬","","",""],["ar206","arm","인클라인 덤벨 컬","D","인클라인 컬","","",""],["ar207","arm","컨센트레이션 컬","D","집중 컬","","",""],["ar208","arm","스파이더 컬 (덤벨)","D","스파이더 컬","","",""],["ar209","arm","덤벨 프리처 컬","D","원암 덤벨 프리처 컬","","",""],["ar210","arm","크로스바디 해머 컬","D","크로스 해머 컬","","",""],["ar211","arm","덤벨 리스트 컬","D","","","",""],["ar212","arm","덤벨 리버스 컬","D","","","",""],["ar213","arm","덤벨 오버헤드 트라이셉스 익스텐션","D","덤벨 프렌치 프레스/오버헤드 덤벨 익스텐션","","",""],["ar214","arm","덤벨 라잉 트라이셉스 익스텐션","D","덤벨 스컬크러셔","","",""],["ar215","arm","케이블 바 컬","C","케이블 컬","","",""],["ar216","arm","케이블 로프 해머 컬","C","로프 해머 컬/케이블 해머 컬","","",""],["ar217","arm","하이 케이블 컬","C","케이블 더블 바이셉스","","",""],["ar218","arm","원암 케이블 컬","C","싱글암 케이블 컬","","",""],["ar219","arm","로프 트라이셉스 푸시다운","C","로프 푸시다운","","",""],["ar220","arm","리버스그립 푸시다운","C","언더그립 푸시다운","","",""],["ar221","arm","원암 푸시다운","C","싱글암 푸시다운","","",""],["ar222","arm","케이블 트라이셉스 킥백","C","케이블 킥백","","",""],["ar223","arm","케이블 라잉 트라이셉스 익스텐션","C","케이블 스컬크러셔","","",""],["ar224","arm","바이셉스 컬 머신 (플레이트)","P","해머 컬 머신/플레이트 컬","","",""],["ar225","arm","벤치 딥","W","체어 딥/벤치딥","","",""],["ar226","arm","다이아몬드 푸시업","W","삼두 푸시업","","",""],["ar227","arm","클로즈그립 푸시업","W","","","",""],["ar228","arm","파머스 워크 (덤벨)","D","농부 걷기/파머스 워크","","",""],["co201","core","사이드 플랭크","W","","","",""],["co202","core","데드버그","W","","","",""],["co203","core","싯업","W","윗몸일으키기/윗몸","","",""],["co204","core","V업","W","브이업","","",""],["co205","core","바이시클 크런치","W","자전거 크런치","","",""],["co206","core","마운틴 클라이머","W","","","",""],["co207","core","행잉 레그 레이즈","W","매달려 레그 레이즈/토즈 투 바","","",""],["co208","core","윈드실드 와이퍼","W","와이퍼","","",""],["co209","core","힐 터치","W","","","",""],["co210","core","에이비 롤아웃 (휠)","W","복근 휠/앱 롤아웃/롤아웃","","",""],["co211","core","할로우 홀드","W","","","",""],["co212","core","버드독","W","","","",""],["co213","core","바벨 롤아웃","B","","","",""],["co214","core","덤벨 사이드 벤드","D","사이드 벤드","","",""],["co215","core","웨이티드 싯업","D","플레이트 싯업","","",""],["co216","core","서류가방 캐리 (덤벨)","D","수트케이스 캐리","","",""],["co217","core","로우투하이 케이블 우드찹","C","","","",""],["co218","core","팔로프 프레스 (케이블)","C","팔로프/팔로프 프레스","","",""],["co219","core","케이블 사이드 벤드","C","","","",""]];
+  NEWX.forEach((a) => {
+    const t = {}; if (a[7]) t.core = a[7]; else { if (a[5]) t.head = a[5]; if (a[6] === 'barbell') { t.kind = 'barbell'; t.quest = 'trainer'; } }
+    SEED.push({ id: a[0], name: a[2], part: a[1], aliases: a[4], is_machine: EQ_MACH.indexOf(EQN[a[3]]) >= 0, status: 'active', sort: 100 + SEED.length, tier: Object.keys(t).length ? t : null, eq: EQN[a[3]] });
+  });
+  const eqOf = (r) => r.eq || (r.meta && r.meta.eq) || EQ0[r.id] || ((r.is_machine != null ? r.is_machine : r.m) ? 'machine' : null);
+  const alOf = (r) => { let a = r.aliases != null ? r.aliases : r.al || ''; const x = AL0[r.id]; if (x) x.split('/').forEach((w) => { if (a.split('/').indexOf(w) < 0 && a.indexOf(w) < 0) a = a ? a + '/' + w : w; }); return a; };
+
   let seq = Math.floor(Math.random() * 1000);
   const newId = () => 'n' + Date.now() + '_' + (seq++).toString(36) + Math.floor(Math.random() * 36).toString(36); // 숫자 포함 + 충돌 방지
 
@@ -786,12 +802,12 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     const EXS = {};
     const canon = (id) => { let g = 0, c = byId[id]; while (c && c.merged_into && byId[c.merged_into] && g++ < 5) c = byId[c.merged_into]; return c ? c.id : id; };
     merged.forEach((r) => {
-      const a = r.aliases != null ? r.aliases : r.al || '';
+      const a = alOf(r);
       const active = !r.status || r.status === 'active';
-      EXS[r.id] = { id: r.id, name: r.name, part: r.part, al: a, m: !!(r.is_machine != null ? r.is_machine : r.m), hidden: !active, merged: r.merged_into || null, sort: r.sort == null ? 0 : r.sort, tier: r.tier || null };
+      EXS[r.id] = { id: r.id, name: r.name, part: r.part, al: a, m: !!(r.is_machine != null ? r.is_machine : r.m), hidden: !active, merged: r.merged_into || null, sort: r.sort == null ? 0 : r.sort, tier: r.tier || null, eq: eqOf(r) };
     });
     // 병합된 종목은 합쳐진 쪽 이름으로 보여줘요(옛 기록의 id 는 그대로 둠)
-    merged.forEach((r) => { if (r.merged_into && EXS[canon(r.id)] && canon(r.id) !== r.id) { const t = EXS[canon(r.id)]; EXS[r.id] = Object.assign({}, EXS[r.id], { name: t.name, part: t.part, m: t.m }); } });
+    merged.forEach((r) => { if (r.merged_into && EXS[canon(r.id)] && canon(r.id) !== r.id) { const t = EXS[canon(r.id)]; EXS[r.id] = Object.assign({}, EXS[r.id], { name: t.name, part: t.part, m: t.m, eq: t.eq }); } });
     const missing = (id) => ({ id, name: (hints && hints[id]) || '(삭제된 종목)', part: 'core', al: '', m: false, hidden: true, missing: true, sort: 9999, tier: null });
     const EX = new Proxy(EXS, { get(t, k) { if (typeof k === 'string' && !(k in t) && /\d/.test(k)) return missing(k); return t[k]; } });
     const list = () => Object.keys(EXS).map((k) => EXS[k]).filter((e) => !e.hidden).sort((a, b) => a.sort - b.sort);
@@ -810,10 +826,13 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
     if (inp.head) tier.head = inp.head;
     if (inp.kind === 'barbell') { tier.kind = 'barbell'; tier.quest = 'trainer'; }
     const max = (existing || []).reduce((a, e) => Math.max(a, e.sort == null ? 0 : e.sort), 0);
-    return { ok: true, row: { id: inp.id || newId(), name, part: inp.part, aliases: String(inp.aliases || '').trim(), is_machine: !!inp.machine, status: 'active', sort: inp.sort != null ? inp.sort : max + 1, tier: Object.keys(tier).length ? tier : null } };
+    const eq = EQ_LABEL[inp.eq] ? inp.eq : null;
+    const row = { id: inp.id || newId(), name, part: inp.part, aliases: String(inp.aliases || '').trim(), is_machine: eq ? EQ_MACH.indexOf(eq) >= 0 : !!inp.machine, status: 'active', sort: inp.sort != null ? inp.sort : max + 1, tier: Object.keys(tier).length ? tier : null };
+    if (eq) row.meta = Object.assign({}, inp.meta || {}, { eq });
+    return { ok: true, row };
   }
 
-  root.RuneCatalog = { PARTS, SEED, newId, build, makeRow };
+  root.RuneCatalog = { PARTS, SEED, newId, build, makeRow, EQ_LABEL, EQ_ORDER, EQ_MACH };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.RuneCatalog;
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -1110,7 +1129,7 @@ let sb=null,UID=null,PULLED=false,PULLING=false,SYNC='off',stmr=null;
 var SY={};
 const persist=()=>{DB.save(S);queueSync();syncSoon()};
 const sv=()=>{DB.save(S);syncSoon()};
-let ADM={date:T,cur:null},tab=S.mode==='admin'?'acal':'home',PK={slot:0,part:'chest',q:''},RC=0,CM=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()}})(),CD=T;
+let ADM={date:T,cur:null},tab=S.mode==='admin'?'acal':'home',PK={slot:0,part:'chest',q:'',eq:''},RC=0,CM=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()}})(),CD=T;
 
 /* 푸시업 자세: kg 대신 자세를 고르고, 자세별 체중 부하 비율로 환산해요(연구 평균 근사치) */
 const PU_V=[['inc90','인클라인 높음 · 골반','인클 골반',.40,'골반 높이(약 90cm) · 벽·스미스 바'],['inc60','인클라인 중간 · 주머니 하단','인클 주머니',.50,'주머니 하단 높이(약 70cm) · 랙·스미스 바'],['inc40','인클라인 낮음 · 무릎','인클 무릎',.58,'무릎 높이(약 45cm) · 벤치·박스'],['floor','맨땅(바닥)','맨땅',.66,'표준 푸시업'],['dec30','디클라인 30cm','디클 30',.72,'발을 30cm 위에'],['dec60','디클라인 60cm','디클 60',.78,'발을 60cm 위에(벤치)']];
@@ -1282,7 +1301,12 @@ const PZ_SYN=[[/어시스트|어시스티트|어씨스트/g,'어시스티드'],[
 const PZ_MOVE=['플라이','프레스','로우','컬','레이즈','익스텐션','풀다운','풀업','스쿼트','런지','데드리프트','크런치','플랭크','풀오버','딥스','쓰러스트','킥백','슈러그','익스텐션','푸시업','풀스루','트위스트'];
 function pzNorm(s){s=String(s||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,'');PZ_SYN.forEach(([a,b])=>{s=s.replace(a,b)});return s}
 function pzDice(a,b){if(a===b)return 1;if(a.length<2||b.length<2)return 0;const g=x=>{const m={};for(let i=0;i<x.length-1;i++){const k=x.slice(i,i+2);m[k]=(m[k]||0)+1}return m},A=g(a),B=g(b);let n=0;for(const k in A)if(B[k])n+=Math.min(A[k],B[k]);return 2*n/((a.length-1)+(b.length-1))}
-function pzKeys(e){const ks=[];const add=t=>{const k=pzNorm(t);if(k&&ks.indexOf(k)<0)ks.push(k)};add(e.name);add(e.name.replace(/머신/g,''));String(e.al||'').split('/').forEach(add);return ks}
+const PZ_TOOLS=['스미스','케이블','덤벨','바벨','이지바','ez바','플레이트','핀로드','핀','머신','맨몸'];
+const pzStrip=s=>s.replace(/스미스|케이블|덤벨|바벨|이지바|ez바|플레이트로드|플레이트|핀로드|핀|머신|맨몸|로드/g,'');
+const pzHasTool=a=>PZ_TOOLS.some(w=>a.includes(w));
+const PZ_EQK={barbell:['바벨'],dumbbell:['덤벨'],cable:['케이블'],machine:['머신'],plate:['플레이트','머신'],pin:['핀','머신'],smith:['스미스','스미스머신'],body:['맨몸']};
+function pzKeys(e){const ks=[];const add=t=>{const k=pzNorm(t);if(k&&ks.indexOf(k)<0)ks.push(k)};add(e.name);String(e.al||'').split('/').forEach(add);
+  const b=pzStrip(pzNorm(e.name));if(b.length>=2)add(b);(PZ_EQK[e.eq]||[]).forEach(L=>{add(L+b);add(b+L)});return ks}
 function pzScore(a,e){let best=0;for(const k of pzKeys(e)){let s;if(a===k)s=1;else if(Math.min(a.length,k.length)>=3&&(a.includes(k)||k.includes(a))){s=Math.min(.95,.8+.15*Math.min(a.length,k.length)/Math.max(a.length,k.length))}else{s=pzDice(a,k)*.9;const mv=PZ_MOVE.find(m=>a.includes(m)&&k.includes(m));if(mv)s=Math.max(s,.35+s*.5)}if(s>best)best=s}return best}
 function pzSplit(text){
   let t=String(text||'').replace(/\([^)]*\)|\[[^\]]*\]|（[^）]*）/g,' ');
@@ -1294,8 +1318,15 @@ function pzParse(text,list){
   const rows=[],miss=[];
   pzSplit(text).forEach(raw=>{
     const a=pzNorm(pzClean(raw));if(a.length<2){return}
-    const sc=list.map(e=>({id:e.id,name:e.name,s:pzScore(a,e)})).filter(x=>x.s>=.35).sort((x,y)=>y.s-x.s);
-    const top=sc.slice(0,4);
+    if(!pzHasTool(a)){   // 도구 말이 없는데 같은 동작이 여러 도구로 있으면(예: 풀오버) 후보를 모두 보여 주고 고르게 해요
+      const grp=list.filter(e=>pzStrip(pzNorm(e.name))===a);
+      if(grp.length>=2&&!grp.some(e=>pzNorm(e.name)===a)){
+        const cand=grp.slice().sort((x,y)=>eqRank(x)-eqRank(y)).slice(0,8).map(e=>({id:e.id,name:e.name,s:.7,eq:e.eq}));
+        if(!rows.some(r=>r.cand[0].id===cand[0].id))rows.push({raw,cand,pick:'',lv:'low'});return}
+    }
+    const sc=list.map(e=>({id:e.id,name:e.name,eq:e.eq,s:pzScore(a,e)})).filter(x=>x.s>=.35).sort((x,y)=>y.s-x.s);
+    const exact=sc.find(x=>pzNorm(x.name)===a);if(exact){sc.forEach(x=>{if(x!==exact&&x.s>.89)x.s=.89});sc.sort((x,y)=>y.s-x.s)}   // 이름이 똑같은 종목이 있으면 그걸 먼저
+    const top=sc.slice(0,5);
     if(!top.length||(a.length>14&&top[0].s<.8)){miss.push(raw);return}
     const lv=top[0].s>=.9&&(!top[1]||top[0].s-top[1].s>=.08)?'ok':top[0].s>=.55?'chk':'low';
     if(rows.some(r=>r.cand[0].id===top[0].id)){return}
@@ -1306,7 +1337,7 @@ function pzParse(text,list){
 let PZ={rows:[],miss:[]};
 function parseHTML(){
   const free=draft().slots.filter(x=>!x).length,icon={ok:'✅',chk:'⚠️',low:'❓'};
-  return `<div class="row"><b class="h2">종목 자동 인식</b><button class="x" data-act="close">✕</button></div><div class="mu" style="margin:4px 0 8px;line-height:1.6">수업내용 글에서 찾은 종목이에요. ✅ 확실 · ⚠️ 비슷한 종목(확인) · ❓ 후보만 제안. 틀린 건 목록에서 바꾸거나 건너뛰기를 고르세요. 빈 룬 칸은 ${free}개예요.</div>`+(PZ.rows.length?PZ.rows.map((r,i)=>`<div class="pn" style="margin:6px 0"><div class="mu">${icon[r.lv]} “${esc(r.raw)}”</div><select data-pr="${i}" class="fi" style="width:100%;margin-top:6px"><option value="">건너뛰기</option>${r.cand.map(c=>`<option value="${c.id}"${r.pick===c.id?' selected':''}>${esc(c.name)}</option>`).join('')}</select></div>`).join('')+`<button class="btn" style="margin-top:8px" data-act="parseok">룬에 넣기</button>`:'<div class="mu" style="margin:10px 0">인식된 종목이 없어요. 종목 이름을 ">" 나 쉼표로 구분해서 적어 보세요.</div>')+(PZ.miss.length?`<div class="mu" style="margin-top:10px;font-size:11px;line-height:1.6">인식 못 한 글: ${PZ.miss.map(esc).join(' · ')}</div>`:'');
+  return `<div class="row"><b class="h2">종목 자동 인식</b><button class="x" data-act="close">✕</button></div><div class="mu" style="margin:4px 0 8px;line-height:1.6">수업내용 글에서 찾은 종목이에요. ✅ 확실 · ⚠️ 비슷한 종목(확인) · ❓ 후보만 제안. 틀린 건 목록에서 바꾸거나 건너뛰기를 고르세요. 빈 룬 칸은 ${free}개예요.</div>`+(PZ.rows.length?PZ.rows.map((r,i)=>`<div class="pn" style="margin:6px 0"><div class="mu">${icon[r.lv]} “${esc(r.raw)}”</div><select data-pr="${i}" class="fi" style="width:100%;margin-top:6px"><option value="">건너뛰기</option>${r.cand.map(c=>`<option value="${c.id}"${r.pick===c.id?' selected':''}>${esc(c.name)}${c.eq&&!pzHasTool(pzNorm(c.name))&&eqTag(c)?' · '+eqTag(c):''}</option>`).join('')}</select></div>`).join('')+`<button class="btn" style="margin-top:8px" data-act="parseok">룬에 넣기</button>`:'<div class="mu" style="margin:10px 0">인식된 종목이 없어요. 종목 이름을 ">" 나 쉼표로 구분해서 적어 보세요.</div>')+(PZ.miss.length?`<div class="mu" style="margin-top:10px;font-size:11px;line-height:1.6">인식 못 한 글: ${PZ.miss.map(esc).join(' · ')}</div>`:'');
 }
 /* 카톡 발송용: 읽기 쉬운 회원 안내문 (빈 항목은 자동으로 빠져요) */
 const kakaoText=(it,d)=>{
@@ -1337,9 +1368,53 @@ function viewAdmEdit(){
   const c=ADM.cur;
   return `<div data-edit='1'></div><div class='row'><button class='x' style='font-size:14px' data-act='aback'>◀ 닫기</button><span class='mu'>${ADM.date} ${c.time}–${endT(c.time)}</span></div><button class='btn ghost sm' style='margin-top:8px' data-act='alive'>${ADM.live?'상세 입력 열기 ▶':'◀ 수업 중 모드 (룬 페이지만)'}</button><div class='dual'><div class='pn fm' style='margin-top:8px;${ADM.live?'display:none':''}'><div class='h2'>수업 정보</div><input type='text' id='an' data-af='name' placeholder='회원 이름 (검색 또는 직접 입력)' value='${esc(c.name)}' autocomplete='off' style='margin:8px 0'><div id='sug'>${sugHTML()}</div><div class='row' style='gap:8px;margin:8px 0'><input type='number' inputmode='numeric' data-af='no' placeholder='차시' value='${c.no||''}'><button class='btn ghost sm' style='white-space:nowrap' data-act='aprev'>지난 루틴 불러오기</button></div><input type='text' data-af='memo' placeholder='수업 상세 내용' value='${esc(c.memo)}' style='margin-bottom:4px'><button class='btn ghost sm' style='margin-bottom:8px' data-act='aparse'>수업내용에서 종목 인식 → 룬에 넣기</button><input type='text' data-af='hw' placeholder='과제 내용 (선택)' value='${esc(c.hw)}' style='margin-bottom:8px'><input type='text' data-af='goal' placeholder='다음 수업 목표' value='${esc(c.goal)}' style='margin-bottom:8px'><input type='text' data-af='special' placeholder='(특이사항 · 관리자 전용, 회원에게 전송되지 않아요)' value='${esc(c.special)}' style='border-style:dashed'><div style='display:flex;flex-wrap:wrap;gap:6px;margin-top:8px'><button class='btn ghost sm' data-act='acal' data-id='${c.id}'>캘린더</button><button class='btn ghost sm' data-act='acopy' data-id='${c.id}'>카톡 복사</button><button class='btn ghost sm' data-act='asend' data-id='${c.id}'>발송</button></div></div><div>`+viewToday()+`</div></div>`;
 }
+
+/* ===== 회원 이름·정보 수정 / 같은 사람 합치기 ===== */
+const memByName=(n,exceptId)=>AD().members.find(x=>x.id!==exceptId&&x.name===n);
+const memCnt=m=>{let n=0;Object.keys(AD().plans).forEach(d=>AD().plans[d].forEach(it=>{if(it.mid===m.id||(it.name&&it.name.trim()===m.name))n++}));return n};
+/* "은경"(2글자)과 "이은경"(3글자)처럼 같은 사람일 수 있는 쌍 찾기 */
+function memDups(){
+  const ms=AD().members,out=[],seen={};
+  ms.forEach(a=>{if(a.name.length!==2)return;ms.forEach(b=>{if(b===a||b.name.length!==3||b.name.slice(1)!==a.name)return;
+    if(a.uid&&b.uid)return;const k=a.id+'|'+b.id;if(seen[k])return;seen[k]=1;
+    out.push(a.uid&&!b.uid?{from:b.id,to:a.id}:{from:a.id,to:b.id})})});
+  return out;
+}
+/* from 회원의 수업·기록·티어·몸 정보를 to 회원으로 옮기고 from을 지움 */
+function memMerge(fid,tid){
+  const ms=AD().members,f=ms.find(x=>x.id===fid),t=ms.find(x=>x.id===tid);if(!f||!t||f===t)return false;
+  Object.keys(AD().plans).forEach(d=>AD().plans[d].forEach(it=>{
+    if(it.mid===f.id||(!it.mid&&it.name&&it.name.trim()===f.name)){it.mid=t.id;it.name=t.name;if(it.amb){it.amb=0;it.cand=null;it.why=''}}
+    if(it.cand===f.id)it.cand=t.id}));
+  const seen={};t.log=(t.log||[]).concat(f.log||[]).filter(e=>{const s=e.date+'|'+e.time+'|'+(e.memo||'');if(seen[s])return false;return seen[s]=1});if(!t.log.length)delete t.log;
+  const tt=t.tiers||(t.tiers={});Object.keys(f.tiers||{}).forEach(k=>{const a=tt[k],b=f.tiers[k];if(!a||b.tier>a.tier||(b.tier===a.tier&&(b.hist||[]).length>(a.hist||[]).length))tt[k]=b});if(!Object.keys(tt).length)delete t.tiers;
+  if(f.runs&&f.runs.length){const m={};(t.runs||[]).concat(f.runs).forEach(r=>{m[r.id]=r});t.runs=Object.values(m)}
+  if(f.body){t.body=Object.assign({},f.body,t.body||{});Object.keys(t.body).forEach(k=>{if(t.body[k]==null||t.body[k]==='')t.body[k]=f.body[k]})}
+  if(f.focus&&!t.focus)t.focus=f.focus;
+  if(f.note&&f.note!==t.note)t.note=(t.note?t.note+' / ':'')+f.note;
+  if(!f.temp)delete t.temp;if(t.uid)delete t.temp;
+  ms.splice(ms.indexOf(f),1);return true;
+}
+function mergeHTML(fid,tid){
+  const f=AD().members.find(x=>x.id===fid),t=AD().members.find(x=>x.id===tid);if(!f||!t)return '';
+  const line=m=>`<b>${esc(m.name)}</b>${m.uid?' 🔗':''}${m.temp?' (임시)':''} · 수업 ${memCnt(m)}회 · 기록 ${(m.log||[]).length}건`;
+  return `<div class="row"><b class="h2">같은 사람으로 합칠까요?</b><button class="x" data-act="close">✕</button></div><div class="pn" style="margin-top:10px"><div style="line-height:1.9">${line(f)}<br>→ ${line(t)}</div><div class="mu" style="margin-top:8px;line-height:1.6">수업 칸·기록·티어·몸 정보가 <b>${esc(t.name)}</b>(으)로 합쳐지고 <b>${esc(f.name)}</b> 회원은 목록에서 사라져요. 되돌릴 수 없어요. 서로 다른 사람이면 취소하고 이름 끝에 구분 글자를 붙여 주세요.</div><div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-act="mmerge" data-from="${f.id}" data-to="${t.id}">합치기</button><button class="btn ghost" data-act="close">취소</button></div></div>`;
+}
+function medHTML(id){
+  const m=AD().members.find(x=>x.id===id);if(!m)return '';const b=m.body||{};
+  const f=(i,ph,v)=>`<input id="${i}" class="fi" type="number" inputmode="decimal" placeholder="${ph}" value="${v==null?'':v}" style="flex:1;min-width:0">`;
+  return `<div class="row"><b class="h2">회원 정보 수정</b><button class="x" data-act="close">✕</button></div><div class="pn" style="margin-top:10px"><div class="mu">이름 ${m.uid?'(가입 회원은 계정 이름을 써요)':'(성+이름으로 고치면 같은 이름 회원과 합칠지 물어봐요)'}</div><input id="men" class="fi" type="text" value="${esc(m.name)}" ${m.uid?'disabled':''} style="width:100%;margin:4px 0 10px">
+  <div class="mu">몸 정보 (선택 · 티어 계산에 써요)</div><div class="row" style="gap:6px;margin-top:4px"><select id="mes" class="fi" style="flex:1"><option value="">성별</option><option value="M"${b.sex==='M'?' selected':''}>남</option><option value="F"${b.sex==='F'?' selected':''}>여</option></select>${f('mea','나이',b.age)}</div><div class="row" style="gap:6px;margin-top:6px">${f('meh','신장 cm',b.heightCm)}${f('mew','체중 kg',b.bodyKg)}${f('mef','체지방 %',b.bf)}</div>
+  <div class="mu" style="margin-top:10px">비고 (연락처·메모 등)</div><textarea id="mnt" class="fi" rows="3" style="width:100%;margin-top:4px">${esc(m.note||'')}</textarea>
+  <button class="btn" style="margin-top:10px" data-act="msave" data-id="${m.id}">저장</button></div>`;
+}
+function dupCard(){
+  const d=memDups();if(!d.length)return '';
+  return `<div class='pn' style='border-color:#e5484d88'><b style='color:#e5484d'>❗ 같은 사람일 수 있는 회원 ${d.length}쌍</b><div class='mu' style='margin:4px 0 6px'>성이 빠진 이름과 성+이름이 같이 있어요. 같은 사람이면 합치세요.</div>`+d.slice(0,15).map(p=>{const f=AD().members.find(x=>x.id===p.from),t=AD().members.find(x=>x.id===p.to);return `<div class='row' style='gap:6px;margin-top:6px'><span>${esc(f.name)} → <b>${esc(t.name)}</b></span><button class='btn sm' data-act='mdupask' data-from='${f.id}' data-to='${t.id}'>합치기</button></div>`}).join('')+`</div>`;
+}
 function viewMem(){
   const ms=AD().members,cnt=m=>Object.values(AD().plans).reduce((a,l)=>a+l.filter(x=>x.name===m.name).length,0);
-  return `<h1 class='h1'>내 회원</h1>${syCard()}<div class='pn'><div class='h2'>회원 추가</div><div class='mu'>가입한 회원은 [가입 회원에서 추가]로 계정을 연결해요. 계정이 연결된 회원에게만 루틴을 보낼 수 있어요. 이름만 직접 추가할 수도 있어요.</div><div class='row' style='gap:8px;margin-top:8px'><input type='text' id='mn' placeholder='회원 이름'><button class='btn sm' style='white-space:nowrap' data-act='amadd'>추가</button></div><button class='btn ghost' style='margin-top:8px' data-act='apicker' data-id=''>가입 회원에서 추가</button></div><div class='pn'>`+ms.map(m=>`<button class='ex' data-act='amem' data-id='${m.id}'><span>${esc(m.name)}${m.uid?' 🔗':''}${m.temp?` <small class='mu'>(임시)</small>`:''}</span><span class='mu'>수업 ${cnt(m)}회 · 기록 ${(m.log||[]).length}건</span></button>`).join('')+`</div>`;
+  return `<h1 class='h1'>내 회원</h1>${syCard()}${dupCard()}<div class='pn'><div class='h2'>회원 추가</div><div class='mu'>가입한 회원은 [가입 회원에서 추가]로 계정을 연결해요. 계정이 연결된 회원에게만 루틴을 보낼 수 있어요. 이름만 직접 추가할 수도 있어요.</div><div class='row' style='gap:8px;margin-top:8px'><input type='text' id='mn' placeholder='회원 이름'><button class='btn sm' style='white-space:nowrap' data-act='amadd'>추가</button></div><button class='btn ghost' style='margin-top:8px' data-act='apicker' data-id=''>가입 회원에서 추가</button></div><div class='pn'>`+ms.map(m=>`<div style='display:flex;gap:6px;align-items:stretch'><button class='ex' style='flex:1;min-width:0' data-act='amem' data-id='${m.id}'><span>${esc(m.name)}${m.uid?' 🔗':''}${m.temp?` <small class='mu'>(임시)</small>`:''}</span><span class='mu'>수업 ${cnt(m)}회 · 기록 ${(m.log||[]).length}건</span></button>${m.uid?'':`<button class='btn ghost sm' style='white-space:nowrap' data-act='medit' data-id='${m.id}'>수정</button>`}</div>`).join('')+`</div>`;
 }
 function reviewHTML(d){
   const fl=d.slots.filter(Boolean);
@@ -1460,7 +1535,7 @@ function memInfo0(id){
     const rl=rn.map(x=>`<div class='mu'>${P[EX[x.id].part]} ${EX[x.id].name} · ${x.sets.map(s=>(s.t==='W'?'W ':s.t==='F'?'F ':'')+wTxt(s)+'×'+s.r+(s.done?'✔':'')).join(' ')}${x.note?' · 📝 '+esc(x.note):''}</div>`).join('')||`<div class='mu'>룬 페이지 기록 없음</div>`;
     const blk=(t,v)=>v?`<div class='sp'><span class='mu'>${t}</span><br>${esc(v)}</div>`:'';
     return `<div class='pn'><div class='row'><b class='h2'>${e.n}회차</b><span class='mu'>${e.d.slice(5).replace('-','/')} ${it.time}</span></div><div style='margin:8px 0;font-size:15px'><span class='mu'>과제</span><br><b>${esc(it.hw)||`<span class='mu'>없음</span>`}</b>${it.hw&&it.hwDone?' ✔ 인지':''}</div><details><summary class='mu'>특이사항 · 룬 페이지 · 수업 내용 보기</summary>${blk('특이사항',it.special)}<div class='sp'><span class='mu'>룬 페이지</span>${rl}</div>${blk('수업 내용',it.memo)}${blk('다음 수업 목표',it.goal)}</details></div>`}).join('');
-  return `<div class='row'><b class='h2'>${esc(m.name)}${m.temp?' (임시)':''}</b><div style='display:flex;gap:6px;align-items:center'><button class='btn sm' data-act='mcal' data-id='${m.id}'>캘린더</button><button class='x' data-act='close'>✕</button></div></div><div class='pn' style='margin-top:10px;border-color:var(--gd)'><div class='row'><b class='h2'>다음 수업 중점사항 · 도전과제</b><span class='mu'>${nx}회차 예정</span></div><textarea class='fi' rows='3' data-mf='${m.id}' style='width:100%;margin-top:8px' placeholder='(다음 수업에서 집중할 점, 도전할 목표를 적어요)'>${esc(m.focus)}</textarea>${lg?`<div class='mu' style='margin-top:6px'>최근 수업에서 적은 다음 수업 목표: ${esc(lg)}</div>`:''}</div><div class='mu' style='margin:10px 0 4px'>수업 흐름 (최신순)</div>${hist||`<div class='mu'>아직 수업 기록이 없어요</div>`}`;
+  return `<div class='row'><b class='h2'>${esc(m.name)}${m.temp?' (임시)':''}</b><div style='display:flex;gap:6px;align-items:center'><button class='btn sm' data-act='mcal' data-id='${m.id}'>캘린더</button>${m.uid?'':`<button class='btn ghost sm' data-act='medit' data-id='${m.id}'>수정</button>`}<button class='x' data-act='close'>✕</button></div></div><div class='pn' style='margin-top:10px;border-color:var(--gd)'><div class='row'><b class='h2'>다음 수업 중점사항 · 도전과제</b><span class='mu'>${nx}회차 예정</span></div><textarea class='fi' rows='3' data-mf='${m.id}' style='width:100%;margin-top:8px' placeholder='(다음 수업에서 집중할 점, 도전할 목표를 적어요)'>${esc(m.focus)}</textarea>${lg?`<div class='mu' style='margin-top:6px'>최근 수업에서 적은 다음 수업 목표: ${esc(lg)}</div>`:''}</div><div class='mu' style='margin:10px 0 4px'>수업 흐름 (최신순)</div>${hist||`<div class='mu'>아직 수업 기록이 없어요</div>`}`;
 }
 const SB_URL='https://vpdemapnpunsuxqdffgn.supabase.co',SB_KEY='sb_publishable_fonyE5eloRwvXb7hacPTow_d6JR0zMv',APP_URL='https://upvible.github.io/Rune-PT/';
 const syncTxt=()=>({off:'이 기기에만 저장',ok:'저장됨',err:'저장 실패 · 다시 시도 중',busy:'저장 중…'}[SYNC]||'');
@@ -1958,15 +2033,19 @@ const toast=t=>{const e=document.createElement('div');e.className='toast';e.text
 const openM=h=>{$('#md').innerHTML=`<div class="sheet">${h}</div>`;$('#md').classList.add('on')};
 const closeM=()=>{$('#md').classList.remove('on');$('#md').innerHTML='';render()};
 
+const eqTag=e=>(e.eq&&RuneCatalog.EQ_LABEL[e.eq])||(e.m?'머신':'');
+const eqRank=e=>{const i=RuneCatalog.EQ_ORDER.indexOf(e.eq);return i<0?99:i};
+const PK_EQ=[['','전체'],['barbell','바벨'],['dumbbell','덤벨'],['cable','케이블'],['machine','머신'],['smith','스미스'],['body','맨몸']];
 function pickList(){
-  const q=PK.q.trim();
-  const list=CAT.list().filter(e=>(q?(e.name.includes(q)||e.al.includes(q)):e.part===PK.part)&&(!PK.m||e.m));
-  $('#pl').innerHTML=list.map(e=>`<button class="ex" data-act="pick" data-id="${e.id}"><span>${e.name}</span><span class="mu">${P[e.part]}${e.m?' · 머신':''}</span></button>`).join('')||'<div class="mu">검색 결과가 없어요</div>';
+  const q=PK.q.trim(),sn=s=>String(s||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,''),toks=q?q.split(/\s+/).map(sn).filter(Boolean):[];
+  const eqOk=e=>!PK.eq||(PK.eq==='machine'?['machine','plate','pin'].indexOf(e.eq)>=0:e.eq===PK.eq);
+  const list=CAT.list().filter(e=>{if(!eqOk(e)||(PK.m&&!e.m))return false;if(toks.length){const h=sn(e.name+' '+e.al+' '+eqTag(e));return toks.every(t=>h.includes(t))}return e.part===PK.part}).sort((a,b)=>eqRank(a)-eqRank(b)||a.sort-b.sort);
+  $('#pl').innerHTML=list.map(e=>`<button class="ex" data-act="pick" data-id="${e.id}"><span>${esc(e.name)}</span><span class="mu">${P[e.part]}${eqTag(e)?' · '+eqTag(e):''}</span></button>`).join('')||'<div class="mu">검색 결과가 없어요</div>';
 }
 function openPick(i){
   PK.slot=i;PK.q='';
   openM(`<div class="row"><b class="h2">종목 장착</b><button class="x" data-act="close">✕</button></div>
-  <input type="text" id="pq" placeholder="종목 검색 (예: 스쿼트)"><div class="tabs">${Object.keys(P).map(k=>`<button data-act="ptab" data-v="${k}" class="${PK.part===k?'on':''}">${P[k]}</button>`).join('')}</div><label class="mu" style="display:flex;gap:6px;align-items:center;margin-bottom:4px"><input type="checkbox" id="pm" ${PK.m?'checked':''}> 머신·케이블만 보기</label><div id="pl"></div>`);
+  <input type="text" id="pq" placeholder="종목 검색 (예: 풀오버, 덤벨 프레스)"><div class="tabs" id="ptabs">${Object.keys(P).map(k=>`<button data-act="ptab" data-v="${k}" class="${PK.part===k?'on':''}">${P[k]}</button>`).join('')}</div><div class="tabs" id="eqt" style="margin-top:4px">${PK_EQ.map(([k,n])=>`<button data-act="peq" data-v="${k}" class="${(PK.eq||'')===k?'on':''}">${n}</button>`).join('')}</div><label class="mu" style="display:flex;gap:6px;align-items:center;margin-bottom:4px"><input type="checkbox" id="pm" ${PK.m?'checked':''}> 머신·케이블만 보기</label><div id="pl"></div>`);
   pickList();
 }
 /* ---- 세트 입력 옆 실시간 구간 안내: 이 무게에서 몇 회면 노말 / 하드 / 슬레이어인지 (내 현재 티어 기준, 참고용) ---- */
@@ -2047,7 +2126,8 @@ function catForm(id){
   <label class="mu">이름<input class="fi" id="cn" value="${esc(r.name)}" maxlength="30"></label>
   <label class="mu" style="display:block;margin-top:8px">부위<select class="fi" id="cp" style="width:100%">${Object.keys(P).map(k=>`<option value="${k}" ${r.part===k?'selected':''}>${P[k]}</option>`).join('')}</select></label>
   <label class="mu" style="display:block;margin-top:8px">검색 별칭 (쉼표 없이 / 로 구분)<input class="fi" id="ca" value="${esc(r.aliases)}"></label>
-  <label class="mu" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="cm" ${r.is_machine?'checked':''}> 머신·케이블 종목</label>
+  <label class="mu" style="display:block;margin-top:8px">도구<select class="fi" id="ce" style="width:100%"><option value="">(선택 안 함)</option>${RuneCatalog.EQ_ORDER.map(k=>`<option value="${k}" ${((r.meta&&r.meta.eq)||(CAT.EXS[r.id]&&CAT.EXS[r.id].eq))===k?'selected':''}>${RuneCatalog.EQ_LABEL[k]}</option>`).join('')}</select></label>
+  <label class="mu" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="cm" ${r.is_machine?'checked':''}> 머신·케이블 종목 (도구를 고르면 자동)</label>
   ${core?`<div class="mu" style="margin-top:8px">티어 계산과 연결된 종목이에요(이름을 바꿔도 연결은 유지).</div>`:`
   <label class="mu" style="display:block;margin-top:8px">연결할 왕룬(승급은 왕룬 티어+1까지)<select class="fi" id="ch" style="width:100%"><option value="">연결 안 함</option>${HEADS.map(h=>`<option value="${h[0]}" ${t.head===h[0]?'selected':''}>${h[1]}</option>`).join('')}</select></label>
   <label class="mu" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="ck" ${t.kind==='barbell'?'checked':''}> 바벨 종목 (트레이너가 승급 승인)</label>`}
@@ -2071,7 +2151,7 @@ const A={
     const id=d.id||'',old=id?catRow(id):null,t=Object.assign({},(old&&old.tier)||{});
     if(!(old&&t.core)){const h=$('#ch').value;if(h)t.head=h;else delete t.head;if($('#ck').checked){t.kind='barbell';t.quest='trainer'}else{if(t.kind==='barbell')delete t.kind;if(t.quest==='trainer')delete t.quest}}
     const mg=id&&$('#cmg').value||null,stt=id?$('#cst').value:'active';
-    const v=RuneCatalog.makeRow({id:id||undefined,name:$('#cn').value,part:$('#cp').value,aliases:$('#ca').value,machine:$('#cm').checked},CAT.rows);
+    const v=RuneCatalog.makeRow({id:id||undefined,name:$('#cn').value,part:$('#cp').value,aliases:$('#ca').value,machine:$('#cm').checked,eq:$('#ce').value,meta:old&&old.meta},CAT.rows);
     if(!v.ok){toast(v.reason);return}
     const sb2=catParseBase($('#cs').value);if(!sb2.ok){toast('기준표는 1~9개의 숫자(0보다 크고 점점 커지게)로 입력해 주세요');return}
     const row=Object.assign({},old||{},v.row,{id:id||v.row.id,sort:old?old.sort:v.row.sort,status:mg?'retired':stt,merged_into:mg,tier:Object.keys(t).length?t:null});
@@ -2079,7 +2159,7 @@ const A={
     const curBase=(old&&old.std&&old.std.base)||null,ex=old&&t.core?window.RuneTier.BY_ID[t.core]:null,defBase=curBase||(ex&&ex.base)||null;
     const stdChanged=sb2.base&&JSON.stringify(sb2.base)!==JSON.stringify(defBase),ver=((old&&old.std&&old.std.version)||0)+1;
     if(sb&&UID){
-      const w=await sb.from('exercise_catalog').upsert({id:row.id,name:row.name,part:row.part,aliases:row.aliases||'',is_machine:!!row.is_machine,status:row.status,merged_into:row.merged_into||null,sort:row.sort,tier:row.tier},{onConflict:'id'});
+      const w=await sb.from('exercise_catalog').upsert({id:row.id,name:row.name,part:row.part,aliases:row.aliases||'',is_machine:!!row.is_machine,status:row.status,merged_into:row.merged_into||null,sort:row.sort,tier:row.tier,meta:row.meta||{}},{onConflict:'id'});
       if(w.error){console.error(w.error);toast('서버에 저장하지 못했어요 (트레이너 계정·4단계 SQL 확인)');return}
       if(stdChanged){const q=await sb.from('exercise_standards').insert({exercise_id:row.id,version:ver,base:sb2.base,note:'앱 종목 관리 화면에서 수정'});if(q.error){console.error(q.error);toast('종목은 저장했지만 기준표는 저장하지 못했어요');}}
     }
@@ -2092,6 +2172,20 @@ const A={
   aq2:d=>{const it=plan(d.d).find(x=>x.id===d.id);if(!it)return;const k=d.k==='hw'?'hwDone':'spDone';it[k]=!it[k];persist();render()},
   aopen:d=>{ADM.date=d.d;A.aslot({t:d.t})},
   amem:d=>{openM(memInfo(d.id))},
+  medit:d=>{openM(medHTML(d.id))},
+  msave:d=>{const m=AD().members.find(x=>x.id===d.id);if(!m)return;
+    const nn=($('#men').value||'').trim(),sex=$('#mes').value,age=$('#mea').value,h=$('#meh').value,w=$('#mew').value,bfv=$('#mef').value;
+    if(!nn||nn.length>12){toast('이름을 1~12자로 입력해 주세요');return}
+    const anyB=sex||age||h||w||bfv;
+    if(anyB){const a=+age,hh=+h,ww=+w,bf=bfv===''?null:+bfv;if(!sex||!(a>=5&&a<=110)||!(hh>=100&&hh<=250)||!(ww>=20&&ww<=300)||(bf!=null&&!(bf>=3&&bf<=70))){toast('몸 정보는 성별·나이(5~110)·신장(100~250)·체중(20~300)을 모두 확인해 주세요');return}
+      m.body={sex,age:a,heightCm:hh,bodyKg:ww,bf,ts:Date.now()}}
+    m.note=($('#mnt').value||'').trim()||undefined;if(m.note===undefined)delete m.note;
+    if(!m.uid&&nn!==m.name){const o=memByName(nn,m.id);
+      if(o){persist();openM(mergeHTML(m.id,o.id));toast('이미 같은 이름 회원이 있어요');return}
+      const old=m.name;Object.keys(AD().plans).forEach(dd=>AD().plans[dd].forEach(it=>{if(it.mid===m.id||(!it.mid&&it.name&&it.name.trim()===old)){it.name=nn;if(!it.mid)it.mid=m.id}}));m.name=nn}
+    persist();render();openM(memInfo(m.id));toast('저장했어요')},
+  mdupask:d=>{openM(mergeHTML(d.from,d.to))},
+  mmerge:d=>{const t=AD().members.find(x=>x.id===d.to),nm=t?t.name:'';if(!memMerge(d.from,d.to))return;persist();render();openM(memInfo(d.to));toast(nm+'(으)로 합쳤어요')},
   gcsave:()=>{let u=($('#gcu').value||'').trim().replace(/^webcal:\/\//i,'https://');if(!/^https:\/\/calendar\.google\.com\/calendar\/ical\/.+\.ics$/.test(u)){toast('구글 캘린더의 iCal 비공개 주소(…basic.ics)를 붙여 넣어 주세요');return}S.gcal={url:u};GC.last=0;persist();render();gcalRun(true)},
   gcoff:()=>{delete S.gcal;GC.last=0;GC.stat=null;persist();render();toast('연동을 해제했어요. 이미 들어온 일정은 그대로 남아요')},
   gcrun:()=>{gcalRun(true)},
@@ -2189,7 +2283,8 @@ const A={
   rtadd:d=>{openPick(+d.i)},
   slot:d=>{const i=+d.i,x=draft().slots[i];if(x){RC=i;openM(recHTML())}else openPick(i)},
   rm:d=>{draft().slots[+d.i]=null;persist();render()},
-  ptab:d=>{PK.part=d.v;PK.q='';$('#pq').value='';document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
+  ptab:d=>{PK.part=d.v;PK.q='';$('#pq').value='';document.querySelectorAll('#ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
+  peq:d=>{PK.eq=d.v;document.querySelectorAll('#eqt button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
   pick:d=>{const sl=draft().slots;if(sl.some(x=>x&&x.id===d.id)){toast('이미 장착된 종목이에요');return}sl[PK.slot]={id:d.id,nm:EX[d.id].name,sets:mkSets(d.id)};persist();RC=PK.slot;openM(recHTML())},
   close:()=>{persist();closeM()},
   eqwin:()=>{eqInit();const o=eqOwned();EQN={};EQ_SLOTS.forEach(sl=>{if(o[sl.k]>(S.equipSeen[sl.k]||0))EQN[sl.k]=1;S.equipSeen[sl.k]=o[sl.k]});DB.save(S);openM(eqHTML())},
