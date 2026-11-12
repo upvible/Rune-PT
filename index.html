@@ -1357,7 +1357,7 @@ function viewACal(){
   let cells=['일','월','화','수','목','금','토'].map(x=>`<span>${x}</span>`).join('')+'<i></i>'.repeat(first);
   for(let i=1;i<=dim;i++){const k=`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`,n=(AD().plans[k]||[]).length;
     cells+=`<button data-act='aday' data-d='${k}' data-l='${n?(n<5?1:n<9?2:3):0}' class='${k===ADM.date?'sel':''} ${k===T?'td':''}'>${i}${n?`<i class='st' style='color:inherit'>${n}</i>`:''}</button>`}
-  return `<h1 class='h1'>관리자 · 수업 달력</h1><div class='mu'>날짜를 누르면 그날의 일일 스케줄이 열려요. 칸 안의 숫자는 수업 칸 수예요.</div><div class='pn' style='margin-top:10px'><div class='row'><button class='x' data-act='amon2' data-v='-1'>◀</button><b class='h2'>${y}년 ${m+1}월</b><button class='x' data-act='amon2' data-v='1'>▶</button></div><div class='cal' style='margin-top:8px'>${cells}</div></div>`;
+  return `<h1 class='h1'>관리자 · 수업 달력</h1><div class='mu'>날짜를 누르면 그날의 일일 스케줄이 열려요. 칸 안의 숫자는 수업 칸 수예요.</div>${gcalCard()}<div class='pn' style='margin-top:10px'><div class='row'><button class='x' data-act='amon2' data-v='-1'>◀</button><b class='h2'>${y}년 ${m+1}월</b><button class='x' data-act='amon2' data-v='1'>▶</button></div><div class='cal' style='margin-top:8px'>${cells}</div></div>`;
 }
 function viewDay(){
   const d=ADM.date,l=plan(d),by={};l.forEach(x=>{by[x.time]=x});
@@ -1365,7 +1365,7 @@ function viewDay(){
   const rows=HRS.map(h=>{const it=by[h];
     if(!it)return `<button class='tr empty' data-act='aslot' data-t='${h}'><b>${h}</b><span class='mu'>+ 비어 있음 · 눌러서 룬 페이지 추가</span><span></span></button>`;
     const n=it.slots.filter(Boolean).length;
-    return `<button class='tr' data-act='aslot' data-t='${h}'><b>${h}</b><span><b>${esc(it.name)||'회원 미지정'}</b>${it.no?' · '+it.no+'차시':''}<br><span class='mu'>룬 ${n}/6${it.special?' · 특이사항':''}</span></span><span class='mu'>${it.sent?'✔ 발송':'작성중'}</span></button>`}).join('');
+    return `<button class='tr' data-act='aslot' data-t='${h}'><b>${h}</b><span><b>${it.amb?"<span style='color:#e5484d'>❗ </span>":''}${esc(it.name)||'회원 미지정'}</b>${it.no?' · '+it.no+'차시':''}<br><span class='mu'>룬 ${n}/6${it.special?' · 특이사항':''}</span></span><span class='mu'>${it.sent?'✔ 발송':'작성중'}</span></button>`}).join('');
   return `<div class='row'><button class='x' data-act='adnav' data-v='-1'>◀</button><b class='h2'>${dt}</b><button class='x' data-act='adnav' data-v='1'>▶</button></div><div class='mu' style='margin:6px 0 10px'>수업 ${l.length}칸 · 시간을 누르면 그 시간의 룬 페이지가 팝업으로 열려요</div>${rows}`;
 }
 function viewDay2(){
@@ -1375,7 +1375,7 @@ function viewDay2(){
   const rows=HRS.map(h=>{const it=by[h];
     if(!it)return `<button class='tr empty' data-act='aslot' data-t='${h}'><b>${h}</b><span class='mu'>+ 비어 있음 · 눌러서 룬 페이지 추가</span><span></span></button>`;
     const n=it.slots.filter(Boolean).length;
-    return `<div class='trw'><button class='tr' data-act='aslot' data-t='${h}'><b>${h}</b><span><b>${esc(it.name)||'회원 미지정'}</b>${it.no?' · '+it.no+'차시':''}<br><span class='mu'>룬 ${n}/6${n?' · '+esc(it.slots.filter(Boolean).map(x=>EX[x.id].name).join(', ')):''}${it.special?' · 특이사항':''}</span></span><span class='mu'>${it.sent?'✔ 발송':'작성중'}</span></button><div class='ra'><button class='btn ghost sm' data-act='acopy' data-id='${it.id}'>카톡 복사</button><a class='btn ghost sm' href='${esc(calURL(it,d))}' target='_blank' rel='noopener'>캘린더</a><button class='btn ghost sm' data-act='asend' data-id='${it.id}'>발송</button><button class='btn ghost sm' data-act='adel' data-id='${it.id}'>삭제</button></div></div>`}).join('');
+    return `<div class='trw'><button class='tr' data-act='aslot' data-t='${h}'><b>${h}</b><span><b>${it.amb?"<span style='color:#e5484d'>❗ </span>":''}${esc(it.name)||'회원 미지정'}</b>${it.no?' · '+it.no+'차시':''}<br><span class='mu'>룬 ${n}/6${n?' · '+esc(it.slots.filter(Boolean).map(x=>EX[x.id].name).join(', ')):''}${it.special?' · 특이사항':''}</span></span><span class='mu'>${it.sent?'✔ 발송':'작성중'}</span></button><div class='ra'><button class='btn ghost sm' data-act='acopy' data-id='${it.id}'>카톡 복사</button><a class='btn ghost sm' href='${esc(calURL(it,d))}' target='_blank' rel='noopener'>캘린더</a><button class='btn ghost sm' data-act='asend' data-id='${it.id}'>발송</button><button class='btn ghost sm' data-act='adel' data-id='${it.id}'>삭제</button></div></div>`}).join('');
   return `<div class='row'><button class='x' data-act='adnav' data-v='-1'>◀</button><b class='h2'>${dt}</b><button class='x' data-act='adnav' data-v='1'>▶</button></div><div class='mu' style='margin:6px 0 10px'>수업 ${l.length}칸 · 발송 ${sent} · 시간을 누르면 룬 페이지가 팝업으로 열려요</div>${rows}<div class='pn' style='margin-top:10px'><button class='btn' data-act='asendall'>회원 지정된 칸 모두 발송</button><div class='row' style='gap:8px;margin-top:8px'><button class='btn ghost sm' data-act='aexp'>다른 기기로 보내기 (코드 복사)</button></div><details style='margin-top:8px'><summary class='mu'>다른 기기에서 가져오기</summary><textarea id='imp' class='fi' rows='3' style='width:100%;margin-top:6px' placeholder='복사한 코드를 붙여넣기'></textarea><button class='btn sm' data-act='aimp' style='margin-top:6px'>가져오기</button></details><button class='btn ghost' style='margin-top:8px' data-act='agcal'>구글 캘린더에서 [PT] 일정 불러오기</button></div>`;
 }
 const ALR={wk:'',rows:null,busy:false};
@@ -1483,13 +1483,14 @@ function syVal(k){
   if(k==='equip')return S.equip?{equip:S.equip,seen:S.equipSeen||{}}:undefined;
   if(k==='runs')return S.runs&&S.runs.length?S.runs:undefined;
   if(k==='wm')return S.wm&&Object.keys(S.wm).length?S.wm:undefined;
+  if(k==='gcal')return S.gcal&&S.gcal.url?{url:S.gcal.url}:undefined;
   if(!S.adm)return undefined;
   if(k.startsWith('tm:'))return S.adm.members.find(x=>x.id===k.slice(3));
   if(k.startsWith('tp:')){const l=S.adm.plans[k.slice(3)];return l&&l.length?l:undefined}
   return undefined;
 }
 function syKeys(){
-  const ks=['tiers','equip','runs','wm'];
+  const ks=['tiers','equip','runs','wm','gcal'];
   if(S.adm){S.adm.members.forEach(m=>ks.push('tm:'+m.id));Object.keys(S.adm.plans).forEach(d=>ks.push('tp:'+d))}
   Object.keys(S.sy.h).forEach(k=>{if(ks.indexOf(k)<0)ks.push(k)});return ks;
 }
@@ -1497,13 +1498,13 @@ function syHash(v){const s=JSON.stringify(v);let h=5381;for(let i=0;i<s.length;i
 function syDirty(k){const v=syVal(k);return v===undefined?S.sy.h[k]!==undefined:S.sy.h[k]!==syHash(v)}
 function syApply(k,doc){
   if(doc.del){
-    if(k==='tiers')delete S.tiers;else if(k==='equip'){delete S.equip;delete S.equipSeen}else if(k==='runs')S.runs=[];else if(k==='wm')delete S.wm;
+    if(k==='tiers')delete S.tiers;else if(k==='equip'){delete S.equip;delete S.equipSeen}else if(k==='runs')S.runs=[];else if(k==='wm')delete S.wm;else if(k==='gcal')delete S.gcal;
     else if(S.adm&&k.startsWith('tm:')){const i=S.adm.members.findIndex(x=>x.id===k.slice(3));if(i>=0)S.adm.members.splice(i,1)}
     else if(S.adm&&k.startsWith('tp:'))delete S.adm.plans[k.slice(3)];
     return;
   }
   const v=doc.v;
-  if(k==='tiers')S.tiers=v||{};else if(k==='equip'){S.equip=syRows(v.equip);S.equipSeen=syRows(v.seen)}else if(k==='runs')S.runs=v||[];else if(k==='wm')S.wm=v||{};
+  if(k==='tiers')S.tiers=v||{};else if(k==='equip'){S.equip=syRows(v.equip);S.equipSeen=syRows(v.seen)}else if(k==='runs')S.runs=v||[];else if(k==='wm')S.wm=v||{};else if(k==='gcal')S.gcal=v&&v.url?{url:v.url}:undefined;
   else if(k.startsWith('tm:')){const l=AD().members,i=l.findIndex(x=>x.id===k.slice(3));if(i>=0)l[i]=v;else l.push(v)}
   else if(k.startsWith('tp:'))AD().plans[k.slice(3)]=v;
 }
@@ -1579,7 +1580,14 @@ function syLabel(){
   const t=SY.last?new Date(SY.last).toTimeString().slice(0,5):'';
   return (SY.err?'⚠️ 동기화 오류 ('+SY.err.slice(0,40)+')':SY.live==='on'?'🟢 실시간 연결됨':'🟡 실시간 끊김 · 새로고침으로 동기화')+(t?' · 마지막 '+t:'');
 }
-function syCard(){return `<div class="pn"><div class="row"><b class="h2">동기화</b><span class="mu" id="sylab">${syLabel()}</span></div><div class="mu" style="margin:6px 0;line-height:1.6">기록·승급·장비·달리기·회원·수업이 서버에 저장되고, 같은 계정의 다른 기기와 실시간으로 맞춰져요.</div><button class="btn ghost sm" data-act="syncnow">↻ 서버에서 새로고침</button></div>`}
+function syCard(){return `<div class="pn"><div class="row"><b class="h2">동기화</b><span class="mu" id="sylab">${syLabel()}</span></div><div class="mu" style="margin:6px 0;line-height:1.6">기록·승급·장비·달리기·회원·수업이 서버에 저장되고, 같은 계정의 다른 기기와 실시간으로 맞춰져요.</div><button class="btn ghost sm" data-act="syncnow">↻ 서버에서 새로고침</button><div class="mu" style="margin-top:8px;font-size:11px;line-height:1.5;word-break:break-all">${esc(syDiag())}</div></div>`}
+/* 기기끼리 비교용 진단 줄: 계정 번호가 다르면 서로 다른 계정이라 합쳐지지 않아요 */
+function syDiag(){
+  if(!sb)return '진단: 서버에 연결되지 않은 주소예요 ('+location.hostname+'). 배포 주소(upvible.github.io)에서 열어야 서버와 연동돼요';
+  if(!UID)return '진단: 로그인되지 않았어요'+(GUEST?' (체험 모드는 이 기기에만 저장돼요)':'');
+  const ad=S.adm,dates=ad?Object.keys(ad.plans).filter(d=>ad.plans[d].length):[],n=ad?ad.plans&&dates.reduce((a,d)=>a+ad.plans[d].length,0):0;
+  return '진단: 계정 '+UID.slice(0,8)+' · '+(S.user?S.user.provider:'?')+' · 역할 '+(ROLE||'?')+' · 회원 '+(ad?ad.members.length:0)+'명 · 수업 '+n+'칸('+dates.length+'일) · 서버 반영 '+Object.keys(S.sy&&S.sy.ts||{}).length+'개 문서 · 동기화 '+(SY.ready?'켜짐':'꺼짐');
+}
 async function syRefresh(force){await syPull();await syFlush();sySess(force);}
 function syStart(){
   if(!sb||!UID||SY.ready===UID)return;
@@ -1598,6 +1606,151 @@ function syStart(){
   }
 }
 function syStop(){try{if(SY.ch)sb.removeChannel(SY.ch)}catch(e){}SY.ch=null;SY.ready=null;SY.live='off'}
+/* ===== 구글 캘린더 불러오기 (비공개 iCal 주소 → 서버 함수 → 시간표) ===== */
+/* 규칙: 제목에 "OO님"이 있는 일정만 가져옴 · OT/오티는 제외 · 2글자 이름은 성을 뺀 이름으로 회원 찾기 · 같은 이름이 여러 명이면 ❗ 수동 연동 */
+var GC={last:0,busy:false,err:'',stat:null};
+const gcIcsText=t=>t.replace(/\r\n?/g,'\n').replace(/\n[ \t]/g,'');
+function gcUnesc(s){return String(s||'').replace(/\\n/gi,' ').replace(/\\,/g,',').replace(/\;/g,';').replace(/\\\\/g,'\\')}
+function gcTzOff(ms,tz){const p={};new Intl.DateTimeFormat('en-US',{timeZone:tz,hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(new Date(ms)).forEach(x=>{p[x.type]=x.value});return Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second)-ms}
+/* ICS 날짜 → 한국 시각 {d:'YYYY-MM-DD',t:'HH:MM',allDay} (실패하면 null) */
+function gcDt(val,params){
+  if(!val)return null;
+  const m=/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/.exec(val.trim());if(!m)return null;
+  if(m[4]===undefined)return{d:m[1]+'-'+m[2]+'-'+m[3],t:'00:00',allDay:true};
+  let ms=Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0));
+  if(m[7]){}else{
+    const tzm=/TZID=([^;:]+)/i.exec(params||''),tz=tzm?tzm[1].replace(/^"|"$/g,''):'Asia/Seoul';
+    try{ms-=gcTzOff(ms,tz)}catch(e){ms-=9*36e5}
+  }
+  const k=new Date(ms+9*36e5);const z=n=>String(n).padStart(2,'0');
+  return{d:k.getUTCFullYear()+'-'+z(k.getUTCMonth()+1)+'-'+z(k.getUTCDate()),t:z(k.getUTCHours())+':'+z(k.getUTCMinutes())};
+}
+function gcParse(ics){
+  const lines=gcIcsText(ics).split('\n'),evs=[];let cur=null;
+  lines.forEach(L=>{
+    if(L==='BEGIN:VEVENT'){cur={ex:[]};return}
+    if(L==='END:VEVENT'){if(cur)evs.push(cur);cur=null;return}
+    if(!cur)return;const i=L.indexOf(':');if(i<0)return;const head=L.slice(0,i),val=L.slice(i+1),sp=head.indexOf(';'),key=(sp<0?head:head.slice(0,sp)).toUpperCase(),par=sp<0?'':head.slice(sp+1);
+    if(key==='UID')cur.uid=val;else if(key==='SUMMARY')cur.sum=gcUnesc(val);else if(key==='DTSTART')cur.st=gcDt(val,par);else if(key==='RRULE')cur.rr=val;
+    else if(key==='EXDATE')val.split(',').forEach(v=>{const x=gcDt(v,par);if(x)cur.ex.push(x.d+'T'+x.t)});
+    else if(key==='RECURRENCE-ID'){const x=gcDt(val,par);if(x)cur.rid=x.d+'T'+x.t}
+    else if(key==='STATUS')cur.status=val.toUpperCase();
+  });
+  return evs;
+}
+const gcDay=d=>{const a=d.split('-');return Date.UTC(+a[0],+a[1]-1,+a[2])/864e5};
+const gcFromDay=n=>{const k=new Date(n*864e5),z=x=>String(x).padStart(2,'0');return k.getUTCFullYear()+'-'+z(k.getUTCMonth()+1)+'-'+z(k.getUTCDate())};
+const GC_WD=['SU','MO','TU','WE','TH','FR','SA'];
+/* 기간(from~to, 날짜 문자열) 안의 일정 펼치기 → [{uid,d,t,sum}] */
+function gcExpand(evs,from,to){
+  const out=[],f=gcDay(from),e=gcDay(to),over={};
+  evs.forEach(v=>{if(v.rid&&v.uid)over[v.uid+'|'+v.rid]=1});
+  evs.forEach(v=>{
+    if(!v.st||v.st.allDay||v.status==='CANCELLED'||!v.sum)return;
+    if(!v.rr||v.rid){const d=gcDay(v.st.d);if(d>=f&&d<=e)out.push({uid:v.uid||v.sum,d:v.st.d,t:v.st.t,sum:v.sum});return}
+    const r={};v.rr.split(';').forEach(p=>{const q=p.split('=');r[q[0]]=q[1]});
+    const iv=Math.max(1,+r.INTERVAL||1),b=gcDay(v.st.d),bw=new Date(b*864e5).getUTCDay();
+    const by=r.BYDAY?r.BYDAY.split(',').map(x=>x.replace(/^[+-]?\d+/,'')):[GC_WD[bw]];
+    let until=1e9;if(r.UNTIL){const u=gcDt(r.UNTIL,'');if(u)until=gcDay(u.d)}
+    const cnt=r.COUNT?+r.COUNT:1e9;let n=0;
+    for(let d=b;d<=Math.min(e,until);d++){
+      const wd=new Date(d*864e5).getUTCDay();let hit=false;
+      if(r.FREQ==='DAILY')hit=(d-b)%iv===0;
+      else if(r.FREQ==='WEEKLY')hit=by.indexOf(GC_WD[wd])>=0&&Math.floor((d-(b-bw))/7)%iv===0;
+      else if(r.FREQ==='MONTHLY'){const a=new Date(d*864e5),c=new Date(b*864e5);hit=a.getUTCDate()===c.getUTCDate()&&((a.getUTCFullYear()-c.getUTCFullYear())*12+a.getUTCMonth()-c.getUTCMonth())%iv===0}
+      else if(r.FREQ==='YEARLY'){const a=new Date(d*864e5),c=new Date(b*864e5);hit=a.getUTCDate()===c.getUTCDate()&&a.getUTCMonth()===c.getUTCMonth()&&(a.getUTCFullYear()-c.getUTCFullYear())%iv===0}
+      if(!hit)continue;n++;if(n>cnt)break;
+      if(d<f)continue;const ds=gcFromDay(d);
+      if(v.ex.indexOf(ds+'T'+v.st.t)>=0||over[v.uid+'|'+ds+'T'+v.st.t])continue;
+      out.push({uid:(v.uid||v.sum),d:ds,t:v.st.t,sum:v.sum});
+    }
+  });
+  return out;
+}
+/* 제목 → 이름 (OT 제외, "OO님"만) */
+function gcName(sum){
+  if(/(^|[^A-Za-z])ot([^A-Za-z]|$)/i.test(sum)||/오티/.test(sum))return{ot:true};
+  const m=/([가-힣]{2,4})\s*님/.exec(sum);return m?{name:m[1]}:null;
+}
+/* 이름 → 회원 후보 (정확히 같은 이름 우선, 없으면 성을 뺀 이름) */
+function gcCands(n,members){
+  let c=members.filter(m=>m.name===n);
+  if(!c.length&&n.length===2)c=members.filter(m=>m.name.length===3&&m.name.slice(1)===n);
+  return c;
+}
+const gcHour=t=>t.slice(0,2)+':00';
+const gcBlank=it=>!(it.slots&&it.slots.some(Boolean))&&!it.memo&&!it.hw&&!it.goal&&!it.special&&!it.sent;
+/* 가져온 일정을 시간표에 반영. 돌려주는 값: 집계 */
+function gcApply(evs,from,to){
+  const inst=gcExpand(evs,from,to),st={got:0,auto:0,amb:0,none:0,ot:0,skip:0,del:0,upd:0},seen={};
+  const members=AD().members;let changed=false;
+  inst.forEach(x=>{
+    const g=gcName(x.sum);if(!g)return;if(g.ot){st.ot++;return}
+    const h=gcHour(x.t),h0=+h.slice(0,2);if(h0<5||h0>22){st.skip++;return}
+    const id='g'+x.uid.replace(/[^A-Za-z0-9]/g,'').slice(0,24)+x.d.replace(/-/g,'');
+    seen[x.d+'|'+id]=1;st.got++;
+    const pl=plan(x.d);let it=pl.find(z=>z.id===id);
+    const cands=gcCands(g.name,members);
+    if(!it){
+      const same=pl.find(z=>z.time===h);if(same){st.skip++;return}
+      it={id,time:h,name:g.name,mid:null,no:0,memo:'',hw:'',goal:'',special:'',slots:Array(6).fill(null),sent:false,src:'gcal',gname:g.name};
+      pl.push(it);changed=true;
+    }else if(it.time!==h&&gcBlank(it)&&!pl.find(z=>z.time===h&&z.id!==id)){it.time=h;changed=true;st.upd++}
+    if(it.mid&&members.some(m=>m.id===it.mid)){it.amb=0;return}
+    if(cands.length===1){it.mid=cands[0].id;it.name=cands[0].name;it.amb=0;st.auto++;changed=true}
+    else{const a=cands.length>1?'multi':'none';if(it.amb!==a||it.name!==g.name){it.amb=a;it.name=g.name;changed=true}st[a==='multi'?'amb':'none']++}
+  });
+  /* 캘린더에서 지워진 일정: 아직 아무 기록도 없으면 시간표에서도 지움 */
+  for(let d=gcDay(from);d<=gcDay(to);d++){const ds=gcFromDay(d),pl=(AD().plans[ds]||[]);
+    for(let i=pl.length-1;i>=0;i--){const it=pl[i];if(it.src==='gcal'&&!seen[ds+'|'+it.id]&&gcBlank(it)){pl.splice(i,1);st.del++;changed=true}}}
+  return{st,changed};
+}
+async function gcalRun(manual){
+  if(GC.busy)return;const url=S.gcal&&S.gcal.url;
+  if(!url){if(manual)toast('먼저 구글 캘린더 주소를 입력해 주세요');return}
+  if(!sb||!UID||!SY.ready){if(manual)toast('로그인 후 사용할 수 있어요');return}
+  GC.busy=true;GC.err='';gcStatus();
+  try{
+    const r=await sb.functions.invoke('ical-fetch',{body:{url}});
+    if(r.error)throw r.error;const ics=r.data&&r.data.ics;if(!ics||ics.indexOf('BEGIN:VCALENDAR')<0)throw new Error((r.data&&r.data.error)||'캘린더 내용을 받지 못했어요');
+    const a=new Date();a.setDate(a.getDate()-7);const b=new Date();b.setDate(b.getDate()+35);
+    const res=gcApply(gcParse(ics),ymd(a),ymd(b));
+    GC.stat=res.st;GC.last=Date.now();
+    if(res.changed){persist();if(!syTyping()&&!ADM.cur)render()}
+    if(manual)toast('캘린더에서 '+res.st.got+'건을 확인했어요')
+  }catch(e){GC.err=(e&&e.message)||'오류';if(manual)toast('캘린더를 가져오지 못했어요: '+GC.err.slice(0,50))}
+  GC.busy=false;gcStatus();
+}
+setInterval(()=>{if(!document.hidden&&S.mode==='admin'&&S.gcal&&S.gcal.url&&SY.ready&&Date.now()-GC.last>6e5)gcalRun(false)},30000);
+function gcStatus(){const e=document.getElementById('gclab');if(e)e.textContent=gcLabel()}
+function gcLabel(){
+  if(GC.busy)return '가져오는 중…';if(GC.err)return '⚠️ '+GC.err.slice(0,60);
+  if(!GC.last)return '아직 가져오지 않았어요';
+  const s=GC.stat||{};return new Date(GC.last).toTimeString().slice(0,5)+' 확인 · 일정 '+(s.got||0)+'건 · 자동 연동 '+(s.auto||0)+(s.amb||s.none?' · ❗확인 필요 '+((s.amb||0)+(s.none||0)):'')+(s.ot?' · OT 제외 '+s.ot:'');
+}
+function gcPending(){
+  const a=new Date();a.setDate(a.getDate()-7);const from=ymd(a),out=[];
+  Object.keys(AD().plans).sort().forEach(d=>{if(d<from)return;AD().plans[d].forEach(it=>{if(it.amb)out.push({d,it})})});
+  return out;
+}
+function gcalCard(){
+  if(S.mode!=='admin')return '';
+  const url=S.gcal&&S.gcal.url;
+  let h=`<div class="pn"><div class="row"><b class="h2">구글 캘린더 연동</b><span class="mu" id="gclab">${esc(gcLabel())}</span></div>`;
+  if(!url)h+=`<div class="mu" style="margin:6px 0">구글 캘린더 설정 → 내 캘린더 → "iCal 형식의 비공개 주소"를 복사해 붙여 넣으세요. 제목이 <b>민수님</b>처럼 적힌 일정만 시간표에 들어오고, OT는 제외돼요.</div><input class="fi" id="gcu" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"><button class="btn" style="margin-top:8px" data-act="gcsave">연동하기</button>`;
+  else h+=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><button class="btn sm" data-act="gcrun">지금 가져오기</button><button class="btn ghost sm" data-act="gcoff">연동 해제</button></div>`;
+  const pend=url?gcPending():[];
+  if(pend.length){
+    h+=`<div style="margin-top:10px;color:#e5484d;font-weight:700">❗ 회원 연동이 필요해요 (${pend.length})</div>`;
+    pend.forEach(({d,it})=>{
+      const cands=gcCands(it.gname||it.name,AD().members),pool=cands.length?cands:AD().members;
+      h+=`<div style="margin-top:8px;padding:8px;border:1px solid #e5484d55;border-radius:10px"><div><b style="color:#e5484d">❗ ${esc(it.gname||it.name)}님</b> <span class="mu">${d.slice(5)} ${it.time} · ${it.amb==='multi'?'같은 이름이 여러 명이에요':'회원 목록에 없어요'}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">`+
+      (cands.length?pool.map(m=>`<button class="btn sm" data-act="gclink" data-d="${d}" data-id="${it.id}" data-m="${m.id}">${esc(m.name)}</button>`).join(''):`<select class="fi" id="gcs-${it.id}" style="flex:1;min-width:120px"><option value="">회원 선택…</option>${AD().members.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select><button class="btn sm" data-act="gclinksel" data-d="${d}" data-id="${it.id}">연동</button>`)+`</div></div>`;
+    });
+  }
+  return h+'</div>';
+}
+
 async function pull(){
   PULLING=true;
   const r=await sb.from('workout_sessions').select('session_date,session_no,level,items,grade,review');
@@ -1904,6 +2057,11 @@ const A={
   aq2:d=>{const it=plan(d.d).find(x=>x.id===d.id);if(!it)return;const k=d.k==='hw'?'hwDone':'spDone';it[k]=!it[k];persist();render()},
   aopen:d=>{ADM.date=d.d;A.aslot({t:d.t})},
   amem:d=>{openM(memInfo(d.id))},
+  gcsave:()=>{let u=($('#gcu').value||'').trim().replace(/^webcal:\/\//i,'https://');if(!/^https:\/\/calendar\.google\.com\/calendar\/ical\/.+\.ics$/.test(u)){toast('구글 캘린더의 iCal 비공개 주소(…basic.ics)를 붙여 넣어 주세요');return}S.gcal={url:u};GC.last=0;persist();render();gcalRun(true)},
+  gcoff:()=>{delete S.gcal;GC.last=0;GC.stat=null;persist();render();toast('연동을 해제했어요. 이미 들어온 일정은 그대로 남아요')},
+  gcrun:()=>{gcalRun(true)},
+  gclink:d=>{const it=plan(d.d).find(x=>x.id===d.id),m=AD().members.find(x=>x.id===d.m);if(!it||!m)return;it.mid=m.id;it.name=m.name;it.amb=0;it.manual=1;persist();render();toast(m.name+' 회원으로 연동했어요')},
+  gclinksel:d=>{const v=($('#gcs-'+d.id)||{}).value,it=plan(d.d).find(x=>x.id===d.id),m=AD().members.find(x=>x.id===v);if(!it||!m){toast('회원을 선택해 주세요');return}it.mid=m.id;it.name=m.name;it.amb=0;it.manual=1;persist();render();toast(m.name+' 회원으로 연동했어요')},
   mbody:d=>{const m=AD().members.find(x=>x.id===d.id);if(!m)return;const sex=$('#pxs').value,age=+$('#pxa').value,h=+$('#pxh').value,w=+$('#pxw').value,bf=$('#pxf').value===''?null:+$('#pxf').value;
     if(!sex||!(age>=5&&age<=110)||!(h>=100&&h<=250)||!(w>=20&&w<=300)||(bf!=null&&!(bf>=3&&bf<=70))){toast('성별·나이(5~110)·신장(100~250)·체중(20~300)을 확인해 주세요');return}
     m.body={sex,age,heightCm:h,bodyKg:w,bf,ts:Date.now()};persist();openM(memInfo(m.id));toast('몸 정보를 저장했어요')},
@@ -1982,7 +2140,7 @@ const A={
   gaccept:async d=>{const g=GIFTS.find(x=>x.id===d.id);if(!g)return;const p=g.payload||{},src=(p.slots||[]).filter(Boolean),dr=S.drafts[T]||(S.drafts[T]={slots:Array(6).fill(null)}),free=dr.slots.map((q,i)=>q?-1:i).filter(i=>i>=0);if(!free.length){toast('오늘 룬 6칸이 모두 찼어요. 빈 칸을 만든 뒤 받아 주세요');return}let n=0;src.forEach(x=>{if(!free.length||!x||!EX[x.id]||EX[x.id].missing)return;const i=free.shift(),sets=(x.sets&&x.sets.length?x.sets:mkSets(x.id)).map(q=>({t:q.t||'M',w:+q.w||0,r:+q.r||0,done:false,tmp:0}));dr.slots[i]={id:x.id,sets,note:x.note||''};n++});if(!n){toast('받을 수 있는 종목이 없어요');return}persist();const r=await sb.from('routine_gifts').update({status:'accepted',accepted_at:new Date().toISOString()}).eq('id',g.id);if(r.error){console.error(r.error);toast('받았지만 받은 표시를 저장하지 못했어요')}GIFTS=GIFTS.filter(x=>x.id!==g.id);closeM();tab='today';render();toast(`${n}개 종목을 오늘 운동에 넣었어요`)},
   linkid:d=>{const pv={'카카오':'kakao','구글':'google'}[d.p];if(!pv||!sb)return;sb.auth.linkIdentity({provider:pv,options:{redirectTo:APP_URL}}).then(r=>{if(r&&r.error)toast('연동하지 못했어요: '+(/manual/i.test(r.error.message)?'Supabase에서 계정 수동 연동을 켜야 해요':r.error.message))})},
   agcal:()=>toast('구글 로그인 연동 후 사용할 수 있어요 (다음 단계)'),
-  apick:d=>{const m=AD().members.find(x=>x.id===d.id);ADM.cur.name=m.name;ADM.cur.mid=m.id;persist();render()},
+  apick:d=>{const m=AD().members.find(x=>x.id===d.id);ADM.cur.name=m.name;ADM.cur.mid=m.id;ADM.cur.amb=0;ADM.cur.manual=1;persist();render()},
   atemp:()=>{const q=ADM.cur.name.trim(),m={id:'t'+Date.now(),name:q,temp:1};AD().members.push(m);ADM.cur.mid=m.id;persist();render()},
   aprev:()=>{const c=ADM.cur,ps=AD().plans;let f=null;Object.keys(ps).filter(k=>k<ADM.date).sort().reverse().some(k=>{const it=ps[k].find(x=>x.name.trim()&&x.name===c.name&&x.slots.some(Boolean));if(it){f=it;return true}});if(!f){toast('이전 수업 기록이 없어요');return}c.slots=JSON.parse(JSON.stringify(f.slots)).map(x=>x&&{id:x.id,sets:x.sets.map(s=>({...s,done:false}))});if(!c.no)c.no=(f.no||0)+1;persist();render();toast('지난 루틴을 불러왔어요')},
   amadd:()=>{const v=$('#mn').value.trim();if(!v)return;AD().members.push({id:'m'+Date.now(),name:v});persist();render()},
