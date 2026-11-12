@@ -142,7 +142,7 @@ html.embed canvas{max-height:none}
   var TIERS=['아이언','브론즈','실버','골드','플래티넘','에메랄드','다이아몬드','마스터','그랜드마스터','챌린저'];
   var COL=['#8b9099','#cf8a52','#d2dbe6','#ffc94d','#4fe0cf','#3ee08a','#6fb0ff','#c77dff','#ff5d73','#ffe27a'];
   var GLOW=[.10,.18,.27,.37,.47,.57,.68,.79,.90,1];
-  var RANK=[null,50,40,25,15,10,6,3,.5,.1];
+  var RANK=[null,50,43,32,20,10,6,3,.5,.1];
   var REG=['shoulder','chest','back','legs','run','head','waist'];          // 영역 번호 1~7, 0은 기본 몸체
   var INFO={shoulder:['어깨·팔','오버헤드프레스'],chest:['가슴','벤치프레스'],back:['등','바벨로우'],legs:['골반·허벅지','스쿼트'],run:['종아리·발','달리기 5km'],head:['머리','풀업'],waist:['허리','데드리프트']};
   var ST={shoulder:{t:3,s:2},chest:{t:4,s:5},back:{t:3,s:1},legs:{t:5,s:3},run:{t:2,s:4},head:{t:3,s:3},waist:{t:3,s:1}};
@@ -426,7 +426,7 @@ html.embed canvas{max-height:none}
   var pyrSel=null,pyrl=document.getElementById('pyrl'),pyrt=document.getElementById('pyrt'),pyrEls=[];
   var PD=['운동을 막 시작한 단계예요. 모든 티어는 여기서 출발해요.','기초 체력을 만든 단계예요. 일반 성인의 절반을 넘어선 수준이에요.','꾸준히 운동하는 사람의 수준이에요. 10명 중 4명 안에 들어요.','운동 습관이 몸에 밴 단계예요. 4명 중 1명만 도달해요.','헬스장에서도 눈에 띄는 수준이에요. 7명 중 1명 정도예요.','오랜 훈련의 결과예요. 10명 중 1명만 도달해요.','선수급 기반이에요. 약 17명 중 1명이에요.','극소수의 영역이에요. 약 33명 중 1명이에요.','200명 중 1명 꼴로 드문 수준이에요.','1,000명 중 1명. 피라미드의 꼭대기예요.'];
   /* 3D 금속 피라미드 3조각 — 정점(머리 옆) · 고지(몸통 옆) · 기반(발목~허벅지 옆). 아바타와 같은 시점(위아래 각도·확대)으로 그려서 함께 움직여요 */
-  var ZOF=function(t){return t<4?0:t<7?1:2},ZR=['50~25%','15~6%','3~0.1%'],ZREP=[2,5,8],pyTopT=0,
+  var ZOF=function(t){return t<4?0:t<7?1:2},ZR=['50~32%','20~6%','3~0.1%'],ZREP=[2,5,8],pyTopT=0,
       CT=function(z){return z===ZOF(pyTopT)?pyTopT:ZREP[z]};
   var pyHas={},pyTop=0,pyPoly=[],pyReduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches,
       pyo=document.createElement('canvas'),pyx=pyo.getContext('2d'),pyW=0,pyH=0;
