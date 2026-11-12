@@ -161,7 +161,7 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
   // 근거가 약한 가이드값이에요(공개 근력 기준표 기반 추정). 앱 회원 기록이 쌓이면 실제 분포로 교정해요.
   const TIER_RANK = [
     { n: '운동을 시작한 단계예요' }, { n: '기초 체력을 만든 단계예요', g: 50 },
-    { l: 80, g: 40 }, { l: 65, g: 25 }, { l: 50, g: 15 }, { l: 40, g: 10 }, { l: 30, g: 6 }, { l: 20, g: 3 }, { l: 7, g: 0.5 }, { l: 3, g: 0.1 }
+    { l: 80, g: 43 }, { l: 65, g: 32 }, { l: 50, g: 20 }, { l: 40, g: 10 }, { l: 30, g: 6 }, { l: 20, g: 3 }, { l: 7, g: 0.5 }, { l: 3, g: 0.1 }
   ];
   function rankLine(tier) {
     const r = TIER_RANK[Math.max(0, Math.min(9, tier | 0))], pc = (v) => '상위 약 ' + v + '%';
@@ -863,7 +863,7 @@ const lvOf=d=>(S.lv&&S.lv[d])||'intermediate';
 function progAt(b,st,date,mem){
   const R=window.RuneTier;
   if(b.m.id==='run5k')return R.runProgress(st,b.recs.filter(r=>r.date<=date),mem);
-  const ex=b.m;return R.progressOf(st,b.recs.filter(r=>r.date<=date),d=>R.multOf(lvOf(d)),ex.id,t=>window.RuneRoutine.refFor(ex,t,mem));
+  const ex=b.m;return R.progressOf(st,b.recs.filter(r=>r.date<=date),d=>R.multOf(mem.lv||lvOf(d)),ex.id,t=>window.RuneRoutine.refFor(ex,t,mem));
 }
 function passDates(b,T,mem){
   const R=window.RuneTier,ex=b.m,out={};
@@ -884,12 +884,11 @@ function passDates(b,T,mem){
   b.recs.forEach(r=>r.sets.forEach(s=>{if(s.done&&s.t!=='W'&&+s.w>=need-1e-6&&+s.r>=t.reps)out[r.date]=1}));
   return Object.keys(out).sort();
 }
-let NEWEQ=0;
-function settleTiers(by,mem){
-  const R=window.RuneTier;S.tiers=S.tiers||{};let ch=false;
-  const headT=id=>S.tiers[id]?S.tiers[id].tier:0;
+function settleTiers(by,mem,store,save){
+  const R=window.RuneTier;let ch=false;
+  const headT=id=>store[id]?store[id].tier:0;
   Object.keys(by).sort((a,b)=>(by[b].m.role==='head')-(by[a].m.role==='head')).forEach(k=>{
-    const b=by[k],ex=b.m;let st=S.tiers[k];if(!st){st=S.tiers[k]=Object.assign(R.newState(),{hist:[]});ch=true}
+    const b=by[k],ex=b.m;let st=store[k];if(!st){st=store[k]=Object.assign(R.newState(),{hist:[]});ch=true}
     st.hist=st.hist||[];
     for(let g=0;g<12;g++){
       if(st.pend)break;
@@ -898,25 +897,32 @@ function settleTiers(by,mem){
       for(const d of passDates(b,T,mem)){if(d<st.sinceDate)continue;const q=progAt(b,st,d,mem);if(q.stars>=R.PROMO_STARS){hit={d,stars:q.stars};break}}
       if(!hit)break;ch=true;
       if(R.needsTrainer(ex,T)){st.pend={t:T,d:hit.d,stars:hit.stars};break}
-      const ns=R.promote(st,hit.stars,hit.d,k==='run5k'?R.RUN_TBL:null);Object.assign(st,ns);st.hist.push({t:ns.tier,d:hit.d});NEWEQ++;
+      const ns=R.promote(st,hit.stars,hit.d,k==='run5k'?R.RUN_TBL:null);Object.assign(st,ns);st.hist.push({t:ns.tier,d:hit.d});
     }
   });
-  if(ch)DB.save(S);
+  if(ch)save();
 }
-function tierRows(){
-  const R=window.RuneTier,by={},mem=memberCalc(),bw=mem.bodyKg;
-  allDates().sort().forEach(d=>dayItems(d).forEach(x=>{if(!EX[x.id]||EX[x.id].missing)return;const e=EX[x.id],m=R.metaFor(e.name,{machine:e.m,region:e.part==='leg'?'lower':'upper'});
+function selfItems(){const o=[];allDates().sort().forEach(d=>dayItems(d).forEach(x=>{if(!EX[x.id]||EX[x.id].missing)return;o.push({date:d,id:x.id,sets:x.sets})}));return o}
+/* 대리 회원: 트레이너가 수업에서 기록한 룬 페이지를 회원 기록으로 봐요(완료 체크가 없어도 직접 입력한 세트는 인정) */
+function memItems(m){const o=[],ss=memSess(m);Object.keys(ss).sort().forEach(d=>ss[d].forEach(it=>(it.slots||[]).filter(Boolean).forEach(x=>{if(!EX[x.id]||EX[x.id].missing)return;o.push({date:d,id:x.id,sets:x.sets.map(s=>Object.assign({},s,{done:!!(s.done||(!s.tmp&&+s.r>0))}))})})));return o}
+function memBody(m){const b=m.body||{};return{sex:b.sex,age:b.age,heightCm:b.heightCm,bodyKg:b.bodyKg,bodyFatPct:b.bf!=null?b.bf:null,lv:'intermediate'}}
+const memBodyOk=m=>{const b=m.body||{};return !!(b.sex&&b.age>=5&&b.heightCm>=100&&b.bodyKg>=20)};
+function tierRowsFor(ctx){
+  const R=window.RuneTier,by={},mem=ctx.mem,bw=mem.bodyKg,store=ctx.store();
+  ctx.items.forEach(x=>{const e=EX[x.id],m=R.metaFor(e.name,{machine:e.m,region:e.part==='leg'?'lower':'upper'});
     let sets=x.sets;
-    if(e.name==='푸시업'&&bw){sets=x.sets.map(q=>Object.assign({},q,{w:bw*puV(q)[3]}))}
-    if(m.id==='pullup'){if(!bw)return;const as=e.name==='어시스티드 풀업 머신';sets=x.sets.map(s=>Object.assign({},s,{w:as?Math.max(0,bw-(+s.w||0)):bw+(+s.w||0)}))}
-    (by[m.id]=by[m.id]||{m,name:m.id==='pullup'?'풀업':e.name,part:e.part,recs:[]}).recs.push({date:d,sets})}));
-  const runs=(S.runs||[]).filter(r=>r.km>0&&r.sec>0);
+    if(e.name==='푸시업'&&bw){sets=sets.map(q=>Object.assign({},q,{w:bw*puV(q)[3]}))}
+    if(m.id==='pullup'){if(!bw)return;const as=e.name==='어시스티드 풀업 머신';sets=sets.map(s=>Object.assign({},s,{w:as?Math.max(0,bw-(+s.w||0)):bw+(+s.w||0)}))}
+    (by[m.id]=by[m.id]||{m,name:m.id==='pullup'?'풀업':e.name,part:e.part,recs:[]}).recs.push({date:x.date,sets})});
+  const runs=(ctx.runs||[]).filter(r=>r.km>0&&r.sec>0);
   if(runs.length)by.run5k={m:R.BY_ID.run5k,name:'5km 달리기',part:'leg',recs:runs.map(r=>({date:r.date,km:r.km,sec:r.sec,sets:[]})).sort((a,b)=>a.date<b.date?-1:1)};
-  settleTiers(by,mem);
-  const pg={};Object.keys(by).forEach(k=>{pg[k]=progAt(by[k],S.tiers[k],'9999-99-99',mem)});
-  const headT=id=>S.tiers[id]?S.tiers[id].tier:0;
-  return Object.keys(by).map(k=>{const b=by[k],p=pg[k];return Object.assign({},b,{p,ps:R.promoStatus(b.m,p,headT),pend:S.tiers[k].pend||null,hist:S.tiers[k].hist||[]})}).sort((a,b)=>b.p.tier-a.p.tier||b.p.mp-a.p.mp);
+  Object.keys(store).forEach(k=>{if(!by[k]&&R.BY_ID[k]&&store[k].tier>0)by[k]={m:R.BY_ID[k],name:R.BY_ID[k].name,part:(R.BY_ID[k].region==='lower'?'leg':'chest'),recs:[]}});   // 시작 티어만 있고 기록이 아직 없는 줄도 보여요
+  settleTiers(by,mem,store,ctx.save);
+  const headT=id=>store[id]?store[id].tier:0;
+  return Object.keys(by).map(k=>{const b=by[k],p=progAt(b,store[k],'9999-99-99',mem);return Object.assign({},b,{p,ps:R.promoStatus(b.m,p,headT),pend:store[k].pend||null,hist:store[k].hist||[]})}).sort((a,b)=>b.p.tier-a.p.tier||b.p.mp-a.p.mp);
 }
+const tierRows=()=>tierRowsFor({mem:memberCalc(),items:selfItems(),store:()=>S.tiers||(S.tiers={}),runs:S.runs,save:sv});
+const memRows=m=>tierRowsFor({mem:memBody(m),items:memItems(m),store:()=>m.tiers||(m.tiers={}),runs:m.runs,save:sv});
 function tierGuide(){
   const R=window.RuneTier,p=S.profile||{},c=bodyCur(),cur=Math.max.apply(null,[0].concat(tierRows().map(r=>r.p.tier)));
   const who=[p.age?p.age+'세':'',p.sex?(p.sex==='F'?'여성':'남성'):'',p.heightCm?p.heightCm+'cm':'',c&&c.bf!=null?'체지방률 '+c.bf+'%':''].filter(Boolean).join(' · ')||'나이·성별·체격';
@@ -925,9 +931,9 @@ function tierGuide(){
   ${R.TIERS.map((n,i)=>`<div class="mu" style="${i===cur?'color:#ffb62e;font-weight:700':''}">${i===cur?'▶ ':''}${n} · ${esc(R.rankLine(i))}</div>`).join('')}
   <div class="mu" style="margin-top:6px;opacity:.8">추정치예요. 앱 회원 기록이 쌓이면 실제 분포로 바꿔 갈게요.</div></details>`;
 }
-function examLine(r){
+function examLine(r,mem0){
   try{
-    const R=window.RuneTier,RR=window.RuneRoutine,mem=memberCalc(),ex=R.BY_ID[r.m.id];
+    const R=window.RuneTier,RR=window.RuneRoutine,mem=mem0||memberCalc(),ex=R.BY_ID[r.m.id];
     if(r.m.id==='run5k'||r.m.id==='pullup'){
       if(r.p.tier>=r.m.maxTier)return '';const t0=R.targetFor(r.m,r.p.tier+1,mem);if(!t0||!t0.ok)return '';
       if(t0.blocked)return '<div class="mu">다음 시험: 나이 제한으로 아직 열리지 않아요</div>';
@@ -1045,7 +1051,7 @@ const EQ_G=['견습','정교','명품','고귀','영웅','전설','신화','태�
 const EQ_COL=['#8b9099','#cf8a52','#9aa7b8','#ffc94d','#4fe0cf','#3ee08a','#6fb0ff','#c77dff','#ff5d73','#ffe27a'];
 let EQN={};
 function eqOwned(){try{tierRows()}catch(e){}const o={};EQ_SLOTS.forEach(sl=>{const st=(S.tiers||{})[sl.src];o[sl.k]=st?Math.max(st.tier||0,...(st.hist||[]).map(h=>h.t)):0});return o}
-function eqInit(){if(S.equip)return;const o=eqOwned();S.equip={};S.equipSeen={};EQ_SLOTS.forEach(sl=>{S.equip[sl.k]=o[sl.k];S.equipSeen[sl.k]=o[sl.k]});DB.save(S)}
+function eqInit(){if(S.equip)return;const o=eqOwned();S.equip={};S.equipSeen={};EQ_SLOTS.forEach(sl=>{S.equip[sl.k]=o[sl.k];S.equipSeen[sl.k]=o[sl.k]});sv()}
 function eqNewCount(){eqInit();const o=eqOwned();return EQ_SLOTS.filter(sl=>o[sl.k]>(S.equipSeen[sl.k]||0)).length}
 const eqName=(sl,g)=>g>0?EQ_G[g-1]+'의 '+sl.n:'기본 (아이언)';
 function hopeCard(){
@@ -1076,14 +1082,14 @@ function runHTML(){
   <div class="row" style="gap:6px;margin-top:6px"><input id="rk" type="number" inputmode="decimal" step="0.01" value="5" placeholder="거리 km" style="flex:1"><input id="rt" type="text" inputmode="numeric" placeholder="시간 예 27:30" style="flex:1"></div>
   <button class="btn" style="margin-top:8px" data-act="runsave">기록 저장</button></div>`+(rs.length?rs.map(r=>`<div class="sp" style="margin-top:6px"><div class="row"><span>${esc(r.date)} · ${r.km}km · ${R.fmtSec(r.sec)} <span class="mu">(${pace(r)} · ${esc(r.place||'')})</span></span><button class="x" data-act="rundel" data-id="${r.id}">삭제</button></div></div>`).join(''):'<div class="mu" style="margin-top:8px">아직 기록이 없어요</div>');
 }
-function tierPanel(){
-  const R=window.RuneTier,rows=tierRows(),mu=R.multOf(S.level);
+function tierPanel(rows0,mem0,mid){
+  const R=window.RuneTier,rows=rows0||tierRows(),mu=R.multOf(S.level);
   if(!rows.length)return `<div class="pn"><div class="h2">종목별 티어 <small class="mu">베타</small></div><div class="mu">기록을 저장하면 종목마다 별이 쌓여요</div></div>`;
   const msg={ready:'5성 달성 · 승급 시험에 도전해 보세요 (통과하면 승급)',locked:null,max:'이 종목의 최고 티어예요',notyet:''};
   return `<div class="pn"><div class="h2">종목별 티어 <small class="mu">베타</small></div><div class="mu">종목마다 티어가 따로예요 · 별은 8성까지 쌓이고, 5성부터 승급 퀘스트가 열려요</div>`+rows.map(r=>{
     const p=r.p,st=p.stars>5?'★'.repeat(5)+'<b style="color:#ff7a3c">+'+(p.stars-5)+'</b>':'★'.repeat(p.stars)+'<span style="opacity:.3">'+'★'.repeat(5-p.stars)+'</span>';
     const note=r.ps.state==='locked'?'🔒 '+esc(r.ps.reason):esc(msg[r.ps.state]||'');
-    return `<div class="sp"><div class="row"><b style="color:${PC[r.part]}">${esc(r.name)}</b><span>${R.TIERS[p.tier]} <span style="color:#ffb62e">${st}</span></span></div><div class="bar" style="--c:${PC[r.part]}"><i style="width:${Math.round(p.pct*100)}%"></i></div><div class="mu">${fmt(R.toKg(p.mp,mu))}kg 누적(기준 환산)${note?' · '+note:''}</div><div class="mu" style="color:#ffb62e">${esc(R.rankLine(p.tier))}</div>${examLine(r)}${r.pend?`<div class="mu" style="margin-top:6px;color:#ffb62e">🏅 ${R.TIERS[r.pend.t]} 시험 통과 기록이 있어요 (${esc(r.pend.d)}). 트레이너 확인 후 승급을 확정하세요.</div><button class="btn sm" style="width:auto;margin-top:4px" data-act="tconf" data-k="${r.m.id}">승급 확정</button>`:''}</div>`}).join('')+tierGuide()+`</div>`;
+    return `<div class="sp"><div class="row"><b style="color:${PC[r.part]}">${esc(r.name)}</b><span>${R.TIERS[p.tier]} <span style="color:#ffb62e">${st}</span></span></div><div class="bar" style="--c:${PC[r.part]}"><i style="width:${Math.round(p.pct*100)}%"></i></div><div class="mu">${fmt(R.toKg(p.mp,mu))}kg 누적(기준 환산)${note?' · '+note:''}</div><div class="mu" style="color:#ffb62e">${esc(R.rankLine(p.tier))}</div>${examLine(r,mem0)}${r.pend?`<div class="mu" style="margin-top:6px;color:#ffb62e">🏅 ${R.TIERS[r.pend.t]} 시험 통과 기록이 있어요 (${esc(r.pend.d)}). 트레이너 확인 후 승급을 확정하세요.</div><button class="btn sm" style="width:auto;margin-top:4px" data-act="${mid?'mconf':'tconf'}" data-k="${r.m.id}"${mid?` data-id="${mid}"`:''}>승급 확정</button>`:''}</div>`}).join('')+(mid?'':tierGuide())+`</div>`;
 }
 const $=s=>document.querySelector(s);
 const ymd=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
@@ -1099,9 +1105,11 @@ const DB={
 let S=DB.load();S.sessions=S.sessions||{};S.more=S.more||{};S.curNo=S.curNo||{};S.drafts=S.drafts||{};S.level='intermediate';
 const fixT=l=>l.forEach(x=>x&&x.sets.forEach(s=>{if(s.t==='N')s.t='M'}));Object.values(S.sessions).forEach(fixT);Object.values(S.drafts).forEach(d=>fixT(d.slots));
 const DEMO=[['m1','김민수'],['m2','이서연'],['m3','박지훈'],['m4','최유나'],['m5','정하늘']];
-const AD=()=>S.adm||(S.adm={members:DEMO.map(([id,name])=>({id,name})),plans:{}});
+const AD=()=>S.adm||(S.adm={members:UID?[]:DEMO.map(([id,name])=>({id,name})),plans:{}});
 let sb=null,UID=null,PULLED=false,PULLING=false,SYNC='off',stmr=null;
-const persist=()=>{DB.save(S);queueSync()};
+var SY={};
+const persist=()=>{DB.save(S);queueSync();syncSoon()};
+const sv=()=>{DB.save(S);syncSoon()};
 let ADM={date:T,cur:null},tab=S.mode==='admin'?'acal':'home',PK={slot:0,part:'chest',q:''},RC=0,CM=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()}})(),CD=T;
 
 /* 푸시업 자세: kg 대신 자세를 고르고, 자세별 체중 부하 비율로 환산해요(연구 평균 근사치) */
@@ -1240,6 +1248,7 @@ function viewMe(){
   `<div class="h2">로그인하고 기록 이어가기</div><div class="mu" style="margin:4px 0 10px">로그인하면 기록이 계정에 저장돼서 기기를 바꿔도 이어져요. 카톡 안에서 열었다면 크롬·사파리로 열어 로그인해 주세요.</div>
   <button class="btn" style="background:#fee500;color:#191600;margin-bottom:8px" data-act="login" data-p="카카오">카카오로 시작하기</button>
   <button class="btn ghost" data-act="login" data-p="구글">구글로 시작하기</button>`}</div>
+  ${syCard()}
   ${eqCard()}
   ${hopeCard()}
   <div class="pn"><div class="row"><b class="h2">내 초기 정보</b><button class="btn ghost sm" data-act="editprofile">수정</button></div>${(()=>{const p=S.profile;if(!p)return '<div class="mu" style="margin-top:6px">아직 입력하지 않았어요</div>';const ex=(EXP.find(x=>x[0]===p.exp)||[0,''])[1];return `<div class="mu" style="line-height:1.8;margin-top:6px">만 ${p.age}세 · ${p.sex==='M'?'남성':'여성'}${p.heightCm?' · '+p.heightCm+'cm':''}${p.bodyKg?' · '+p.bodyKg+'kg':''} · 운동 경력 ${ex}<br>관심사: ${p.interests.map(esc).join(', ')||'-'}<br>부상·질병: ${p.injuries.map(esc).join(', ')||'-'}${p.note?' ('+esc(p.note)+')':''}</div>`})()}</div>
@@ -1322,7 +1331,7 @@ function viewAdm(){
   const d=ADM.date,list=plan(d).slice().sort((a,b)=>a.time<b.time?-1:1),sent=list.filter(x=>x.sent).length;
   const cards=list.map(it=>{const n=it.slots.filter(Boolean).length;
     return `<div class='pn'><div class='row'><b class='h2'>${it.time}–${endT(it.time)} · ${esc(it.name)||'회원 미지정'}${it.no?' · '+it.no+'차시':''}</b><span class='mu'>${it.sent?'✔ 발송됨':'작성중'}</span></div><div class='mu' style='margin:4px 0 8px'>룬 ${n}/6${n?' · '+esc(it.slots.filter(Boolean).map(x=>EX[x.id].name).join(', ')):''}${it.special?' · 특이사항 있음':''}</div><div style='display:flex;flex-wrap:wrap;gap:6px'><button class='btn sm' data-act='aedit' data-id='${it.id}'>편집</button><a class='btn ghost sm' href='${esc(calURL(it,d))}' target='_blank' rel='noopener'>캘린더</a><button class='btn ghost sm' data-act='acopy' data-id='${it.id}'>카톡 복사</button><button class='btn ghost sm' data-act='asend' data-id='${it.id}'>발송</button><button class='btn ghost sm' data-act='adel' data-id='${it.id}'>삭제</button></div></div>`}).join('');
-  return `<h1 class='h1'>관리자 · 수업 시간표</h1><div class='mu'>데모 화면이에요. 실서비스에서는 서버가 트레이너로 지정한 계정만 관리자 버전을 켤 수 있어요.</div><div class='pn' style='margin-top:10px'><div class='row' style='gap:8px'><input type='date' class='fi' id='ad' value='${d}'><span class='vb'>수업 <b style='font-size:18px'>${list.length}</b>칸 · 발송 ${sent}</span></div><div class='row' style='gap:8px;margin-top:8px'><select class='fi' id='at'>${HRS.map(h=>`<option ${h==='06:00'?'selected':''}>${h}</option>`).join('')}</select><button class='btn sm' style='white-space:nowrap' data-act='aadd'>+ 수업 칸 추가</button></div><div class='row' style='gap:8px;margin-top:8px'><button class='btn ghost sm' data-act='aexp'>다른 기기로 보내기 (코드 복사)</button></div><details style='margin-top:8px'><summary class='mu'>다른 기기에서 가져오기</summary><textarea id='imp' class='fi' rows='3' style='width:100%;margin-top:6px' placeholder='복사한 코드를 붙여넣기'></textarea><button class='btn sm' data-act='aimp' style='margin-top:6px'>가져오기</button></details><button class='btn ghost' style='margin-top:8px' data-act='agcal'>구글 캘린더에서 [PT] 일정 불러오기</button></div>${cards||`<div class='mu'>이 날짜에는 수업 칸이 없어요</div>`}${list.length?`<button class='btn' data-act='asendall'>회원 지정된 칸 모두 발송</button>`:''}`;
+  return `<h1 class='h1'>관리자 · 수업 시간표</h1><div class='mu'>데모 화면이에요. 실서비스에서는 서버가 트레이너로 지정한 계정만 관리자 버전을 켤 수 있어요.</div>${syCard()}<div class='pn' style='margin-top:10px'><div class='row' style='gap:8px'><input type='date' class='fi' id='ad' value='${d}'><span class='vb'>수업 <b style='font-size:18px'>${list.length}</b>칸 · 발송 ${sent}</span></div><div class='row' style='gap:8px;margin-top:8px'><select class='fi' id='at'>${HRS.map(h=>`<option ${h==='06:00'?'selected':''}>${h}</option>`).join('')}</select><button class='btn sm' style='white-space:nowrap' data-act='aadd'>+ 수업 칸 추가</button></div><div class='row' style='gap:8px;margin-top:8px'><button class='btn ghost sm' data-act='aexp'>다른 기기로 보내기 (코드 복사)</button></div><details style='margin-top:8px'><summary class='mu'>다른 기기에서 가져오기</summary><textarea id='imp' class='fi' rows='3' style='width:100%;margin-top:6px' placeholder='복사한 코드를 붙여넣기'></textarea><button class='btn sm' data-act='aimp' style='margin-top:6px'>가져오기</button></details><button class='btn ghost' style='margin-top:8px' data-act='agcal'>구글 캘린더에서 [PT] 일정 불러오기</button></div>${cards||`<div class='mu'>이 날짜에는 수업 칸이 없어요</div>`}${list.length?`<button class='btn' data-act='asendall'>회원 지정된 칸 모두 발송</button>`:''}`;
 }
 function viewAdmEdit(){
   const c=ADM.cur;
@@ -1330,7 +1339,7 @@ function viewAdmEdit(){
 }
 function viewMem(){
   const ms=AD().members,cnt=m=>Object.values(AD().plans).reduce((a,l)=>a+l.filter(x=>x.name===m.name).length,0);
-  return `<h1 class='h1'>내 회원</h1><div class='pn'><div class='h2'>회원 추가</div><div class='mu'>가입한 회원은 [가입 회원에서 추가]로 계정을 연결해요. 계정이 연결된 회원에게만 루틴을 보낼 수 있어요. 이름만 직접 추가할 수도 있어요.</div><div class='row' style='gap:8px;margin-top:8px'><input type='text' id='mn' placeholder='회원 이름'><button class='btn sm' style='white-space:nowrap' data-act='amadd'>추가</button></div><button class='btn ghost' style='margin-top:8px' data-act='apicker' data-id=''>가입 회원에서 추가</button></div><div class='pn'>`+ms.map(m=>`<button class='ex' data-act='amem' data-id='${m.id}'><span>${esc(m.name)}${m.uid?' 🔗':''}${m.temp?` <small class='mu'>(임시)</small>`:''}</span><span class='mu'>수업 ${cnt(m)}회 · 기록 ${(m.log||[]).length}건</span></button>`).join('')+`</div>`;
+  return `<h1 class='h1'>내 회원</h1>${syCard()}<div class='pn'><div class='h2'>회원 추가</div><div class='mu'>가입한 회원은 [가입 회원에서 추가]로 계정을 연결해요. 계정이 연결된 회원에게만 루틴을 보낼 수 있어요. 이름만 직접 추가할 수도 있어요.</div><div class='row' style='gap:8px;margin-top:8px'><input type='text' id='mn' placeholder='회원 이름'><button class='btn sm' style='white-space:nowrap' data-act='amadd'>추가</button></div><button class='btn ghost' style='margin-top:8px' data-act='apicker' data-id=''>가입 회원에서 추가</button></div><div class='pn'>`+ms.map(m=>`<button class='ex' data-act='amem' data-id='${m.id}'><span>${esc(m.name)}${m.uid?' 🔗':''}${m.temp?` <small class='mu'>(임시)</small>`:''}</span><span class='mu'>수업 ${cnt(m)}회 · 기록 ${(m.log||[]).length}건</span></button>`).join('')+`</div>`;
 }
 function reviewHTML(d){
   const fl=d.slots.filter(Boolean);
@@ -1426,7 +1435,23 @@ function memHTML2(){
     return `<div class='pn'><b class='h2'>${it.time}–${endT(it.time)}${it.no?' · '+it.no+'차시':''}</b>${rn||`<div class='mu' style='margin-top:6px'>룬 페이지 기록이 없어요</div>`}${blk('수업 내용',it.memo)}${blk('특이사항',it.special,it.spDone)}${blk('과제',it.hw,it.hwDone)}${blk('다음 수업 목표',it.goal)}</div>`}).join('');
   return `<div class='row'><button class='x' style='font-size:14px' data-act='amem' data-id='${m.id}'>◀ 회원정보</button><button class='x' data-act='close'>✕</button></div><b class='h2'>${esc(m.name)}${m.temp?' (임시)':''} 운동일지</b><div class='row' style='margin:8px 0'><button class='x' data-act='mmon' data-v='-1'>◀</button><b>${y}년 ${mo+1}월</b><button class='x' data-act='mmon' data-v='1'>▶</button></div><div class='cal'>${cells}</div><div class='mu' style='margin:6px 0 10px'>형광펜 날짜는 PT 수업이 있던 날이에요. 날짜를 누르면 그날의 진행 내용이 나와요.</div>${MC.d?(day||`<div class='mu'>${MC.d}에는 수업 기록이 없어요</div>`):''}`;
 }
-function memInfo(id){
+function proxyHTML(m){
+  const R=window.RuneTier,b=m.body||{};
+  const f=(id,ph,v,t)=>`<input id="${id}" class="fi" type="${t||'number'}" inputmode="decimal" placeholder="${ph}" value="${v==null?'':v}" style="flex:1;min-width:0">`;
+  let h=`<div class="pn" style="margin:10px 0"><div class="h2">대리 육성 · 몸 정보</div><div class="mu" style="margin:4px 0 8px;line-height:1.6">앱을 직접 못 쓰는 회원의 몸 정보를 트레이너가 입력해요. 수업에서 기록한 룬 페이지로 티어와 별이 올라가요. 회원 동의를 받고 입력하세요. 나중에 가입하면 이관할 수 있어요(이관 코드는 다음 단계).</div>
+  <div class="row" style="gap:6px"><select id="pxs" class="fi" style="flex:1"><option value="">성별</option><option value="M"${b.sex==='M'?' selected':''}>남</option><option value="F"${b.sex==='F'?' selected':''}>여</option></select>${f('pxa','나이',b.age)}</div>
+  <div class="row" style="gap:6px;margin-top:6px">${f('pxh','신장 cm',b.heightCm)}${f('pxw','체중 kg',b.bodyKg)}${f('pxf','체지방 %(선택)',b.bf)}</div>
+  <button class="btn" style="margin-top:8px" data-act="mbody" data-id="${m.id}">몸 정보 저장</button></div>`;
+  if(!memBodyOk(m))return h+`<div class="mu">몸 정보(성별·나이·신장·체중)를 저장하면 티어가 계산돼요.</div>`;
+  const mem=memBody(m),rows=memRows(m),lines=R.EXERCISES.filter(e=>e.maxTier>0);
+  h+=`<div class="pn" style="margin:10px 0"><div class="h2">시작 티어 설정</div><div class="mu" style="margin:4px 0 8px">같이 운동할 때의 수행능력을 보고 종목 줄의 시작 티어를 정해요. 이후 기록부터 별이 쌓여요.</div><div class="row" style="gap:6px"><select id="pxl" class="fi" style="flex:1;min-width:0">${lines.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')}</select><select id="pxt" class="fi" style="width:42%">${R.TIERS.slice(0,10).map((n,i)=>`<option value="${i}">${n}</option>`).join('')}</select></div><button class="btn ghost sm" style="margin-top:8px" data-act="mstart" data-id="${m.id}">시작 티어 적용</button></div>`;
+  h+=tierPanel(rows,mem,m.id);
+  const own={};rows.forEach(r=>{own[r.m.id]=Math.max(r.p.tier,...(r.hist||[]).map(x=>x.t))});
+  h+=`<div class="pn" style="margin:10px 0"><div class="h2">장비 (획득)</div><div class="mu" style="line-height:1.8">${EQ_SLOTS.map(sl=>{const g=own[sl.src]||0;return `<span style="color:${EQ_COL[g]}">${sl.ic} ${g?EQ_G[g-1]:'기본'}</span>`}).join(' · ')}</div></div>`;
+  return h;
+}
+function memInfo(id){const m=AD().members.find(x=>x.id===id);return memInfo0(id)+(m&&!m.uid?proxyHTML(m):'')}
+function memInfo0(id){
   const m=AD().members.find(x=>x.id===id),ss=memSess(m),all=[];
   Object.keys(ss).sort().forEach(d=>ss[d].slice().sort((a,b)=>a.time<b.time?-1:1).forEach(it=>all.push({d,it})));
   all.forEach((e,i)=>{e.n=e.it.no||i+1});
@@ -1439,7 +1464,7 @@ function memInfo(id){
 }
 const SB_URL='https://vpdemapnpunsuxqdffgn.supabase.co',SB_KEY='sb_publishable_fonyE5eloRwvXb7hacPTow_d6JR0zMv',APP_URL='https://upvible.github.io/Rune-PT/';
 const syncTxt=()=>({off:'이 기기에만 저장',ok:'저장됨',err:'저장 실패 · 다시 시도 중',busy:'저장 중…'}[SYNC]||'');
-function queueSync(){if(!sb||!UID||!PULLED||S.mode==='admin')return;clearTimeout(stmr);SYNC='busy';stmr=setTimeout(syncToday,1500)}
+function queueSync(){SY.selfAt=Date.now();if(!sb||!UID||!PULLED||S.mode==='admin')return;clearTimeout(stmr);SYNC='busy';stmr=setTimeout(syncToday,1500)}
 async function syncToday(){
   const dr=S.drafts[T],items=dr?dr.slots.map(x=>x||null):Array(6).fill(null),has=items.some(Boolean),rv=(S.reviews||{})[T]||{};
   if(!sb||!UID||!PULLED)return;
@@ -1449,6 +1474,130 @@ async function syncToday(){
   try{const r=await sb.from('workout_sessions').upsert({member_id:UID,session_date:T,session_no:no,level:'intermediate',items,grade:rv.g||null,review:rv.t||null,updated_at:new Date().toISOString()},{onConflict:'member_id,session_date,session_no'});SYNC=r.error?'err':'ok';if(r.error)console.error(r.error)}catch(e){SYNC='err'}
   DB.save(S);if(SYNC==='err')setTimeout(queueSync,15000);
 }
+/* ===== 서버 동기화: 승급·장비·달리기·트레이너 데이터(회원·수업)를 서버(app_state)에 저장하고 다른 기기와 실시간 교류 ===== */
+/* 규칙: 문서(key)마다 {v:값, ts:시각}. 최신(ts)이 이기고, 내가 방금 고친 건 내가 먼저 올려요. 처음 연결 때는 양쪽 데이터를 합쳐요(지우지 않음). */
+const syTyping=()=>{const a=document.activeElement;return !!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))};
+const syRows=a=>a&&typeof a==='object'?a:{};
+function syVal(k){
+  if(k==='tiers')return S.tiers&&Object.keys(S.tiers).length?S.tiers:undefined;
+  if(k==='equip')return S.equip?{equip:S.equip,seen:S.equipSeen||{}}:undefined;
+  if(k==='runs')return S.runs&&S.runs.length?S.runs:undefined;
+  if(k==='wm')return S.wm&&Object.keys(S.wm).length?S.wm:undefined;
+  if(!S.adm)return undefined;
+  if(k.startsWith('tm:'))return S.adm.members.find(x=>x.id===k.slice(3));
+  if(k.startsWith('tp:')){const l=S.adm.plans[k.slice(3)];return l&&l.length?l:undefined}
+  return undefined;
+}
+function syKeys(){
+  const ks=['tiers','equip','runs','wm'];
+  if(S.adm){S.adm.members.forEach(m=>ks.push('tm:'+m.id));Object.keys(S.adm.plans).forEach(d=>ks.push('tp:'+d))}
+  Object.keys(S.sy.h).forEach(k=>{if(ks.indexOf(k)<0)ks.push(k)});return ks;
+}
+function syHash(v){const s=JSON.stringify(v);let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return (h>>>0).toString(36)+'.'+s.length}
+function syDirty(k){const v=syVal(k);return v===undefined?S.sy.h[k]!==undefined:S.sy.h[k]!==syHash(v)}
+function syApply(k,doc){
+  if(doc.del){
+    if(k==='tiers')delete S.tiers;else if(k==='equip'){delete S.equip;delete S.equipSeen}else if(k==='runs')S.runs=[];else if(k==='wm')delete S.wm;
+    else if(S.adm&&k.startsWith('tm:')){const i=S.adm.members.findIndex(x=>x.id===k.slice(3));if(i>=0)S.adm.members.splice(i,1)}
+    else if(S.adm&&k.startsWith('tp:'))delete S.adm.plans[k.slice(3)];
+    return;
+  }
+  const v=doc.v;
+  if(k==='tiers')S.tiers=v||{};else if(k==='equip'){S.equip=syRows(v.equip);S.equipSeen=syRows(v.seen)}else if(k==='runs')S.runs=v||[];else if(k==='wm')S.wm=v||{};
+  else if(k.startsWith('tm:')){const l=AD().members,i=l.findIndex(x=>x.id===k.slice(3));if(i>=0)l[i]=v;else l.push(v)}
+  else if(k.startsWith('tp:'))AD().plans[k.slice(3)]=v;
+}
+function syMerge(k,lv,rv){
+  if(k==='tiers'){const o={};[...Object.keys(lv),...Object.keys(rv)].forEach(n=>{const a=lv[n],b=rv[n];o[n]=!a?b:!b?a:(b.tier>a.tier||(b.tier===a.tier&&(b.hist||[]).length>=(a.hist||[]).length))?b:a});return o}
+  if(k==='runs'){const m={};lv.concat(rv).forEach(r=>{m[r.id]=r});return Object.values(m)}
+  if(k==='equip')return rv;
+  if(k==='wm')return Object.assign({},lv,rv);
+  if(k.startsWith('tm:')){const o=Object.assign({},lv,rv),seen={};o.log=(lv.log||[]).concat(rv.log||[]).filter(e=>{const s=e.date+'|'+e.time+'|'+(e.memo||'');if(seen[s])return false;return seen[s]=1});if(!o.log.length)delete o.log;return o}
+  if(k.startsWith('tp:')){const m={};lv.concat(rv).forEach(it=>{m[it.id]=it});return Object.values(m).sort((a,b)=>a.time<b.time?-1:1)}
+  return rv;
+}
+var SY=SY||{};
+Object.assign(SY,{q:{},live:'off',last:0,err:'',timer:0});
+/* 들어온 문서 처리 (실시간·불러오기 공통). 입력 중이거나 그 수업 편집창이 열려 있으면 잠시 미룸 */
+function syIn(k,doc){
+  if(!doc||!(doc.ts>=0))return;
+  if(doc.ts<=(S.sy.ts[k]||0)&&S.sy.ts[k]!==undefined)return;
+  SY.q[k]=doc;syDrain();
+}
+function syDrain(){
+  if(syTyping()){clearTimeout(SY.dt);SY.dt=setTimeout(syDrain,1500);return}
+  let n=0,defer=false;
+  Object.keys(SY.q).forEach(k=>{
+    const doc=SY.q[k];
+    if(k.startsWith('tp:')&&typeof ADM!=='undefined'&&ADM.cur&&ADM.date===k.slice(3)){defer=true;return}
+    delete SY.q[k];
+    if(doc.ts<=(S.sy.ts[k]||0)&&S.sy.ts[k]!==undefined)return;
+    const lv=syVal(k),first=S.sy.ts[k]===undefined;
+    if(!first&&syDirty(k))return;                       // 내 미저장 변경이 있으면 내 것을 먼저 올려요
+    if(first&&lv!==undefined&&!doc.del){syApply(k,{v:syMerge(k,lv,doc.v)});S.sy.ts[k]=doc.ts;delete S.sy.h[k];n++;return} // 처음 연결: 합친 결과를 다시 올려요
+    syApply(k,doc);S.sy.ts[k]=doc.ts;const nv=syVal(k);if(nv===undefined)delete S.sy.h[k];else S.sy.h[k]=syHash(nv);n++;
+  });
+  if(defer){clearTimeout(SY.dt);SY.dt=setTimeout(syDrain,1500)}
+  if(n){DB.save(S);if(typeof SCR!=='undefined'&&SCR==='app'&&!syTyping())render();syncSoon()}
+}
+/* 내 변경을 서버로 */
+function syncSoon(){if(!sb||!UID||!SY.ready)return;clearTimeout(SY.t);SY.t=setTimeout(syFlush,1200)}
+async function syFlush(){
+  if(!sb||!UID||!SY.ready||SY.busy)return;SY.busy=1;
+  try{
+    const ch=[];syKeys().forEach(k=>{const v=syVal(k);if(v===undefined){if(S.sy.h[k]!==undefined)ch.push([k,undefined,null])}else{const h=syHash(v);if(S.sy.h[k]!==h)ch.push([k,v,h])}});
+    for(let i=0;i<ch.length;i+=40){
+      const part=ch.slice(i,i+40),rows=part.map(([k,v])=>{const ts=Math.max(Date.now(),(S.sy.ts[k]||0)+1);return{owner_id:UID,key:k,data:v===undefined?{del:1,ts}:{v,ts},updated_at:new Date().toISOString(),_ts:ts}});
+      const r=await sb.from('app_state').upsert(rows.map(x=>({owner_id:x.owner_id,key:x.key,data:x.data,updated_at:x.updated_at})),{onConflict:'owner_id,key'});
+      if(r.error)throw r.error;
+      rows.forEach((x,j)=>{S.sy.ts[x.key]=x._ts;if(part[j][2]===null)delete S.sy.h[x.key];else S.sy.h[x.key]=part[j][2]});
+    }
+    if(ch.length){DB.save(S);SY.selfAt=Date.now()}SY.err='';SY.last=Date.now();
+  }catch(e){SY.err=(e&&e.message)||'오류';clearTimeout(SY.t);SY.t=setTimeout(syFlush,15000)}
+  SY.busy=0;syStatus();
+}
+/* 서버에서 전부 가져와 맞추기 (로그인 직후·화면 복귀·재연결 때) */
+async function syPull(){
+  if(!sb||!UID)return;
+  try{
+    let from=0,all=[];for(;;){const r=await sb.from('app_state').select('key,data').eq('owner_id',UID).range(from,from+499);if(r.error)throw r.error;all=all.concat(r.data||[]);if(!r.data||r.data.length<500)break;from+=500}
+    all.forEach(x=>syIn(x.key,x.data));SY.err='';SY.last=Date.now();
+  }catch(e){SY.err=(e&&e.message)||'오류'}
+  syStatus();
+}
+function sySess(force){
+  clearTimeout(SY.st);
+  SY.st=setTimeout(()=>{
+    if(!force&&Date.now()-(SY.selfAt||0)<4000)return;
+    if(SYNC==='busy'||PULLING||syTyping()){SY.st=setTimeout(()=>sySess(force),2500);return}
+    pull();
+  },force?0:900);
+}
+function syStatus(){const e=document.getElementById('sylab');if(e)e.textContent=syLabel()}
+function syLabel(){
+  if(!sb||!UID)return '로그인하면 동기화돼요';
+  const t=SY.last?new Date(SY.last).toTimeString().slice(0,5):'';
+  return (SY.err?'⚠️ 동기화 오류 ('+SY.err.slice(0,40)+')':SY.live==='on'?'🟢 실시간 연결됨':'🟡 실시간 끊김 · 새로고침으로 동기화')+(t?' · 마지막 '+t:'');
+}
+function syCard(){return `<div class="pn"><div class="row"><b class="h2">동기화</b><span class="mu" id="sylab">${syLabel()}</span></div><div class="mu" style="margin:6px 0;line-height:1.6">기록·승급·장비·달리기·회원·수업이 서버에 저장되고, 같은 계정의 다른 기기와 실시간으로 맞춰져요.</div><button class="btn ghost sm" data-act="syncnow">↻ 서버에서 새로고침</button></div>`}
+async function syRefresh(force){await syPull();await syFlush();sySess(force);}
+function syStart(){
+  if(!sb||!UID||SY.ready===UID)return;
+  S.sy=S.sy||{ts:{},h:{}};S.sy.ts=S.sy.ts||{};S.sy.h=S.sy.h||{};
+  SY.ready=UID;
+  syPull().then(()=>syFlush());
+  try{
+    SY.ch=sb.channel('rpt-'+UID).on('postgres_changes',{event:'*',schema:'public',table:'app_state',filter:'owner_id=eq.'+UID},p=>{const n=p.new;if(n&&n.key)syIn(n.key,n.data)})
+      .on('postgres_changes',{event:'*',schema:'public',table:'workout_sessions',filter:'member_id=eq.'+UID},()=>sySess(false))
+      .subscribe(st=>{SY.live=st==='SUBSCRIBED'?'on':'off';syStatus()});
+  }catch(e){SY.live='off'}
+  if(!SY.bound){SY.bound=1;
+    const back=()=>{if(!document.hidden&&SY.ready){syRefresh(false);if(SY.live!=='on'){try{sb.removeChannel(SY.ch)}catch(e){}SY.ready=null;syStart()}}};
+    document.addEventListener('visibilitychange',back);addEventListener('online',back);addEventListener('focus',back);
+    setInterval(()=>{if(!document.hidden&&SY.ready)syPull()},60000);
+  }
+}
+function syStop(){try{if(SY.ch)sb.removeChannel(SY.ch)}catch(e){}SY.ch=null;SY.ready=null;SY.live='off'}
 async function pull(){
   PULLING=true;
   const r=await sb.from('workout_sessions').select('session_date,session_no,level,items,grade,review');
@@ -1461,7 +1610,7 @@ async function pull(){
   const rowsT=r.data.filter(x=>x.session_date===T).sort((a,b)=>(a.session_no||1)-(b.session_no||1)),d0=rowsT[rowsT.length-1];
   if(d0){const cur=S.drafts[T];if(!cur||!cur.slots.some(Boolean)){const sl=(d0.items||[]).slice(0,6);while(sl.length<6)sl.push(null);S.drafts[T]={slots:sl};S.curNo[T]=d0.session_no||1}}
   for(const d of allDates()){const gs=[S.sessions[d]||[]].concat(S.more[d]||[]);for(let i=0;i<gs.length;i++){const g=gs[i];if(!g||!g.length||srv[d+'#'+(i+1)])continue;const rv=S.reviews[d]||{};await sb.from('workout_sessions').upsert({member_id:UID,session_date:d,session_no:i+1,level:'intermediate',items:g,grade:i===0?(rv.g||null):null,review:i===0?(rv.t||null):null},{onConflict:'member_id,session_date,session_no'})}}
-  PULLED=true;PULLING=false;SYNC='ok';DB.save(S);render();loadGifts(true);
+  PULLED=true;PULLING=false;SYNC='ok';DB.save(S);if(!syTyping())render();loadGifts(true);syStart();
 }
 async function onSession(sess){
   if(!sess){UID=null;ROLE=null;PULLED=false;PULLING=false;SYNC='off';if(S.user){S.user=null;DB.save(S)}if(!GUEST)SCR='auth';render();return}
@@ -1755,6 +1904,15 @@ const A={
   aq2:d=>{const it=plan(d.d).find(x=>x.id===d.id);if(!it)return;const k=d.k==='hw'?'hwDone':'spDone';it[k]=!it[k];persist();render()},
   aopen:d=>{ADM.date=d.d;A.aslot({t:d.t})},
   amem:d=>{openM(memInfo(d.id))},
+  mbody:d=>{const m=AD().members.find(x=>x.id===d.id);if(!m)return;const sex=$('#pxs').value,age=+$('#pxa').value,h=+$('#pxh').value,w=+$('#pxw').value,bf=$('#pxf').value===''?null:+$('#pxf').value;
+    if(!sex||!(age>=5&&age<=110)||!(h>=100&&h<=250)||!(w>=20&&w<=300)||(bf!=null&&!(bf>=3&&bf<=70))){toast('성별·나이(5~110)·신장(100~250)·체중(20~300)을 확인해 주세요');return}
+    m.body={sex,age,heightCm:h,bodyKg:w,bf,ts:Date.now()};persist();openM(memInfo(m.id));toast('몸 정보를 저장했어요')},
+  mstart:d=>{const m=AD().members.find(x=>x.id===d.id);if(!m||!memBodyOk(m))return;const R=window.RuneTier,id=$('#pxl').value;let t=+$('#pxt').value;const cap=R.ageTierCap(m.body.age),ex=R.BY_ID[id];
+    if(!ex)return;let note='';if(t>cap){t=cap;note=` (나이 제한으로 ${R.TIERS[cap]}까지)`}if(t>ex.maxTier){t=ex.maxTier;note=' (종목 최고 티어까지)'}
+    const tt=m.tiers||(m.tiers={}),cur=tt[id];if(cur&&cur.tier>t){toast('현재 '+R.TIERS[cur.tier]+'보다 낮게는 바꾸지 않아요');return}
+    const tbl=id==='run5k'?R.RUN_TBL:null,ST=tbl?tbl.START:R.START;
+    tt[id]={tier:t,baseMp:t>0?ST[t]:0,sinceDate:T,hist:[{t,d:T,start:1}],pend:null};persist();openM(memInfo(m.id));toast(ex.name+' 시작 티어: '+R.TIERS[t]+note)},
+  mconf:d=>{const m=AD().members.find(x=>x.id===d.id),st=m&&m.tiers&&m.tiers[d.k];if(!st||!st.pend)return;const R=window.RuneTier,pd=st.pend,ns=R.promote(st,pd.stars,pd.d,d.k==='run5k'?R.RUN_TBL:null);Object.assign(st,ns);st.hist=(st.hist||[]).concat([{t:ns.tier,d:pd.d}]);st.pend=null;persist();openM(memInfo(m.id));toast(m.name+' '+R.TIERS[ns.tier]+' 승급 확정!')},
   mcal:d=>{const m=AD().members.find(x=>x.id===d.id),ks=Object.keys(memSess(m)).sort(),last=ks.length?ks[ks.length-1]:T,p=last.split('-');MC={id:d.id,y:+p[0],m:+p[1]-1,d:ks.length?last:null};openM(memHTML2())},
   mday:d=>{MC.d=d.d;openM(memHTML2())},
   mmon:d=>{MC.m+=+d.v;if(MC.m<0){MC.m=11;MC.y--}if(MC.m>11){MC.m=0;MC.y++}openM(memHTML2())},
@@ -1865,7 +2023,8 @@ const A={
   mon:d=>{CM.m+=+d.v;if(CM.m<0){CM.m=11;CM.y--}if(CM.m>11){CM.m=0;CM.y++}render()},
   day:d=>{CD=d.d;render()},
   login:d=>{const pv={'카카오':'kakao','구글':'google'}[d.p];if(!pv)return;if(!sb){toast('로그인은 GitHub 주소(upvible.github.io)에서만 동작해요');return}sb.auth.signInWithOAuth({provider:pv,options:{redirectTo:APP_URL}}).then(r=>{if(r.error)toast('로그인을 시작하지 못했어요: '+r.error.message)})},
-  logout:async()=>{if(sb&&UID){await upProfile();await syncToday();if(SYNC==='err'){toast('저장이 끝나지 않았어요. 연결을 확인하고 다시 시도해 주세요');return}await sb.auth.signOut()}S.user=null;UID=null;ROLE=null;GUEST=false;PULLED=false;SYNC='off';S.sessions={};S.more={};S.curNo={};S.reviews={};S.drafts={};S.profile=null;S.lvSet=false;S.bodyLog=[];srvSave(null);SCR='auth';persist();render()},
+  syncnow:async()=>{toast('동기화 중…');await syRefresh(true);toast(SY.err?'동기화 오류가 있어요':'동기화했어요')},
+  logout:async()=>{if(sb&&UID){await upProfile();await syncToday();clearTimeout(SY.t);let w=0;while(SY.busy&&w++<50)await new Promise(r=>setTimeout(r,100));await syFlush();if(SYNC==='err'||SY.err||(SY.ready&&syKeys().some(syDirty))){toast('서버에 저장이 끝나지 않았어요. 연결을 확인하고 다시 시도해 주세요');return}syStop();await sb.auth.signOut()}else syStop();S.adm=null;S.tiers=undefined;S.equip=undefined;S.equipSeen=undefined;S.runs=[];S.hopeTier=undefined;S.wm={};S.mode=undefined;S.sy={ts:{},h:{}};S.user=null;UID=null;ROLE=null;GUEST=false;PULLED=false;SYNC='off';S.sessions={};S.more={};S.curNo={};S.reviews={};S.drafts={};S.profile=null;S.lvSet=false;S.bodyLog=[];srvSave(null);SCR='auth';persist();render()},
   reset:()=>{S={user:null,level:'intermediate',sessions:{},more:{},curNo:{},drafts:{},wm:{}};ADM.cur=null;tab='today';persist();render();toast('데이터를 지웠어요')}
 };
 document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;e.stopPropagation();const f=A[el.dataset.act];if(f)f(el.dataset)});
