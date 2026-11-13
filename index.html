@@ -46,6 +46,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--cy);outline-off
 .ftk .no{position:absolute;top:-6px;left:-6px;min-width:18px;height:18px;border-radius:9px;background:#c26a00;color:#fff;font-size:11px;display:grid;place-items:center;padding:0 3px}
 .ftk.sel .orb{outline:3px solid var(--cy);outline-offset:1px}
 .ftk.ed{cursor:grab}
+.mphs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mph{border:1px solid var(--ln);background:var(--pn);color:var(--tx);border-radius:12px;padding:6px 4px;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.mph.on{border-color:var(--cy);box-shadow:0 0 0 1px var(--cy)}
+.mph svg{width:72%;aspect-ratio:1;display:block}
+.mph b{font-size:13px}.mph span{font-size:11px;text-align:center}
 .fseg{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
 .fseg button{border:1px solid var(--ln);background:var(--pn);color:var(--mu);border-radius:999px;padding:4px 12px;font:inherit;font-size:12.5px;cursor:pointer}
 .fseg button.on{background:var(--cy);border-color:var(--cy);color:#fff;font-weight:700}
@@ -112,6 +117,12 @@ input[type=text],input[type=number]{width:100%;padding:9px;border:1px solid var(
 
 .x{border:0;background:transparent;color:var(--mu);font-size:16px}
 .prev{font-size:11px;color:var(--mu)}
+.asg{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px;margin-top:8px}
+.asb{border:1px solid var(--ln);border-radius:12px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;min-width:0}
+.asb small{font-size:12px;font-weight:700}.asb em{font-style:normal;font-size:11px;opacity:.7}
+.asb b{font-size:24px;line-height:1.2}.asb b u{text-decoration:none;font-size:12px;font-weight:500;margin-left:1px}
+.asb span{font-size:11px;line-height:1.3;opacity:.75}.asb span.bd{color:#e5484d;opacity:1;font-weight:700}
+.asb.w{border-color:#e5484d55}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .cal span{text-align:center;font-size:11px;color:var(--mu)}
 .cal button{aspect-ratio:1;border:1px solid var(--ln);border-radius:8px;background:transparent;font-size:12px;position:relative}
@@ -1247,9 +1258,11 @@ function fSpot(n,ph,id,taken){const ix=fxIdx(EX[id],ph),g=FG[n],half=180/n;let b
   for(const k of [.62,.78,.46,.9,.3])for(const da of [0,-.45,.45,-.8,.8]){const a=(-90+ix*360/n+da*half)*Math.PI/180,x=50+g[0]*k*Math.cos(a),y=g[1]+g[0]*k*Math.sin(a);
     if(!fIn(n,x,y,.92))continue;const d=Math.min(99,...taken.map(t=>Math.hypot(x-t.x,(y-t.y)*1.1)));if(d>=14)return{x,y};if(d>bd){bd=d;best={x,y}}}
   return best||{x:50,y:g[1]}}
+let LUM=null,ML={ph:'late',conf:''};
 function luObj(){let o;
-  if(ADM.cur){const c=ADM.cur,m=c.mid&&AD().members.find(x=>x.id===c.mid);if(m)o=m;else{S.lu=S.lu||{};const k='n:'+(c.name||'');o=S.lu[k]=S.lu[k]||{}}}
-  else{S.lu=S.lu||{};o=S.lu.self=S.lu.self||{}}
+  if(LUM)o=AD().members.find(x=>x.id===LUM);
+  if(!o&&ADM.cur){const c=ADM.cur,m=c.mid&&AD().members.find(x=>x.id===c.mid);if(m)o=m;else{S.lu=S.lu||{};const k='n:'+(c.name||'');o=S.lu[k]=S.lu[k]||{}}}
+  else if(!o){S.lu=S.lu||{};o=S.lu.self=S.lu.self||{}}
   o.lu=o.lu||{};['early','mid','late'].forEach(k=>{if(!Array.isArray(o.lu[k]))o.lu[k]=[]});if(!PHS[o.phase])o.phase='late';return o}
 function fEnsure(o,ph,id){const l=o.lu[ph];if(!EX[id]||l.some(t=>t.id===id))return;const p=fSpot(PHS[ph].ax.length,ph,id,l);l.push({id,x:+p.x.toFixed(1),y:+p.y.toFixed(1)})}
 let FM='mini',FE=false,FSEL=null;
@@ -1277,13 +1290,49 @@ function fieldBlock(d){
   ${world?`<div class="mu" style="margin-top:6px">${FE?'룬을 끌어서 위치를 옮겨요. ':''}${FE?'':'룬을 누르면 오늘 산책로에 담기고, 다시 누르면 빠져요.'}</div>`:''}
   ${lvi?`<div class="wb ${lvi.c}" role="${lvi.c==='red'?'alert':'status'}"><i aria-hidden="true">!</i>${route.length}/${fMax()} · ${lvi.t}</div>`:''}
   ${route.length?`<div class="h2" style="margin-top:10px;font-size:14px">${ADM.cur?'오늘 수업':'오늘 운동'} 산책로 · 눌러서 기록</div><div class="frt">${route.map((r,q)=>`<button class="ex" style="width:100%" data-act="slot" data-i="${r.i}"><span><b class="n">${q+1}</b>${esc(EX[r.x.id].name)}</span><span class="mu">${r.x.sets.filter(s=>s.done&&s.t!=='W').length}/${r.x.sets.filter(s=>s.t!=='W').length}세트 · ${P[EX[r.x.id].part]||''}</span></button>`).join('')}</div>`:''}</div>`}
+/* ---- 회원 월드맵 관리창 ---- */
+function fCore(o,ph,sel){
+  const P0=PHS[ph],n=P0.ax.length,lu=o.lu[ph];
+  const rings=[.5,1].map(k=>`<polygon points="${[...Array(n)].map((_,i)=>fVert(n,i,k).join(',')).join(' ')}" fill="${k===1?'rgba(42,167,192,.08)':'none'}" stroke="var(--ln)" stroke-width=".5"/>`).join('');
+  const spokes=[...Array(n)].map((_,i)=>{const v=fVert(n,i,1);return `<line x1="50" y1="${FG[n][1]}" x2="${v[0]}" y2="${v[1]}" stroke="var(--ln)" stroke-width=".4"/>`}).join('');
+  const cnt=P0.ax.map(()=>0);lu.forEach(t=>{const ix=fxIdx(EX[t.id]||{},ph);if(ix>=0)cnt[ix]++});
+  const labs=P0.ax.map((a,i)=>{const v=fVert(n,i,1.2);return `<div class="fal" style="left:${v[0]}%;top:${v[1]}%;color:${P0.cl[i]}">${a}<small>${cnt[i]}개</small></div>`}).join('');
+  const tk=lu.map(t=>{const e=EX[t.id];if(!e)return '';return `<button type="button" class="ftk ed${sel===t.id?' sel':''}" data-act="ftap" data-id="${t.id}" style="left:${t.x}%;top:${t.y}%;--c:${PC[e.part]||'var(--cy)'}" aria-label="${esc(e.name)}"><span class="orb">${(P[e.part]||'')[0]||''}</span><span class="nm">${esc(e.name)}</span></button>`}).join('');
+  const empty=lu.length?'':`<div class="mu" style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:0 22%">라인업이 비어 있어요. “+ 운동 올리기”로 종목을 올려 보세요</div>`;
+  return `<div class="fld ed" id="fld"><svg viewBox="0 0 100 100" aria-hidden="true">${rings}${spokes}</svg>${labs}${tk}${empty}</div>`}
+function miniPoly(o,ph,on,cur){
+  const n=PHS[ph].ax.length,lu=o.lu[ph];
+  const pts=[...Array(n)].map((_,i)=>fVert(n,i,1).join(',')).join(' ');
+  return `<button type="button" class="mph${on?' on':''}" data-act="mphase" data-v="${ph}" aria-pressed="${on}"><svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="${pts}" fill="rgba(42,167,192,.1)" stroke="var(--ln)" stroke-width="1.2"/>${lu.map(t=>`<circle cx="${t.x}" cy="${t.y}" r="4.6" fill="${PC[(EX[t.id]||{}).part]||'#888'}"/>`).join('')}</svg><b>${PHS[ph].t}</b><span class="mu">${n}각 · ${lu.length}개${cur?' · 현재':''}</span></button>`}
+function mHist(m){const ids={};const ss=memSess(m);Object.keys(ss).forEach(d=>ss[d].forEach(it=>(it.slots||[]).filter(Boolean).forEach(x=>{if(EX[x.id])ids[x.id]=1})));return Object.keys(ids)}
+function mapHTML(){
+  const m=AD().members.find(x=>x.id===LUM);if(!m)return '';
+  const o=luObj(),ph=ML.ph,lu=o.lu[ph],cur=o.phase,conf=ML.conf;
+  const ask=(k,label,warn)=>conf===k?`<div class="wb red" role="alert" style="display:block"><b>${warn}</b><div style="display:flex;gap:6px;margin-top:6px"><button class="btn sm" style="background:#d8372a;border-color:#d8372a" data-act="mconf" data-k="${k}">네, 진행해요</button><button class="btn ghost sm" data-act="mconf" data-k="">취소</button></div></div>`:`<button class="btn ghost sm" data-act="mconf" data-k="${k}">${label}</button>`;
+  const others=Object.keys(PHS).filter(k=>k!==ph&&o.lu[k].length),hist=mHist(m);
+  return `<div class="row"><b class="h2">${esc(m.name)} · 월드맵</b><div style="display:flex;gap:6px"><button class="btn ghost sm" data-act="minfo" data-id="${m.id}">◀ 회원정보</button><button class="x" data-act="mclose" aria-label="닫기">✕</button></div></div>
+  <div class="mu" style="margin:4px 0 8px;line-height:1.6">회원의 전체 라인업을 과정별로 따로 저장해요. 수업 때는 여기 올려 둔 종목 중에서 오늘 산책로를 골라요.</div>
+  <div class="mphs">${Object.keys(PHS).map(k=>miniPoly(o,k,k===ph,k===cur)).join('')}</div>
+  <div class="row" style="margin:8px 0 4px"><b>${PHS[ph].t} 과정 · ${lu.length}개</b>${ph===cur?'<span class="mu">현재 과정</span>':`<button class="btn ghost sm" data-act="mcur">현재 과정으로 설정</button>`}</div>
+  ${fCore(o,ph,FSEL)}
+  <div class="mu" style="margin:6px 0">룬을 끌어서 위치를 옮겨요 (방향키로 미세 이동).</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" data-act="fadd" data-lu="1">+ 운동 올리기</button>${FSEL&&lu.some(t=>t.id===FSEL)?`<button class="btn ghost sm" data-act="frm" data-id="${FSEL}">선택한 운동 제외</button>`:''}</div>
+  <div class="pn" style="margin-top:12px"><div class="h2">데이터 관리</div>
+   <div class="mu" style="margin:4px 0 8px">지금 보는 <b>${PHS[ph].t}</b> 과정 기준이에요. 다른 과정은 건드리지 않아요.</div>
+   <div style="display:flex;gap:6px;flex-wrap:wrap">${others.map(k=>`<button class="btn ghost sm" data-act="mcopy" data-from="${k}">${PHS[k].t} 라인업 가져오기</button>`).join('')}<button class="btn ghost sm" data-act="mfill"${hist.length?'':' disabled'}>수업 기록으로 채우기${hist.length?' ('+hist.length+'종목)':''}</button></div>
+   <div style="margin-top:8px">${ask('clr','이 과정 비우기','이 과정 라인업을 모두 비울까요? 수업 기록은 그대로 남아요.')}</div>
+   <div style="margin-top:6px">${ask('clrall','모든 과정 초기화','세 과정 라인업을 모두 지울까요? 수업 기록과 회원 정보는 그대로예요.')}</div>
+   <div class="h2" style="margin-top:12px;font-size:14px">올려 둔 종목 (${lu.length})</div>
+   ${lu.length?lu.map(t=>{const e=EX[t.id];return e?`<div class="row" style="padding:4px 0;border-bottom:1px solid var(--ln)"><span><b style="color:${PC[e.part]}">${P[e.part]}</b> ${esc(e.name)} <span class="mu">· ${PHS[ph].ax[fxIdx(e,ph)]||''}</span></span><button class="btn ghost sm" data-act="mrmtok" data-id="${t.id}">제외</button></div>`:''}).join(''):'<div class="mu">아직 없어요</div>'}
+  </div>`}
+function mapRe(){const sh=document.querySelector('#md .sheet');if(sh)sh.innerHTML=mapHTML()}
 function fAddRoute(id){const sl=draft().slots;if(sl.some(x=>x&&x.id===id))return false;if(sl.filter(Boolean).length>=fMax()){toast('오늘 운동은 최대 '+fMax()+'개까지만 담을 수 있어요');return false}
   let i=sl.findIndex(x=>!x);if(i<0)i=sl.length;sl[i]={id,nm:EX[id].name,sets:mkSets(id)};return true}
 let FD=null;
 document.addEventListener('pointerdown',e=>{const t=e.target.closest&&e.target.closest('.ftk.ed');if(!t)return;FD={id:t.dataset.id,f:t.closest('.fld'),sx:e.clientX,sy:e.clientY,moved:false,t};try{t.setPointerCapture(e.pointerId)}catch(_){}});
-document.addEventListener('pointermove',e=>{if(!FD)return;if(!FD.moved&&Math.hypot(e.clientX-FD.sx,e.clientY-FD.sy)<6)return;FD.moved=true;const r=FD.f.getBoundingClientRect(),o=luObj(),n=PHS[o.phase].ax.length;const c=fClamp(n,(e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100);FD.t.style.left=c[0]+'%';FD.t.style.top=c[1]+'%';FD.x=c[0];FD.y=c[1]});
-document.addEventListener('pointerup',()=>{if(!FD)return;const d=FD;FD=null;if(d.moved){const o=luObj(),t=o.lu[o.phase].find(q=>q.id===d.id);if(t){t.x=+d.x.toFixed(1);t.y=+d.y.toFixed(1);FSEL=d.id;persist();render()}swSup=Date.now()}});
-document.addEventListener('keydown',e=>{if(!FE||FM!=='world'||!FSEL)return;const k={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!k)return;const o=luObj(),t=o.lu[o.phase].find(q=>q.id===FSEL);if(!t)return;e.preventDefault();const c=fClamp(PHS[o.phase].ax.length,t.x+k[0]*2,t.y+k[1]*2);t.x=+c[0].toFixed(1);t.y=+c[1].toFixed(1);persist();render()});
+document.addEventListener('pointermove',e=>{if(!FD)return;if(!FD.moved&&Math.hypot(e.clientX-FD.sx,e.clientY-FD.sy)<6)return;FD.moved=true;const r=FD.f.getBoundingClientRect(),o=luObj(),n=PHS[LUM?ML.ph:o.phase].ax.length;const c=fClamp(n,(e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100);FD.t.style.left=c[0]+'%';FD.t.style.top=c[1]+'%';FD.x=c[0];FD.y=c[1]});
+document.addEventListener('pointerup',()=>{if(!FD)return;const d=FD;FD=null;if(d.moved){const o=luObj(),t=o.lu[LUM?ML.ph:o.phase].find(q=>q.id===d.id);if(t){t.x=+d.x.toFixed(1);t.y=+d.y.toFixed(1);FSEL=d.id;persist();if(LUM)mapRe();else render()}swSup=Date.now()}});
+document.addEventListener('keydown',e=>{if(!LUM&&(!FE||FM!=='world')||!FSEL)return;const k={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!k)return;const o=luObj(),ph=LUM?ML.ph:o.phase,t=o.lu[ph].find(q=>q.id===FSEL);if(!t)return;e.preventDefault();const c=fClamp(PHS[ph].ax.length,t.x+k[0]*2,t.y+k[1]*2);t.x=+c[0].toFixed(1);t.y=+c[1].toFixed(1);persist();if(LUM)mapRe();else render()});
 
 /* 화면 */
 function viewToday(){
@@ -1500,9 +1549,14 @@ function dupCard(){
   const d=memDups();if(!d.length)return '';
   return `<div class='pn' style='border-color:#e5484d88'><b style='color:#e5484d'>❗ 같은 사람일 수 있는 회원 ${d.length}쌍</b><div class='mu' style='margin:4px 0 6px'>성이 빠진 이름과 성+이름이 같이 있어요. 같은 사람이면 합치세요.</div>`+d.slice(0,15).map(p=>{const f=AD().members.find(x=>x.id===p.from),t=AD().members.find(x=>x.id===p.to);return `<div class='row' style='gap:6px;margin-top:6px'><span>${esc(f.name)} → <b>${esc(t.name)}</b></span><button class='btn sm' data-act='mdupask' data-from='${f.id}' data-to='${t.id}'>합치기</button></div>`}).join('')+`</div>`;
 }
+let MSQ='';
 function viewMem(){
-  const ms=AD().members,cnt=m=>Object.values(AD().plans).reduce((a,l)=>a+l.filter(x=>x.name===m.name).length,0);
-  return `<h1 class='h1'>내 회원</h1>${syCard()}${dupCard()}<div class='pn'><div class='h2'>회원 추가</div><div class='mu'>가입한 회원은 [가입 회원에서 추가]로 계정을 연결해요. 계정이 연결된 회원에게만 루틴을 보낼 수 있어요. 이름만 직접 추가할 수도 있어요.</div><div class='row' style='gap:8px;margin-top:8px'><input type='text' id='mn' placeholder='회원 이름'><button class='btn sm' style='white-space:nowrap' data-act='amadd'>추가</button></div><button class='btn ghost' style='margin-top:8px' data-act='apicker' data-id=''>가입 회원에서 추가</button></div><div class='pn'>`+ms.map(m=>`<div style='display:flex;gap:6px;align-items:stretch'><button class='ex' style='flex:1;min-width:0' data-act='amem' data-id='${m.id}'><span>${esc(m.name)}${m.uid?' 🔗':''}${m.temp?` <small class='mu'>(임시)</small>`:''}</span><span class='mu'>수업 ${cnt(m)}회 · 기록 ${(m.log||[]).length}건</span></button>${m.uid?'':`<button class='btn ghost sm' style='white-space:nowrap' data-act='medit' data-id='${m.id}'>수정</button>`}</div>`).join('')+`</div>`;
+  return `<h1 class='h1'>내 회원</h1>${syCard()}${dupCard()}<div class='pn'><div class='h2'>회원 추가</div><div class='mu'>가입한 회원은 [가입 회원에서 추가]로 계정을 연결해요. 계정이 연결된 회원에게만 루틴을 보낼 수 있어요. 이름만 직접 추가할 수도 있어요.</div><div class='row' style='gap:8px;margin-top:8px'><input type='text' id='mn' placeholder='회원 이름'><button class='btn sm' style='white-space:nowrap' data-act='amadd'>추가</button></div><button class='btn ghost' style='margin-top:8px' data-act='apicker' data-id=''>가입 회원에서 추가</button></div><div class='pn'><input type='search' id='msq' placeholder='회원 이름 검색' value='${esc(MSQ)}' autocomplete='off' style='margin-bottom:8px'><div id='mlist'>${memRowsHTML()}</div></div>`;
+}
+function memRowsHTML(){
+  const cnt=m=>Object.values(AD().plans).reduce((a,l)=>a+l.filter(x=>x.name===m.name).length,0),q=MSQ.trim().toLowerCase().replace(/\s+/g,''),all=AD().members;
+  const ms=q?all.filter(m=>String(m.name||'').toLowerCase().replace(/\s+/g,'').includes(q)):all;
+  return (q?`<div class='mu' style='margin-bottom:6px'>검색 결과 ${ms.length}명 / 전체 ${all.length}명</div>`:'')+ms.map(m=>`<div style='display:flex;gap:6px;align-items:stretch'><button class='ex' style='flex:1;min-width:0' data-act='amem' data-id='${m.id}'><span>${esc(m.name)}${m.uid?' 🔗':''}${m.temp?` <small class='mu'>(임시)</small>`:''}</span><span class='mu'>수업 ${cnt(m)}회 · 기록 ${(m.log||[]).length}건</span></button>${m.uid?'':`<button class='btn ghost sm' style='white-space:nowrap' data-act='medit' data-id='${m.id}'>수정</button>`}</div>`).join('')||`<div class='mu'>${q?'검색한 이름의 회원이 없어요':'아직 회원이 없어요'}</div>`;
 }
 function reviewHTML(d){
   const fl=d.slots.filter(Boolean);
@@ -1515,12 +1569,23 @@ function reviewHTML(d){
 const revCal=()=>{const r=(S.reviews||{})[CD];if(!r||(!r.g&&!r.t))return '';return `<div class='sp'>${r.g?`<b style='font-size:18px;color:var(--gd)'>${r.g}</b> <span class='mu'>자체 평가</span>`:''}${r.t?`<div class='mu' style='margin-top:4px'>${esc(r.t)}</div>`:''}</div>`};
 let ACM=(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()}})();
 function closeEdit(){ADM.cur=null;ADM.pop=false;persist();const m=$('#md');m.classList.remove('on');m.innerHTML='';render()}
+function acStats(){
+  const P0=AD().plans,{y,m}=ACM,pad=n=>String(n).padStart(2,'0'),dim=new Date(y,m+1,0).getDate(),first=new Date(y,m,1).getDay();
+  const noRune=it=>!(it.slots||[]).some(Boolean),noHw=it=>!(it.hw&&it.hw.trim());
+  const nW=Math.ceil((first+dim)/7),W=[];
+  for(let w=0;w<nW;w++){const a=Math.max(1,w*7-first+1),b=Math.min(dim,w*7-first+7);let n=0,u=0;
+    for(let d=a;d<=b;d++)(P0[y+'-'+pad(m+1)+'-'+pad(d)]||[]).forEach(it=>{n++;if(noRune(it)||noHw(it))u++});
+    W.push({w:w+1,a,b,n,u})}
+  const tot=W.reduce((x,k)=>x+k.n,0);
+  const box=k=>`<div class='asb${k.u?' w':''}'><small>${k.w}주차</small><em>${m+1}/${k.a}~${k.b}</em><b>${k.n}<u>회</u></b><span class='${k.u?'bd':''}'>미입력 ${k.u}회</span></div>`;
+  return `<div class='pn' style='margin-top:10px'><div class='row'><b class='h2'>${m+1}월 (${tot}회) 주차별 수업 현황</b></div><div class='asg'>${W.map(box).join('')}</div><div class='mu' style='margin-top:6px'>미입력 = 룬 페이지에 종목이 없거나 과제 칸이 빈 수업이에요. 주차는 달력 줄(일~토) 기준이에요.</div></div>`;
+}
 function viewACal(){
   const {y,m}=ACM,first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
   let cells=['일','월','화','수','목','금','토'].map(x=>`<span>${x}</span>`).join('')+'<i></i>'.repeat(first);
   for(let i=1;i<=dim;i++){const k=`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`,n=(AD().plans[k]||[]).length;
     cells+=`<button data-act='aday' data-d='${k}' data-l='${n?(n<5?1:n<9?2:3):0}' class='${k===ADM.date?'sel':''} ${k===T?'td':''}'>${i}${n?`<i class='st' style='color:inherit'>${n}</i>`:''}</button>`}
-  return `<h1 class='h1'>관리자 · 수업 달력</h1><div class='mu'>날짜를 누르면 그날의 일일 스케줄이 열려요. 칸 안의 숫자는 수업 칸 수예요.</div>${gcalCard()}<div class='pn' style='margin-top:10px'><div class='row'><button class='x' data-act='amon2' data-v='-1'>◀</button><b class='h2'>${y}년 ${m+1}월</b><button class='x' data-act='amon2' data-v='1'>▶</button></div><div class='cal' style='margin-top:8px'>${cells}</div></div>`;
+  return `<h1 class='h1'>관리자 · 수업 달력</h1><div class='mu'>날짜를 누르면 그날의 일일 스케줄이 열려요. 칸 안의 숫자는 수업 칸 수예요.</div>${gcalCard()}<div class='pn' style='margin-top:10px'><div class='row'><button class='x' data-act='amon2' data-v='-1'>◀</button><b class='h2'>${y}년 ${m+1}월</b><button class='x' data-act='amon2' data-v='1'>▶</button></div><div class='cal' style='margin-top:8px'>${cells}</div></div>${acStats()}`;
 }
 function viewDay(){
   const d=ADM.date,l=plan(d),by={};l.forEach(x=>{by[x.time]=x});
@@ -1623,7 +1688,7 @@ function memInfo0(id){
     const rl=rn.map(x=>`<div class='mu'>${P[EX[x.id].part]} ${EX[x.id].name} · ${x.sets.map(s=>(s.t==='W'?'W ':s.t==='F'?'F ':'')+wTxt(s)+'×'+s.r+(s.done?'✔':'')).join(' ')}${x.note?' · 📝 '+esc(x.note):''}</div>`).join('')||`<div class='mu'>룬 페이지 기록 없음</div>`;
     const blk=(t,v)=>v?`<div class='sp'><span class='mu'>${t}</span><br>${esc(v)}</div>`:'';
     return `<div class='pn'><div class='row'><b class='h2'>${e.n}회차</b><span class='mu'>${e.d.slice(5).replace('-','/')} ${it.time}</span></div><div style='margin:8px 0;font-size:15px'><span class='mu'>과제</span><br><b>${esc(it.hw)||`<span class='mu'>없음</span>`}</b>${it.hw&&it.hwDone?' ✔ 인지':''}</div><details><summary class='mu'>특이사항 · 룬 페이지 · 수업 내용 보기</summary>${blk('특이사항',it.special)}<div class='sp'><span class='mu'>룬 페이지</span>${rl}</div>${blk('수업 내용',it.memo)}${blk('다음 수업 목표',it.goal)}</details></div>`}).join('');
-  return `<div class='row'><b class='h2'>${esc(m.name)}${m.temp?' (임시)':''}</b><div style='display:flex;gap:6px;align-items:center'><button class='btn sm' data-act='mcal' data-id='${m.id}'>캘린더</button>${m.uid?'':`<button class='btn ghost sm' data-act='medit' data-id='${m.id}'>수정</button>`}<button class='x' data-act='close'>✕</button></div></div><div class='pn' style='margin-top:10px;border-color:var(--gd)'><div class='row'><b class='h2'>다음 수업 중점사항 · 도전과제</b><span class='mu'>${nx}회차 예정</span></div><textarea class='fi' rows='3' data-mf='${m.id}' style='width:100%;margin-top:8px' placeholder='(다음 수업에서 집중할 점, 도전할 목표를 적어요)'>${esc(m.focus)}</textarea>${lg?`<div class='mu' style='margin-top:6px'>최근 수업에서 적은 다음 수업 목표: ${esc(lg)}</div>`:''}</div><div class='mu' style='margin:10px 0 4px'>수업 흐름 (최신순)</div>${hist||`<div class='mu'>아직 수업 기록이 없어요</div>`}`;
+  return `<div class='row'><b class='h2'>${esc(m.name)}${m.temp?' (임시)':''}</b><div style='display:flex;gap:6px;align-items:center'><button class='btn sm' data-act='mcal' data-id='${m.id}'>캘린더</button><button class='btn sm' data-act='mmap' data-id='${m.id}'>월드맵</button>${m.uid?'':`<button class='btn ghost sm' data-act='medit' data-id='${m.id}'>수정</button>`}<button class='x' data-act='close'>✕</button></div></div><div class='pn' style='margin-top:10px;border-color:var(--gd)'><div class='row'><b class='h2'>다음 수업 중점사항 · 도전과제</b><span class='mu'>${nx}회차 예정</span></div><textarea class='fi' rows='3' data-mf='${m.id}' style='width:100%;margin-top:8px' placeholder='(다음 수업에서 집중할 점, 도전할 목표를 적어요)'>${esc(m.focus)}</textarea>${lg?`<div class='mu' style='margin-top:6px'>최근 수업에서 적은 다음 수업 목표: ${esc(lg)}</div>`:''}</div><div class='mu' style='margin:10px 0 4px'>수업 흐름 (최신순)</div>${hist||`<div class='mu'>아직 수업 기록이 없어요</div>`}`;
 }
 const SB_URL='https://vpdemapnpunsuxqdffgn.supabase.co',SB_KEY='sb_publishable_fonyE5eloRwvXb7hacPTow_d6JR0zMv',APP_URL='https://upvible.github.io/Rune-PT/';
 const syncTxt=()=>({off:'이 기기에만 저장',ok:'저장됨',err:'저장 실패 · 다시 시도 중',busy:'저장 중…'}[SYNC]||'');
@@ -2121,7 +2186,7 @@ function render(){
 }
 const toast=t=>{const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)};
 const openM=h=>{$('#md').innerHTML=`<div class="sheet">${h}</div>`;$('#md').classList.add('on')};
-const closeM=()=>{$('#md').classList.remove('on');$('#md').innerHTML='';render()};
+const closeM=()=>{LUM=null;$('#md').classList.remove('on');$('#md').innerHTML='';render()};
 
 const eqTag=e=>(e.eq&&RuneCatalog.EQ_LABEL[e.eq])||(e.m?'머신':'');
 const eqRank=e=>{const i=RuneCatalog.EQ_ORDER.indexOf(e.eq);return i<0?99:i};
@@ -2372,12 +2437,22 @@ const A={
   rtab:d=>{const i=+d.i;if(i===RC)return;RC=i;RF=-1;RFc=-1;recRe();const e=$('#md .xt.on');if(e&&e.scrollIntoView)e.scrollIntoView({inline:'center',block:'nearest'})},
   rtadd:d=>{openPick(+d.i)},
   slot:d=>{const i=+d.i,x=draft().slots[i];if(x){RC=i;openM(recHTML())}else openPick(i)},
+  mmap:d=>{LUM=d.id;const m=AD().members.find(x=>x.id===d.id);ML={ph:(m&&PHS[m.phase]&&m.phase)||'late',conf:''};FSEL=null;luObj();openM(mapHTML())},
+  minfo:d=>{LUM=null;FSEL=null;persist();openM(memInfo(d.id))},
+  mclose:()=>{LUM=null;FSEL=null;persist();closeM()},
+  mphase:d=>{ML.ph=d.v;ML.conf='';FSEL=null;mapRe()},
+  mcur:()=>{luObj().phase=ML.ph;persist();mapRe();toast('현재 과정으로 설정했어요')},
+  mconf:d=>{const o=luObj();if(d.k&&ML.conf===d.k){if(d.k==='clr')o.lu[ML.ph]=[];else{o.lu.early=[];o.lu.mid=[];o.lu.late=[]}ML.conf='';FSEL=null;persist();mapRe();toast('비웠어요');return}ML.conf=d.k;mapRe()},
+  mrmtok:d=>{const o=luObj(),l=o.lu[ML.ph],i=l.findIndex(t=>t.id===d.id);if(i>=0)l.splice(i,1);if(FSEL===d.id)FSEL=null;persist();mapRe()},
+  mcopy:d=>{const o=luObj(),to=o.lu[ML.ph];let n=0;o.lu[d.from].forEach(t=>{if(!to.some(q=>q.id===t.id)){fEnsure(o,ML.ph,t.id);n++}});persist();mapRe();toast(n?n+'개를 가져왔어요':'가져올 새 종목이 없어요')},
+  mfill:()=>{const m=AD().members.find(x=>x.id===LUM),o=luObj();let n=0;mHist(m).forEach(id=>{if(!o.lu[ML.ph].some(t=>t.id===id)){fEnsure(o,ML.ph,id);n++}});persist();mapRe();toast(n?n+'개를 라인업에 올렸어요':'새로 올릴 종목이 없어요')},
   fmode:d=>{FM=d.v;FSEL=null;if(FM==='mini')FE=false;render()},
   fphase:d=>{const o=luObj();o.phase=d.v;FSEL=null;persist();render()},
   fedit:()=>{FE=!FE;FSEL=null;render()},
   fadd:d=>{openPick(-1,!!d.lu)},
-  frm:d=>{const o=luObj(),l=o.lu[o.phase],i=l.findIndex(t=>t.id===d.id);if(i>=0)l.splice(i,1);FSEL=null;persist();render()},
+  frm:d=>{const o=luObj(),l=o.lu[LUM?ML.ph:o.phase],i=l.findIndex(t=>t.id===d.id);if(i>=0)l.splice(i,1);FSEL=null;persist();if(LUM)mapRe();else render()},
   ftap:d=>{const id=d.id;
+    if(LUM){FSEL=FSEL===id?null:id;mapRe();return}
     if(FM==='world'&&FE){FSEL=FSEL===id?null:id;render();return}
     if(FM==='mini'){const i=draft().slots.findIndex(x=>x&&x.id===id);if(i>=0){RC=i;openM(recHTML())}return}
     const sl=draft().slots,i=sl.findIndex(x=>x&&x.id===id);
@@ -2386,12 +2461,12 @@ const A={
   ptab:d=>{PK.part=d.v;PK.q='';$('#pq').value='';document.querySelectorAll('#ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
   peq:d=>{PK.eq=d.v;document.querySelectorAll('#eqt button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
   pick:d=>{const sl=draft().slots;
-    if(PK.lu){const o=luObj();fEnsure(o,o.phase,d.id);persist();closeM();render();toast('라인업에 올렸어요');return}
+    if(PK.lu){const o=luObj();fEnsure(o,LUM?ML.ph:o.phase,d.id);persist();if(LUM)openM(mapHTML());else{closeM();render()}toast('라인업에 올렸어요');return}
     if(sl.some(x=>x&&x.id===d.id)){toast('이미 장착된 종목이에요');return}
     if(sl.filter(Boolean).length>=fMax()){toast('오늘 운동은 최대 '+fMax()+'개까지만 담을 수 있어요');return}
     let i=PK.slot>=0&&!sl[PK.slot]?PK.slot:sl.findIndex(x=>!x);if(i<0)i=sl.length;
     sl[i]={id:d.id,nm:EX[d.id].name,sets:mkSets(d.id)};persist();RC=i;openM(recHTML())},
-  close:()=>{persist();closeM()},
+  close:()=>{persist();if(LUM&&PK.lu){PK.lu=false;openM(mapHTML());return}closeM()},
   eqwin:()=>{eqInit();const o=eqOwned();EQN={};EQ_SLOTS.forEach(sl=>{if(o[sl.k]>(S.equipSeen[sl.k]||0))EQN[sl.k]=1;S.equipSeen[sl.k]=o[sl.k]});DB.save(S);openM(eqHTML())},
   eqwear:d=>{eqInit();const g=+d.g,o=eqOwned();if(!(g>=0)||g>o[d.k])return;S.equip[d.k]=g;DB.save(S);openM(eqHTML());toast(g?'장비를 착용했어요':'장비를 벗었어요')},
   runrec:()=>openM(runHTML()),
@@ -2447,6 +2522,7 @@ document.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.pf){OB[t.dataset.pf]=t.value;obRefresh();return}
   if(t.id==='mpq'){MP.q=t.value;const l=$('#mpl');if(l)l.innerHTML=mpList();return}
+  if(t.id==='msq'){MSQ=t.value;const l=$('#mlist');if(l)l.innerHTML=memRowsHTML();return}
   if(t.id==='pq'){PK.q=t.value;pickList();return}
   if(t.id==='pm'){PK.m=t.checked;pickList();return}
   if(t.id==='ad'){ADM.date=t.value||T;render();return}
