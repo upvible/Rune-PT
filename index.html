@@ -34,6 +34,30 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--cy);outline-off
 .seg button{flex:1;padding:9px 4px;border:1px solid var(--ln);background:transparent;border-radius:8px;font-weight:700;font-size:12px}
 .seg button.on{background:var(--gd);color:#fff;border-color:var(--gd)}
 .stage{position:relative;height:340px}
+.fld{position:relative;width:100%;max-width:560px;aspect-ratio:1;margin:8px auto;background:var(--hx);border-radius:16px;overflow:hidden;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.fld.ed{touch-action:none}
+.fld svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.fal{position:absolute;transform:translate(-50%,-50%);text-align:center;font-size:12px;font-weight:700;line-height:1.15;max-width:24%;pointer-events:none}
+.fal small{display:block;font-weight:500;color:var(--mu);font-size:10.5px}
+.ftk{position:absolute;transform:translate(-50%,-50%);width:16%;min-width:46px;max-width:70px;border:0;background:none;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;color:var(--tx)}
+.ftk .orb{width:38px;height:38px;border-radius:50%;background:var(--c);display:grid;place-items:center;color:#fff;font-weight:900;font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.28);position:relative}
+.ftk .nm{font-size:10.5px;font-weight:700;background:var(--pn);border-radius:6px;padding:0 4px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ftk.off{opacity:.4}
+.ftk .no{position:absolute;top:-6px;left:-6px;min-width:18px;height:18px;border-radius:9px;background:#c26a00;color:#fff;font-size:11px;display:grid;place-items:center;padding:0 3px}
+.ftk.sel .orb{outline:3px solid var(--cy);outline-offset:1px}
+.ftk.ed{cursor:grab}
+.fseg{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
+.fseg button{border:1px solid var(--ln);background:var(--pn);color:var(--mu);border-radius:999px;padding:4px 12px;font:inherit;font-size:12.5px;cursor:pointer}
+.fseg button.on{background:var(--cy);border-color:var(--cy);color:#fff;font-weight:700}
+.frt{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12.5px;margin:6px 0}
+.frt b.n{display:inline-grid;place-items:center;min-width:19px;height:19px;border-radius:10px;background:#c26a00;color:#fff;font-size:11px;margin-right:3px}
+.wb{display:flex;align-items:center;gap:6px;border-radius:999px;padding:3px 12px 3px 4px;font-weight:700;font-size:12.5px;width:fit-content;margin:4px 0}
+.wb i{font-style:normal;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:12px}
+.wb.yel{background:#fbf1c9;color:#7a5c00}.wb.yel i{background:#e9b835;color:#2a1b00}
+.wb.org{background:#fde4cc;color:#9a4300}.wb.org i{background:#ee8a2b;color:#2a1000}
+.wb.red{background:#fbe0dd;color:#a1261b}.wb.red i{background:#d8372a;color:#fff}
+:root[data-theme="dark"] .wb.yel{background:#3a3212;color:#f1d049}:root[data-theme="dark"] .wb.org{background:#3d2612;color:#ff9f4a}:root[data-theme="dark"] .wb.red{background:#3a1f19;color:#ee8b73}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .wb.yel{background:#3a3212;color:#f1d049}:root:not([data-theme="light"]) .wb.org{background:#3d2612;color:#ff9f4a}:root:not([data-theme="light"]) .wb.red{background:#3a1f19;color:#ee8b73}}
 .sl{position:absolute;aspect-ratio:1}
 .hx{position:absolute;inset:0;background:var(--c,var(--ln));clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);border:0;padding:0;width:100%}
 .hx i{position:absolute;inset:3px;background:var(--hx);clip-path:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;font-style:normal;text-align:center;padding:0 8px}
@@ -1202,20 +1226,73 @@ const curNo=()=>(S.curNo&&S.curNo[T])||1;
 function putToday(items){const n=curNo(),c=JSON.parse(JSON.stringify(items));if(n===1)S.sessions[T]=c;else{S.more=S.more||{};const a=S.more[T]=S.more[T]||[];a[n-2]=c}(S.lv=S.lv||{})[T]='intermediate'}
 const dayVol=d=>dayItems(d).reduce((a,x)=>a+vol(x.sets),0);
 
+/* ---- 룬 라인업 보드: 월드맵(숲=전체 라인업) · 미니맵(나무=오늘 산책로). 6칸 슬롯은 폐지, 옛 기록은 그대로 두고 순서대로 길이 돼요 ---- */
+const PHS={early:{t:'입문',ax:['신경계·호흡·코어','하지 움직임','상지 움직임'],cl:['#e0559e','#d9aa4e','#2aa7c0']},
+ mid:{t:'적응',ax:['코어','심폐','당기기','밀기','하지'],cl:['#e0559e','#e5604a','#2aa7c0','#9b7bf0','#d9aa4e']},
+ late:{t:'발전',ax:['등','가슴','다리','코어','어깨','팔','심폐'],cl:['#2aa7c0','#e5604a','#d9aa4e','#e0559e','#9b7bf0','#3bb56a','#c0504d']}};
+const FG={3:[36,57],5:[36,53],7:[37,51]};
+const fMax=()=>(ADM.cur||ROLE==='trainer')?12:8;
+const fLv=n=>n>=8?3:n>=6?2:n>=4?1:0;
+function fLvInfo(n){const l=fLv(n);if(!l)return null;const mx=fMax();
+  if(l<3)return{c:l===1?'yel':'org',t:l===1?'4개 이상 · 오늘 운동이 많아지고 있어요':'6개 이상 · 기억하기 어려운 양이에요'};
+  return{c:'red',t:!ADM.cur&&mx===8?'8개 · 최대치예요. 더 추가할 수 없어요':(n>=mx?'트레이너 최대치('+mx+'개)예요':'회원 한도(8개)'+(n>8?'를 넘었어요':'예요')+' · 트레이너만 최대 '+mx+'개')}}
+function fxIdx(e,ph){const p=e.part,nm=e.name||'';
+  if(ph==='early')return p==='core'?0:p==='leg'?1:2;
+  if(ph==='mid'){if(p==='core')return 0;if(p==='leg')return 4;if(p==='back')return 2;if(p==='chest')return 3;if(p==='shoulder')return /페이스|리어|리버스|슈러그/.test(nm)?2:3;return /컬/.test(nm)?2:3}
+  return {back:0,chest:1,leg:2,core:3,shoulder:4,arm:5}[p]}
+const fVert=(n,i,k)=>{const g=FG[n],a=(-90+i*360/n)*Math.PI/180;return[50+g[0]*k*Math.cos(a),g[1]+g[0]*k*Math.sin(a)]};
+function fIn(n,x,y,k){const pts=[...Array(n)].map((_,i)=>fVert(n,i,k));let c=false;for(let i=0,j=n-1;i<n;j=i++){const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c}return c}
+function fClamp(n,x,y){const cy=FG[n][1];let k=1;while(k>.2&&!fIn(n,50+(x-50)*k,cy+(y-cy)*k,.92))k-=.04;return[50+(x-50)*k,cy+(y-cy)*k]}
+function fSpot(n,ph,id,taken){const ix=fxIdx(EX[id],ph),g=FG[n],half=180/n;let best=null,bd=-1;
+  for(const k of [.62,.78,.46,.9,.3])for(const da of [0,-.45,.45,-.8,.8]){const a=(-90+ix*360/n+da*half)*Math.PI/180,x=50+g[0]*k*Math.cos(a),y=g[1]+g[0]*k*Math.sin(a);
+    if(!fIn(n,x,y,.92))continue;const d=Math.min(99,...taken.map(t=>Math.hypot(x-t.x,(y-t.y)*1.1)));if(d>=14)return{x,y};if(d>bd){bd=d;best={x,y}}}
+  return best||{x:50,y:g[1]}}
+function luObj(){let o;
+  if(ADM.cur){const c=ADM.cur,m=c.mid&&AD().members.find(x=>x.id===c.mid);if(m)o=m;else{S.lu=S.lu||{};const k='n:'+(c.name||'');o=S.lu[k]=S.lu[k]||{}}}
+  else{S.lu=S.lu||{};o=S.lu.self=S.lu.self||{}}
+  o.lu=o.lu||{};['early','mid','late'].forEach(k=>{if(!Array.isArray(o.lu[k]))o.lu[k]=[]});if(!PHS[o.phase])o.phase='late';return o}
+function fEnsure(o,ph,id){const l=o.lu[ph];if(!EX[id]||l.some(t=>t.id===id))return;const p=fSpot(PHS[ph].ax.length,ph,id,l);l.push({id,x:+p.x.toFixed(1),y:+p.y.toFixed(1)})}
+let FM='mini',FE=false,FSEL=null;
+function fieldBlock(d){
+  const o=luObj(),ph=o.phase,P0=PHS[ph],n=P0.ax.length,ro=ADM.cur?false:false;
+  const route=[];d.slots.forEach((x,i)=>{if(x&&EX[x.id])route.push({x,i})});
+  route.forEach(r=>fEnsure(o,ph,r.x.id));
+  const rid=route.map(r=>r.x.id),world=FM==='world',ed=world&&FE,lu=o.lu[ph],toks=world?lu:lu.filter(t=>rid.includes(t.id));
+  const pos={};lu.forEach(t=>pos[t.id]=t);
+  const rings=[.5,1].map(k=>`<polygon points="${[...Array(n)].map((_,i)=>fVert(n,i,k).join(',')).join(' ')}" fill="${k===1?'rgba(42,167,192,.08)':'none'}" stroke="var(--ln)" stroke-width=".5"/>`).join('');
+  const spokes=[...Array(n)].map((_,i)=>{const v=fVert(n,i,1);return `<line x1="50" y1="${FG[n][1]}" x2="${v[0]}" y2="${v[1]}" stroke="var(--ln)" stroke-width=".4"/>`}).join('');
+  let arrows='';for(let q=1;q<route.length;q++){const a=pos[route[q-1].x.id],b=pos[route[q].x.id];if(!a||!b)continue;const dx=b.x-a.x,dy=b.y-a.y,dd=Math.hypot(dx,dy)||1,x1=a.x+dx/dd*5.5,y1=a.y+dy/dd*5.5,x2=b.x-dx/dd*7,y2=b.y-dy/dd*7;arrows+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#c26a00" stroke-width="1.1" stroke-linecap="round" marker-end="url(#fam)"/>`}
+  const cnt=P0.ax.map(()=>0);lu.forEach(t=>{const ix=fxIdx(EX[t.id]||{},ph);if(ix>=0)cnt[ix]++});
+  const labs=P0.ax.map((a,i)=>{const v=fVert(n,i,1.2);return `<div class="fal" style="left:${v[0]}%;top:${v[1]}%;color:${P0.cl[i]}">${a}<small>${cnt[i]}개</small></div>`}).join('');
+  const tk=toks.map(t=>{const e=EX[t.id];if(!e)return '';const ri=rid.indexOf(t.id),on=ri>-1;
+    return `<button type="button" class="ftk${on?'':' off'}${ed?' ed':''}${FSEL===t.id&&ed?' sel':''}" data-act="ftap" data-id="${t.id}" style="left:${t.x}%;top:${t.y}%;--c:${PC[e.part]||'var(--cy)'}" aria-label="${esc(e.name)}${on?' 산책로 '+(ri+1)+'번':''}"><span class="orb">${(P[e.part]||'')[0]||''}${on?`<span class="no">${ri+1}</span>`:''}</span><span class="nm">${esc(e.name)}</span></button>`}).join('');
+  const lvi=fLvInfo(route.length);
+  const who=ADM.cur?'수업 라인업':'내 라인업';
+  const empty=!toks.length?`<div class="mu" style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:0 22%">${world?'라인업이 비어 있어요. “+ 운동 올리기”로 종목을 올려 보세요':'오늘 산책로가 비어 있어요. “+ 운동 담기”로 첫 운동을 고르세요'}</div>`:'';
+  return `<div class="pn"><div class="row"><div class="h2">${world?(ADM.cur?'라인업 편집 · 월드맵':'내 라인업 · 월드맵'):(ADM.cur?'오늘 수업 · 미니맵':'오늘 운동 · 미니맵')}</div><span class="mu">${P0.t} 과정 · ${route.length}/${fMax()}</span></div>
+  <div class="fseg" role="group" aria-label="지도 보기"><button class="${world?'':'on'}" data-act="fmode" data-v="mini">미니맵 · 오늘 산책로</button><button class="${world?'on':''}" data-act="fmode" data-v="world">월드맵 · 전체 라인업</button></div>
+  <div class="fseg" role="group" aria-label="과정"><span class="mu" style="align-self:center">과정</span>${Object.keys(PHS).map(k=>`<button class="${ph===k?'on':''}" data-act="fphase" data-v="${k}">${PHS[k].t}</button>`).join('')}</div>
+  <div class="fld${ed?' ed':''}" id="fld"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="fam" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#c26a00"/></marker></defs>${rings}${spokes}${arrows}</svg>${labs}${tk}${empty}</div>
+  <div class="row" style="gap:6px;flex-wrap:wrap">${world?`<button class="btn ghost sm" data-act="fadd" data-lu="1">+ 운동 올리기</button><button class="btn ghost sm" data-act="fedit">${FE?'편집 끝내기':'배치 편집'}</button>`:`<button class="btn sm" data-act="fadd">+ 운동 담기</button>`}${world&&FE&&FSEL&&pos[FSEL]?`<button class="btn ghost sm" data-act="frm" data-id="${FSEL}">라인업에서 제외</button>`:''}</div>
+  ${world?`<div class="mu" style="margin-top:6px">${FE?'룬을 끌어서 위치를 옮겨요. ':''}${FE?'':'룬을 누르면 오늘 산책로에 담기고, 다시 누르면 빠져요.'}</div>`:''}
+  ${lvi?`<div class="wb ${lvi.c}" role="${lvi.c==='red'?'alert':'status'}"><i aria-hidden="true">!</i>${route.length}/${fMax()} · ${lvi.t}</div>`:''}
+  ${route.length?`<div class="h2" style="margin-top:10px;font-size:14px">${ADM.cur?'오늘 수업':'오늘 운동'} 산책로 · 눌러서 기록</div><div class="frt">${route.map((r,q)=>`<button class="ex" style="width:100%" data-act="slot" data-i="${r.i}"><span><b class="n">${q+1}</b>${esc(EX[r.x.id].name)}</span><span class="mu">${r.x.sets.filter(s=>s.done&&s.t!=='W').length}/${r.x.sets.filter(s=>s.t!=='W').length}세트 · ${P[EX[r.x.id].part]||''}</span></button>`).join('')}</div>`:''}</div>`}
+function fAddRoute(id){const sl=draft().slots;if(sl.some(x=>x&&x.id===id))return false;if(sl.filter(Boolean).length>=fMax()){toast('오늘 운동은 최대 '+fMax()+'개까지만 담을 수 있어요');return false}
+  let i=sl.findIndex(x=>!x);if(i<0)i=sl.length;sl[i]={id,nm:EX[id].name,sets:mkSets(id)};return true}
+let FD=null;
+document.addEventListener('pointerdown',e=>{const t=e.target.closest&&e.target.closest('.ftk.ed');if(!t)return;FD={id:t.dataset.id,f:t.closest('.fld'),sx:e.clientX,sy:e.clientY,moved:false,t};try{t.setPointerCapture(e.pointerId)}catch(_){}});
+document.addEventListener('pointermove',e=>{if(!FD)return;if(!FD.moved&&Math.hypot(e.clientX-FD.sx,e.clientY-FD.sy)<6)return;FD.moved=true;const r=FD.f.getBoundingClientRect(),o=luObj(),n=PHS[o.phase].ax.length;const c=fClamp(n,(e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100);FD.t.style.left=c[0]+'%';FD.t.style.top=c[1]+'%';FD.x=c[0];FD.y=c[1]});
+document.addEventListener('pointerup',()=>{if(!FD)return;const d=FD;FD=null;if(d.moved){const o=luObj(),t=o.lu[o.phase].find(q=>q.id===d.id);if(t){t.x=+d.x.toFixed(1);t.y=+d.y.toFixed(1);FSEL=d.id;persist();render()}swSup=Date.now()}});
+document.addEventListener('keydown',e=>{if(!FE||FM!=='world'||!FSEL)return;const k={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!k)return;const o=luObj(),t=o.lu[o.phase].find(q=>q.id===FSEL);if(!t)return;e.preventDefault();const c=fClamp(PHS[o.phase].ax.length,t.x+k[0]*2,t.y+k[1]*2);t.x=+c[0].toFixed(1);t.y=+c[1].toFixed(1);persist();render()});
+
 /* 화면 */
 function viewToday(){
   const d=draft(),tv=d.slots.reduce((a,x)=>a+(x?vol(x.sets):0),0),pt=d.slots.reduce((a,x)=>a+(x?pvol(x.sets):0),0);
   const dt=new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
-  const nodes=d.slots.map((x,i)=>{
-    const [l,t,w]=POS[i],lab=(i<2?'메인':'보조')+(i<2?i+1:i-1);
-    const inner=x?`<i style="--c:${PC[EX[x.id].part]}"><small>${P[EX[x.id].part]}</small><b>${EX[x.id].name}</b><em>${fmt(pvol(x.sets))}kg</em></i>`:`<i>+<br>${lab}</i>`;
-    return `<div class="sl" style="left:${l}%;top:${t}px;width:${w}%"><button class="hx ${x?'':'empty'}" style="--c:${x?PC[EX[x.id].part]:''}" data-act="slot" data-i="${i}" aria-label="${lab}">${inner}</button>${x?`<button class="rm" data-act="rm" data-i="${i}">해제</button>`:''}</div>`;
-  }).join('');
   const sets=d.slots.reduce((a,x)=>a+(x?x.sets.filter(s=>s.done&&s.t!=='W').length:0),0);
   return `<div class="row"><div><h1 class="h1">${ADM.cur?'수업 룬 페이지':'룬PT'}</h1><div class="mu">${ADM.cur?ADM.cur.time+' · '+(ADM.cur.name||'회원 미지정'):dt+(curNo()>1?' · 오늘 '+curNo()+'번째 운동':'')}</div></div><div class="vb">완료 볼륨 (예정 ${fmt(pt)})<br><b>${fmt(tv)}</b> kg</div></div>
   ${ADM.cur?'':modePanel()}
-  <div class="pn"><div class="h2">오늘의 룬 페이지</div><div class="mu">빈 룬을 눌러 종목 장착, 장착된 룬을 눌러 기록</div>
-  <div class="stage">${nodes}<div class="ctr">${miniRadar(d.slots)}</div></div></div>
+  ${fieldBlock(d)}
   ${ADM.cur?'':reviewHTML(d)}${ADM.cur?'<button class="btn" data-act="admdone">수업 칸에 저장</button>':'<button class="btn" data-act="save">오늘 기록 저장</button>'+'<button class="btn ghost" style="margin-top:8px" data-act="grades">세트 평가 보기</button>'}${ADM.cur?'':moreBtn(d)}`;
 }
 function moreBtn(d){
@@ -1569,6 +1646,7 @@ function syVal(k){
   if(k==='equip')return S.equip?{equip:S.equip,seen:S.equipSeen||{}}:undefined;
   if(k==='runs')return S.runs&&S.runs.length?S.runs:undefined;
   if(k==='wm')return S.wm&&Object.keys(S.wm).length?S.wm:undefined;
+  if(k==='lu')return S.lu&&Object.keys(S.lu).length?S.lu:undefined;
   if(k==='gcal')return S.gcal&&S.gcal.url?{url:S.gcal.url}:undefined;
   if(!S.adm)return undefined;
   if(k.startsWith('tm:'))return S.adm.members.find(x=>x.id===k.slice(3));
@@ -1576,7 +1654,7 @@ function syVal(k){
   return undefined;
 }
 function syKeys(){
-  const ks=['tiers','equip','runs','wm','gcal'];
+  const ks=['tiers','equip','runs','wm','lu','gcal'];
   if(S.adm){S.adm.members.forEach(m=>ks.push('tm:'+m.id));Object.keys(S.adm.plans).forEach(d=>ks.push('tp:'+d))}
   Object.keys(S.sy.h).forEach(k=>{if(ks.indexOf(k)<0)ks.push(k)});return ks;
 }
@@ -1584,13 +1662,13 @@ function syHash(v){const s=JSON.stringify(v);let h=5381;for(let i=0;i<s.length;i
 function syDirty(k){const v=syVal(k);return v===undefined?S.sy.h[k]!==undefined:S.sy.h[k]!==syHash(v)}
 function syApply(k,doc){
   if(doc.del){
-    if(k==='tiers')delete S.tiers;else if(k==='equip'){delete S.equip;delete S.equipSeen}else if(k==='runs')S.runs=[];else if(k==='wm')delete S.wm;else if(k==='gcal')delete S.gcal;
+    if(k==='tiers')delete S.tiers;else if(k==='equip'){delete S.equip;delete S.equipSeen}else if(k==='runs')S.runs=[];else if(k==='wm')delete S.wm;else if(k==='lu')delete S.lu;else if(k==='gcal')delete S.gcal;
     else if(S.adm&&k.startsWith('tm:')){const i=S.adm.members.findIndex(x=>x.id===k.slice(3));if(i>=0)S.adm.members.splice(i,1)}
     else if(S.adm&&k.startsWith('tp:'))delete S.adm.plans[k.slice(3)];
     return;
   }
   const v=doc.v;
-  if(k==='tiers')S.tiers=v||{};else if(k==='equip'){S.equip=syRows(v.equip);S.equipSeen=syRows(v.seen)}else if(k==='runs')S.runs=v||[];else if(k==='wm')S.wm=v||{};else if(k==='gcal')S.gcal=v&&v.url?{url:v.url}:undefined;
+  if(k==='tiers')S.tiers=v||{};else if(k==='equip'){S.equip=syRows(v.equip);S.equipSeen=syRows(v.seen)}else if(k==='runs')S.runs=v||[];else if(k==='wm')S.wm=v||{};else if(k==='lu')S.lu=v||{};else if(k==='gcal')S.gcal=v&&v.url?{url:v.url}:undefined;
   else if(k.startsWith('tm:')){const l=AD().members,i=l.findIndex(x=>x.id===k.slice(3));if(i>=0)l[i]=v;else l.push(v)}
   else if(k.startsWith('tp:'))AD().plans[k.slice(3)]=v;
 }
@@ -1598,7 +1676,7 @@ function syMerge(k,lv,rv){
   if(k==='tiers'){const o={};[...Object.keys(lv),...Object.keys(rv)].forEach(n=>{const a=lv[n],b=rv[n];o[n]=!a?b:!b?a:(b.tier>a.tier||(b.tier===a.tier&&(b.hist||[]).length>=(a.hist||[]).length))?b:a});return o}
   if(k==='runs'){const m={};lv.concat(rv).forEach(r=>{m[r.id]=r});return Object.values(m)}
   if(k==='equip')return rv;
-  if(k==='wm')return Object.assign({},lv,rv);
+  if(k==='wm'||k==='lu')return Object.assign({},lv,rv);
   if(k.startsWith('tm:')){const o=Object.assign({},lv,rv),seen={};o.log=(lv.log||[]).concat(rv.log||[]).filter(e=>{const s=e.date+'|'+e.time+'|'+(e.memo||'');if(seen[s])return false;return seen[s]=1});if(!o.log.length)delete o.log;return o}
   if(k.startsWith('tp:')){const m={};lv.concat(rv).forEach(it=>{m[it.id]=it});return Object.values(m).sort((a,b)=>a.time<b.time?-1:1)}
   return rv;
@@ -2054,8 +2132,8 @@ function pickList(){
   const list=CAT.list().filter(e=>{if(!eqOk(e)||(PK.m&&!e.m))return false;if(toks.length){const h=sn(e.name+' '+e.al+' '+eqTag(e));return toks.every(t=>h.includes(t))}return e.part===PK.part}).sort((a,b)=>eqRank(a)-eqRank(b)||a.sort-b.sort);
   $('#pl').innerHTML=list.map(e=>`<button class="ex" data-act="pick" data-id="${e.id}"><span>${esc(e.name)}</span><span class="mu">${P[e.part]}${eqTag(e)?' · '+eqTag(e):''}</span></button>`).join('')||'<div class="mu">검색 결과가 없어요</div>';
 }
-function openPick(i){
-  PK.slot=i;PK.q='';
+function openPick(i,lu){
+  PK.slot=i;PK.q='';PK.lu=!!lu;
   openM(`<div class="row"><b class="h2">종목 장착</b><button class="x" data-act="close">✕</button></div>
   <input type="text" id="pq" placeholder="종목 검색 (예: 풀오버, 덤벨 프레스)"><div class="tabs" id="ptabs">${Object.keys(P).map(k=>`<button data-act="ptab" data-v="${k}" class="${PK.part===k?'on':''}">${P[k]}</button>`).join('')}</div><div class="tabs" id="eqt" style="margin-top:4px">${PK_EQ.map(([k,n])=>`<button data-act="peq" data-v="${k}" class="${(PK.eq||'')===k?'on':''}">${n}</button>`).join('')}</div><label class="mu" style="display:flex;gap:6px;align-items:center;margin-bottom:4px"><input type="checkbox" id="pm" ${PK.m?'checked':''}> 머신·케이블만 보기</label><div id="pl"></div>`);
   pickList();
@@ -2103,7 +2181,7 @@ const recRe=()=>{const sh=$('#md .sheet'),y=sh?sh.scrollTop:0;openM(recHTML());c
 const rtTxt=()=>RT>0?`⏱ 휴식: ${Math.floor(RT/60)}:${String(RT%60).padStart(2,'0')}`:'⏱ 휴식: --';
 function recTabs(){
   const sl=draft().slots,ch=sl.map((q,i)=>q&&EX[q.id]?`<button class="xt${i===RC?' on':''}" data-act="rtab" data-i="${i}">${esc(EX[q.id].name)}<small>${q.sets.filter(s=>s.t!=='W'&&s.done).length}/${q.sets.filter(s=>s.t!=='W').length}</small></button>`:'').join(''),em=sl.findIndex(q=>!q);
-  return `<div class="xts">${ch}${em>=0?`<button class="xt add" data-act="rtadd" data-i="${em}">+ 종목</button>`:''}</div>`;
+  return `<div class="xts">${ch}${sl.filter(Boolean).length<fMax()?`<button class="xt add" data-act="rtadd" data-i="${em>=0?em:sl.length}">+ 종목</button>`:''}</div>`;
 }
 function recHTML(){
   const x=draft().slots[RC],pv=prevOf(x.id);RZ=zoneCalc(x);
@@ -2294,10 +2372,25 @@ const A={
   rtab:d=>{const i=+d.i;if(i===RC)return;RC=i;RF=-1;RFc=-1;recRe();const e=$('#md .xt.on');if(e&&e.scrollIntoView)e.scrollIntoView({inline:'center',block:'nearest'})},
   rtadd:d=>{openPick(+d.i)},
   slot:d=>{const i=+d.i,x=draft().slots[i];if(x){RC=i;openM(recHTML())}else openPick(i)},
+  fmode:d=>{FM=d.v;FSEL=null;if(FM==='mini')FE=false;render()},
+  fphase:d=>{const o=luObj();o.phase=d.v;FSEL=null;persist();render()},
+  fedit:()=>{FE=!FE;FSEL=null;render()},
+  fadd:d=>{openPick(-1,!!d.lu)},
+  frm:d=>{const o=luObj(),l=o.lu[o.phase],i=l.findIndex(t=>t.id===d.id);if(i>=0)l.splice(i,1);FSEL=null;persist();render()},
+  ftap:d=>{const id=d.id;
+    if(FM==='world'&&FE){FSEL=FSEL===id?null:id;render();return}
+    if(FM==='mini'){const i=draft().slots.findIndex(x=>x&&x.id===id);if(i>=0){RC=i;openM(recHTML())}return}
+    const sl=draft().slots,i=sl.findIndex(x=>x&&x.id===id);
+    if(i>=0){sl[i]=null;persist();render()}else if(fAddRoute(id)){persist();render()}},
   rm:d=>{draft().slots[+d.i]=null;persist();render()},
   ptab:d=>{PK.part=d.v;PK.q='';$('#pq').value='';document.querySelectorAll('#ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
   peq:d=>{PK.eq=d.v;document.querySelectorAll('#eqt button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
-  pick:d=>{const sl=draft().slots;if(sl.some(x=>x&&x.id===d.id)){toast('이미 장착된 종목이에요');return}sl[PK.slot]={id:d.id,nm:EX[d.id].name,sets:mkSets(d.id)};persist();RC=PK.slot;openM(recHTML())},
+  pick:d=>{const sl=draft().slots;
+    if(PK.lu){const o=luObj();fEnsure(o,o.phase,d.id);persist();closeM();render();toast('라인업에 올렸어요');return}
+    if(sl.some(x=>x&&x.id===d.id)){toast('이미 장착된 종목이에요');return}
+    if(sl.filter(Boolean).length>=fMax()){toast('오늘 운동은 최대 '+fMax()+'개까지만 담을 수 있어요');return}
+    let i=PK.slot>=0&&!sl[PK.slot]?PK.slot:sl.findIndex(x=>!x);if(i<0)i=sl.length;
+    sl[i]={id:d.id,nm:EX[d.id].name,sets:mkSets(d.id)};persist();RC=i;openM(recHTML())},
   close:()=>{persist();closeM()},
   eqwin:()=>{eqInit();const o=eqOwned();EQN={};EQ_SLOTS.forEach(sl=>{if(o[sl.k]>(S.equipSeen[sl.k]||0))EQN[sl.k]=1;S.equipSeen[sl.k]=o[sl.k]});DB.save(S);openM(eqHTML())},
   eqwear:d=>{eqInit();const g=+d.g,o=eqOwned();if(!(g>=0)||g>o[d.k])return;S.equip[d.k]=g;DB.save(S);openM(eqHTML());toast(g?'장비를 착용했어요':'장비를 벗었어요')},
