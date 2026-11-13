@@ -1316,7 +1316,9 @@ function mapHTML(){
   <div class="row" style="margin:8px 0 4px"><b>${PHS[ph].t} 과정 · ${lu.length}개</b>${ph===cur?'<span class="mu">현재 과정</span>':`<button class="btn ghost sm" data-act="mcur">현재 과정으로 설정</button>`}</div>
   ${fCore(o,ph,FSEL)}
   <div class="mu" style="margin:6px 0">룬을 끌어서 위치를 옮겨요 (방향키로 미세 이동).</div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" data-act="fadd" data-lu="1">+ 운동 올리기</button>${FSEL&&lu.some(t=>t.id===FSEL)?`<button class="btn ghost sm" data-act="frm" data-id="${FSEL}">선택한 운동 제외</button>`:''}</div>
+  <div style="display:flex;gap:6px;align-items:center"><button class="btn sm" style="white-space:nowrap" data-act="fadd" data-lu="1">+ 운동 올리기</button><input type="search" id="mq" placeholder="운동 검색 (예: 벤치, 풀오버)" value="${esc(MQ)}" autocomplete="off" style="flex:1;min-width:0"></div>
+  <div id="mqr">${mqHTML()}</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${FSEL&&lu.some(t=>t.id===FSEL)?`<button class="btn ghost sm" data-act="frm" data-id="${FSEL}">선택한 운동 제외</button>`:''}</div>
   <div class="pn" style="margin-top:12px"><div class="h2">데이터 관리</div>
    <div class="mu" style="margin:4px 0 8px">지금 보는 <b>${PHS[ph].t}</b> 과정 기준이에요. 다른 과정은 건드리지 않아요.</div>
    <div style="display:flex;gap:6px;flex-wrap:wrap">${others.map(k=>`<button class="btn ghost sm" data-act="mcopy" data-from="${k}">${PHS[k].t} 라인업 가져오기</button>`).join('')}<button class="btn ghost sm" data-act="mfill"${hist.length?'':' disabled'}>수업 기록으로 채우기${hist.length?' ('+hist.length+'종목)':''}</button></div>
@@ -1325,7 +1327,15 @@ function mapHTML(){
    <div class="h2" style="margin-top:12px;font-size:14px">올려 둔 종목 (${lu.length})</div>
    ${lu.length?lu.map(t=>{const e=EX[t.id];return e?`<div class="row" style="padding:4px 0;border-bottom:1px solid var(--ln)"><span><b style="color:${PC[e.part]}">${P[e.part]}</b> ${esc(e.name)} <span class="mu">· ${PHS[ph].ax[fxIdx(e,ph)]||''}</span></span><button class="btn ghost sm" data-act="mrmtok" data-id="${t.id}">제외</button></div>`:''}).join(''):'<div class="mu">아직 없어요</div>'}
   </div>`}
-function mapRe(){const sh=document.querySelector('#md .sheet');if(sh)sh.innerHTML=mapHTML()}
+let MQ='';
+function mqHTML(){
+  const q=MQ.trim();if(!q)return '';
+  const sn=x=>String(x||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,''),toks=q.split(/\s+/).map(sn).filter(Boolean);if(!toks.length)return '';
+  const have=new Set(luObj().lu[ML.ph].map(t=>t.id));
+  const all=CAT.list().filter(e=>{const h=sn(e.name+' '+e.al+' '+eqTag(e));return toks.every(t=>h.includes(t))}).sort((a,b)=>eqRank(a)-eqRank(b)||a.sort-b.sort);
+  if(!all.length)return '<div class="mu" style="margin:6px 0">검색 결과가 없어요</div>';
+  return '<div style="margin:6px 0;border:1px solid var(--ln);border-radius:10px;overflow:hidden">'+all.slice(0,8).map(e=>`<div class="row" style="padding:6px 10px;border-bottom:1px solid var(--ln);gap:8px"><span style="min-width:0"><b style="color:${PC[e.part]}">${P[e.part]}</b> ${esc(e.name)}${eqTag(e)?` <span class="mu">· ${eqTag(e)}</span>`:''}</span>${have.has(e.id)?'<span class="mu" style="white-space:nowrap">추가됨</span>':`<button class="btn sm" style="white-space:nowrap" data-act="mqadd" data-id="${e.id}">추가</button>`}</div>`).join('')+(all.length>8?`<div class="mu" style="padding:6px 10px">외 ${all.length-8}개 · 더 입력해 좁혀 보세요</div>`:'')+'</div>'}
+function mapRe(){const sh=document.querySelector('#md .sheet');if(!sh)return;const f=document.activeElement&&document.activeElement.id==='mq';sh.innerHTML=mapHTML();if(f){const i=$('#mq');if(i){i.focus();try{i.setSelectionRange(i.value.length,i.value.length)}catch(_){}}}}
 function fAddRoute(id){const sl=draft().slots;if(sl.some(x=>x&&x.id===id))return false;if(sl.filter(Boolean).length>=fMax()){toast('오늘 운동은 최대 '+fMax()+'개까지만 담을 수 있어요');return false}
   let i=sl.findIndex(x=>!x);if(i<0)i=sl.length;sl[i]={id,nm:EX[id].name,sets:mkSets(id)};return true}
 let FD=null;
@@ -2437,10 +2447,11 @@ const A={
   rtab:d=>{const i=+d.i;if(i===RC)return;RC=i;RF=-1;RFc=-1;recRe();const e=$('#md .xt.on');if(e&&e.scrollIntoView)e.scrollIntoView({inline:'center',block:'nearest'})},
   rtadd:d=>{openPick(+d.i)},
   slot:d=>{const i=+d.i,x=draft().slots[i];if(x){RC=i;openM(recHTML())}else openPick(i)},
-  mmap:d=>{LUM=d.id;const m=AD().members.find(x=>x.id===d.id);ML={ph:(m&&PHS[m.phase]&&m.phase)||'late',conf:''};FSEL=null;luObj();openM(mapHTML())},
+  mqadd:d=>{const o=luObj();fEnsure(o,ML.ph,d.id);persist();MQ='';const i=$('#mq');if(i)i.focus();mapRe();const j=$('#mq');if(j)j.focus();toast('라인업에 올렸어요')},
+  mmap:d=>{MQ='';LUM=d.id;const m=AD().members.find(x=>x.id===d.id);ML={ph:(m&&PHS[m.phase]&&m.phase)||'late',conf:''};FSEL=null;luObj();openM(mapHTML())},
   minfo:d=>{LUM=null;FSEL=null;persist();openM(memInfo(d.id))},
   mclose:()=>{LUM=null;FSEL=null;persist();closeM()},
-  mphase:d=>{ML.ph=d.v;ML.conf='';FSEL=null;mapRe()},
+  mphase:d=>{MQ='';ML.ph=d.v;ML.conf='';FSEL=null;mapRe()},
   mcur:()=>{luObj().phase=ML.ph;persist();mapRe();toast('현재 과정으로 설정했어요')},
   mconf:d=>{const o=luObj();if(d.k&&ML.conf===d.k){if(d.k==='clr')o.lu[ML.ph]=[];else{o.lu.early=[];o.lu.mid=[];o.lu.late=[]}ML.conf='';FSEL=null;persist();mapRe();toast('비웠어요');return}ML.conf=d.k;mapRe()},
   mrmtok:d=>{const o=luObj(),l=o.lu[ML.ph],i=l.findIndex(t=>t.id===d.id);if(i>=0)l.splice(i,1);if(FSEL===d.id)FSEL=null;persist();mapRe()},
@@ -2522,6 +2533,7 @@ document.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.pf){OB[t.dataset.pf]=t.value;obRefresh();return}
   if(t.id==='mpq'){MP.q=t.value;const l=$('#mpl');if(l)l.innerHTML=mpList();return}
+  if(t.id==='mq'){MQ=t.value;const l=$('#mqr');if(l)l.innerHTML=mqHTML();return}
   if(t.id==='msq'){MSQ=t.value;const l=$('#mlist');if(l)l.innerHTML=memRowsHTML();return}
   if(t.id==='pq'){PK.q=t.value;pickList();return}
   if(t.id==='pm'){PK.m=t.checked;pickList();return}
