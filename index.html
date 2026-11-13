@@ -1287,6 +1287,7 @@ function fieldBlock(d){
   <div class="fseg" role="group" aria-label="과정"><span class="mu" style="align-self:center">과정</span>${Object.keys(PHS).map(k=>`<button class="${ph===k?'on':''}" data-act="fphase" data-v="${k}">${PHS[k].t}</button>`).join('')}</div>
   <div class="fld${ed?' ed':''}" id="fld"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="fam" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#c26a00"/></marker></defs>${rings}${spokes}${arrows}</svg>${labs}${tk}${empty}</div>
   <div class="row" style="gap:6px;flex-wrap:wrap">${world?`<button class="btn ghost sm" data-act="fadd" data-lu="1">+ 운동 올리기</button><button class="btn ghost sm" data-act="fedit">${FE?'편집 끝내기':'배치 편집'}</button>`:`<button class="btn sm" data-act="fadd">+ 운동 담기</button>`}${world&&FE&&FSEL&&pos[FSEL]?`<button class="btn ghost sm" data-act="frm" data-id="${FSEL}">라인업에서 제외</button>`:''}</div>
+  <input type="search" id="fq" placeholder="${world?'운동 검색해서 라인업에 올리기':'운동 검색해서 오늘 산책로에 담기'} (예: 벤치)" value="${esc(FQ)}" autocomplete="off" style="width:100%;margin-top:8px;box-sizing:border-box"><div id="fqr">${fqHTML(d)}</div>
   ${world?`<div class="mu" style="margin-top:6px">${FE?'룬을 끌어서 위치를 옮겨요. ':''}${FE?'':'룬을 누르면 오늘 산책로에 담기고, 다시 누르면 빠져요.'}</div>`:''}
   ${lvi?`<div class="wb ${lvi.c}" role="${lvi.c==='red'?'alert':'status'}"><i aria-hidden="true">!</i>${route.length}/${fMax()} · ${lvi.t}</div>`:''}
   ${route.length?`<div class="h2" style="margin-top:10px;font-size:14px">${ADM.cur?'오늘 수업':'오늘 운동'} 산책로 · 눌러서 기록</div><div class="frt">${route.map((r,q)=>`<button class="ex" style="width:100%" data-act="slot" data-i="${r.i}"><span><b class="n">${q+1}</b>${esc(EX[r.x.id].name)}</span><span class="mu">${r.x.sets.filter(s=>s.done&&s.t!=='W').length}/${r.x.sets.filter(s=>s.t!=='W').length}세트 · ${P[EX[r.x.id].part]||''}</span></button>`).join('')}</div>`:''}</div>`}
@@ -1336,6 +1337,15 @@ function mqHTML(){
   if(!all.length)return '<div class="mu" style="margin:6px 0">검색 결과가 없어요</div>';
   return '<div style="margin:6px 0;border:1px solid var(--ln);border-radius:10px;overflow:hidden">'+all.slice(0,8).map(e=>`<div class="row" style="padding:6px 10px;border-bottom:1px solid var(--ln);gap:8px"><span style="min-width:0"><b style="color:${PC[e.part]}">${P[e.part]}</b> ${esc(e.name)}${eqTag(e)?` <span class="mu">· ${eqTag(e)}</span>`:''}</span>${have.has(e.id)?'<span class="mu" style="white-space:nowrap">추가됨</span>':`<button class="btn sm" style="white-space:nowrap" data-act="mqadd" data-id="${e.id}">추가</button>`}</div>`).join('')+(all.length>8?`<div class="mu" style="padding:6px 10px">외 ${all.length-8}개 · 더 입력해 좁혀 보세요</div>`:'')+'</div>'}
 function mapRe(){const sh=document.querySelector('#md .sheet');if(!sh)return;const f=document.activeElement&&document.activeElement.id==='mq';sh.innerHTML=mapHTML();if(f){const i=$('#mq');if(i){i.focus();try{i.setSelectionRange(i.value.length,i.value.length)}catch(_){}}}}
+let FQ='';
+function fqHTML(d){
+  const q=FQ.trim();if(!q)return '';
+  const sn=x=>String(x||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,''),toks=q.split(/\s+/).map(sn).filter(Boolean);if(!toks.length)return '';
+  const world=FM==='world',o=luObj();
+  const have=new Set(world?o.lu[o.phase].map(t=>t.id):d.slots.filter(Boolean).map(x=>x.id));
+  const all=CAT.list().filter(e=>{const h=sn(e.name+' '+e.al+' '+eqTag(e));return toks.every(t=>h.includes(t))}).sort((a,b)=>eqRank(a)-eqRank(b)||a.sort-b.sort);
+  if(!all.length)return '<div class="mu" style="margin:6px 0">검색 결과가 없어요</div>';
+  return '<div style="margin:6px 0;border:1px solid var(--ln);border-radius:10px;overflow:hidden">'+all.slice(0,8).map(e=>`<div class="row" style="padding:6px 10px;border-bottom:1px solid var(--ln);gap:8px"><span style="min-width:0"><b style="color:${PC[e.part]}">${P[e.part]}</b> ${esc(e.name)}${eqTag(e)?` <span class="mu">· ${eqTag(e)}</span>`:''}</span>${have.has(e.id)?'<span class="mu" style="white-space:nowrap">'+(world?'추가됨':'담김')+'</span>':`<button class="btn sm" style="white-space:nowrap" data-act="fqadd" data-id="${e.id}">${world?'올리기':'담기'}</button>`}</div>`).join('')+(all.length>8?`<div class="mu" style="padding:6px 10px">외 ${all.length-8}개 · 더 입력해 좁혀 보세요</div>`:'')+'</div>'}
 function fAddRoute(id){const sl=draft().slots;if(sl.some(x=>x&&x.id===id))return false;if(sl.filter(Boolean).length>=fMax()){toast('오늘 운동은 최대 '+fMax()+'개까지만 담을 수 있어요');return false}
   let i=sl.findIndex(x=>!x);if(i<0)i=sl.length;sl[i]={id,nm:EX[id].name,sets:mkSets(id)};return true}
 let FD=null;
@@ -2447,6 +2457,10 @@ const A={
   rtab:d=>{const i=+d.i;if(i===RC)return;RC=i;RF=-1;RFc=-1;recRe();const e=$('#md .xt.on');if(e&&e.scrollIntoView)e.scrollIntoView({inline:'center',block:'nearest'})},
   rtadd:d=>{openPick(+d.i)},
   slot:d=>{const i=+d.i,x=draft().slots[i];if(x){RC=i;openM(recHTML())}else openPick(i)},
+  fqadd:d=>{const id=d.id;
+    if(FM==='world'){const o=luObj();fEnsure(o,o.phase,id);persist();toast('라인업에 올렸어요')}
+    else{if(!fAddRoute(id))return;persist();toast('오늘 산책로에 담았어요')}
+    FQ='';render();const i=$('#fq');if(i)i.focus()},
   mqadd:d=>{const o=luObj();fEnsure(o,ML.ph,d.id);persist();MQ='';const i=$('#mq');if(i)i.focus();mapRe();const j=$('#mq');if(j)j.focus();toast('라인업에 올렸어요')},
   mmap:d=>{MQ='';LUM=d.id;const m=AD().members.find(x=>x.id===d.id);ML={ph:(m&&PHS[m.phase]&&m.phase)||'late',conf:''};FSEL=null;luObj();openM(mapHTML())},
   minfo:d=>{LUM=null;FSEL=null;persist();openM(memInfo(d.id))},
@@ -2457,8 +2471,8 @@ const A={
   mrmtok:d=>{const o=luObj(),l=o.lu[ML.ph],i=l.findIndex(t=>t.id===d.id);if(i>=0)l.splice(i,1);if(FSEL===d.id)FSEL=null;persist();mapRe()},
   mcopy:d=>{const o=luObj(),to=o.lu[ML.ph];let n=0;o.lu[d.from].forEach(t=>{if(!to.some(q=>q.id===t.id)){fEnsure(o,ML.ph,t.id);n++}});persist();mapRe();toast(n?n+'개를 가져왔어요':'가져올 새 종목이 없어요')},
   mfill:()=>{const m=AD().members.find(x=>x.id===LUM),o=luObj();let n=0;mHist(m).forEach(id=>{if(!o.lu[ML.ph].some(t=>t.id===id)){fEnsure(o,ML.ph,id);n++}});persist();mapRe();toast(n?n+'개를 라인업에 올렸어요':'새로 올릴 종목이 없어요')},
-  fmode:d=>{FM=d.v;FSEL=null;if(FM==='mini')FE=false;render()},
-  fphase:d=>{const o=luObj();o.phase=d.v;FSEL=null;persist();render()},
+  fmode:d=>{FQ='';FM=d.v;FSEL=null;if(FM==='mini')FE=false;render()},
+  fphase:d=>{FQ='';const o=luObj();o.phase=d.v;FSEL=null;persist();render()},
   fedit:()=>{FE=!FE;FSEL=null;render()},
   fadd:d=>{openPick(-1,!!d.lu)},
   frm:d=>{const o=luObj(),l=o.lu[LUM?ML.ph:o.phase],i=l.findIndex(t=>t.id===d.id);if(i>=0)l.splice(i,1);FSEL=null;persist();if(LUM)mapRe();else render()},
@@ -2533,6 +2547,7 @@ document.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.pf){OB[t.dataset.pf]=t.value;obRefresh();return}
   if(t.id==='mpq'){MP.q=t.value;const l=$('#mpl');if(l)l.innerHTML=mpList();return}
+  if(t.id==='fq'){FQ=t.value;const l=$('#fqr');if(l)l.innerHTML=fqHTML(draft());return}
   if(t.id==='mq'){MQ=t.value;const l=$('#mqr');if(l)l.innerHTML=mqHTML();return}
   if(t.id==='msq'){MSQ=t.value;const l=$('#mlist');if(l)l.innerHTML=memRowsHTML();return}
   if(t.id==='pq'){PK.q=t.value;pickList();return}
