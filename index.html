@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#0e0906">
+<script>(function(){try{var t=localStorage.getItem("rune-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}})()</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="룬PT">
@@ -1261,12 +1262,22 @@ function viewStat(){
   ${tierPanel()}
   <div class="pn"><div class="h2">부위별 숙련도</div><div class="mu">누적 볼륨 기준 등급</div>${mast}</div>`;
 }
+/* ---- 화면 테마: 화이트 / 다크 / 기기 설정 따라가기 (이 기기에만 저장) ---- */
+function themeMode(){try{const t=localStorage.getItem('rune-theme');return t==='light'||t==='dark'?t:'auto'}catch(e){return 'auto'}}
+function applyTheme(t){const h=document.documentElement;if(t==='light'||t==='dark')h.setAttribute('data-theme',t);else h.removeAttribute('data-theme');
+  try{if(t==='auto')localStorage.removeItem('rune-theme');else localStorage.setItem('rune-theme',t)}catch(e){}
+  const dark=t==='dark'||(t==='auto'&&window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches);
+  const mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content',dark?'#080d14':'#f3efe6')}
+function themeSeg(){const m=themeMode();const b=(v,l)=>`<button class="chip ${m===v?'on':''}" data-act="theme" data-v="${v}" aria-pressed="${m===v?'true':'false'}">${l}</button>`;
+  return `<div class="row" style="gap:6px;flex-wrap:wrap">${b('light','☀ 화이트')}${b('dark','☾ 다크')}${b('auto','기기 설정 따름')}</div>`}
+function themeCard(){return `<div class="pn"><div class="h2">화면 테마</div><div class="mu" style="margin:4px 0 8px">이 기기에서만 적용돼요.</div>${themeSeg()}</div>`}
 function viewMe(){
   const u=S.user;
   return `<h1 class="h1">계정 정보</h1><div class="pn">${u?`<div class="row"><div><b class="h2">${u.name}</b><div class="mu">${u.provider} 계정 연결됨 · 서버 저장: ${syncTxt()}</div></div><button class="btn ghost" style="width:auto;padding:8px 14px" data-act="logout">로그아웃</button></div>${linkHTML()}`:
   `<div class="h2">로그인하고 기록 이어가기</div><div class="mu" style="margin:4px 0 10px">로그인하면 기록이 계정에 저장돼서 기기를 바꿔도 이어져요. 카톡 안에서 열었다면 크롬·사파리로 열어 로그인해 주세요.</div>
   <button class="btn" style="background:#fee500;color:#191600;margin-bottom:8px" data-act="login" data-p="카카오">카카오로 시작하기</button>
   <button class="btn ghost" data-act="login" data-p="구글">구글로 시작하기</button>`}</div>
+  ${themeCard()}
   ${syCard()}
   ${eqCard()}
   ${hopeCard()}
@@ -1964,6 +1975,7 @@ function viewAuth(){
   <button class="btn kk" data-act="login" data-p="카카오">카카오로 시작하기</button>
   <button class="btn ghost" data-act="login" data-p="구글">구글로 시작하기</button></div>
   <div class="mu" style="text-align:center">카톡 안에서 열었다면 크롬·사파리로 열어 로그인해 주세요.</div>
+  <div style="display:flex;justify-content:center">${themeSeg()}</div>
   ${sb?'':`<div style="text-align:center"><button class="x" style="font-size:13px;text-decoration:underline" data-act="guest">로그인 없이 미리보기</button></div>`}</div>`;
 }
 function viewOnboard(){
@@ -2313,6 +2325,7 @@ const A={
     const n=curNo()+1;S.curNo[T]=n;S.drafts[T]={slots:Array(6).fill(null)};DB.save(S);render();toast(`오늘 ${n}번째 운동을 시작했어요`)},
   mon:d=>{CM.m+=+d.v;if(CM.m<0){CM.m=11;CM.y--}if(CM.m>11){CM.m=0;CM.y++}render()},
   day:d=>{CD=d.d;render()},
+  theme:d=>{applyTheme(d.v);render()},
   login:d=>{const pv={'카카오':'kakao','구글':'google'}[d.p];if(!pv)return;if(!sb){toast('로그인은 GitHub 주소(upvible.github.io)에서만 동작해요');return}sb.auth.signInWithOAuth({provider:pv,options:{redirectTo:APP_URL}}).then(r=>{if(r.error)toast('로그인을 시작하지 못했어요: '+r.error.message)})},
   syncnow:async()=>{toast('동기화 중…');await syRefresh(true);toast(SY.err?'동기화 오류가 있어요':'동기화했어요')},
   logout:async()=>{if(sb&&UID){await upProfile();await syncToday();clearTimeout(SY.t);let w=0;while(SY.busy&&w++<50)await new Promise(r=>setTimeout(r,100));await syFlush();if(SYNC==='err'||SY.err||(SY.ready&&syKeys().some(syDirty))){toast('서버에 저장이 끝나지 않았어요. 연결을 확인하고 다시 시도해 주세요');return}syStop();await sb.auth.signOut()}else syStop();S.adm=null;S.tiers=undefined;S.equip=undefined;S.equipSeen=undefined;S.runs=[];S.hopeTier=undefined;S.wm={};S.mode=undefined;S.sy={ts:{},h:{}};S.user=null;UID=null;ROLE=null;GUEST=false;PULLED=false;SYNC='off';S.sessions={};S.more={};S.curNo={};S.reviews={};S.drafts={};S.profile=null;S.lvSet=false;S.bodyLog=[];srvSave(null);SCR='auth';persist();render()},
@@ -2363,6 +2376,7 @@ document.addEventListener('input',e=>{
 });
 $('#md').addEventListener('click',e=>{if(e.target.id!=='md')return;if(ADM.pop&&$('#md').querySelector('[data-edit]'))A.aback();else A.close()});
 initAuth();
+applyTheme(themeMode());
 render();
 </script>
 <script>
