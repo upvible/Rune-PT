@@ -54,6 +54,13 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--cy);outline-off
 .fseg{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
 .fseg button{border:1px solid var(--ln);background:var(--pn);color:var(--mu);border-radius:999px;padding:4px 12px;font:inherit;font-size:12.5px;cursor:pointer}
 .fseg button.on{background:var(--cy);border-color:var(--cy);color:#fff;font-weight:700}
+.frl{display:flex;flex-direction:column;gap:2px;margin:4px 0}
+.frow{display:flex;align-items:stretch;gap:4px;position:relative}
+.frow.drg{z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:.92;background:var(--pn)}
+.frow.tgt{box-shadow:0 -2px 0 var(--cy)}
+.frow.ask{flex-wrap:wrap}
+.fgh{display:grid;place-items:center;width:34px;flex:none;font-size:20px;color:var(--mu,#8a93a3);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.fdx{width:38px;flex:none;border:1px solid var(--ln);border-radius:10px;background:transparent;color:#e5484d;font-size:15px;cursor:pointer}
 .frt{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12.5px;margin:6px 0}
 .frt b.n{display:inline-grid;place-items:center;min-width:19px;height:19px;border-radius:10px;background:#c26a00;color:#fff;font-size:11px;margin-right:3px}
 .wb{display:flex;align-items:center;gap:6px;border-radius:999px;padding:3px 12px 3px 4px;font-weight:700;font-size:12.5px;width:fit-content;margin:4px 0}
@@ -1290,7 +1297,7 @@ function fieldBlock(d){
   <input type="search" id="fq" placeholder="${world?'운동 검색해서 라인업에 올리기':'운동 검색해서 오늘 산책로에 담기'} (예: 벤치)" value="${esc(FQ)}" autocomplete="off" style="width:100%;margin-top:8px;box-sizing:border-box"><div id="fqr">${fqHTML(d)}</div>
   ${world?`<div class="mu" style="margin-top:6px">${FE?'룬을 끌어서 위치를 옮겨요. ':''}${FE?'':'룬을 누르면 오늘 산책로에 담기고, 다시 누르면 빠져요.'}</div>`:''}
   ${lvi?`<div class="wb ${lvi.c}" role="${lvi.c==='red'?'alert':'status'}"><i aria-hidden="true">!</i>${route.length}/${fMax()} · ${lvi.t}</div>`:''}
-  ${route.length?`<div class="h2" style="margin-top:10px;font-size:14px">${ADM.cur?'오늘 수업':'오늘 운동'} 산책로 · 눌러서 기록</div><div class="frt">${route.map((r,q)=>`<button class="ex" style="width:100%" data-act="slot" data-i="${r.i}"><span><b class="n">${q+1}</b>${esc(EX[r.x.id].name)}</span><span class="mu">${r.x.sets.filter(s=>s.done&&s.t!=='W').length}/${r.x.sets.filter(s=>s.t!=='W').length}세트 · ${P[EX[r.x.id].part]||''}</span></button>`).join('')}</div>`:''}</div>`}
+  ${route.length?`<div class="h2" style="margin-top:10px;font-size:14px">${ADM.cur?'오늘 수업':'오늘 운동'} 산책로 · 눌러서 기록</div><div class="mu" style="margin:2px 0 4px">왼쪽 ⠿ 를 잡고 끌어서 순서를 바꿔요. ✕ 는 운동 삭제예요.</div><div class="frl" id="frl">${route.map((r,q)=>{const dn=r.x.sets.some(s=>s.done),ask=RMC===r.i;return `<div class="frow${ask?' ask':''}" data-q="${q}"><span class="fgh" role="button" aria-label="순서 바꾸기" title="끌어서 순서 바꾸기">⠿</span><button class="ex" style="flex:1;min-width:0" data-act="slot" data-i="${r.i}"><span style="min-width:0"><b class="n">${q+1}</b>${esc(EX[r.x.id].name)}</span><span class="mu">${r.x.sets.filter(s=>s.done&&s.t!=='W').length}/${r.x.sets.filter(s=>s.t!=='W').length}세트 · ${P[EX[r.x.id].part]||''}</span></button>${ask?`<button class="btn sm" style="background:#d8372a;border-color:#d8372a;white-space:nowrap" data-act="rmx" data-i="${r.i}">기록까지 삭제</button><button class="btn ghost sm" data-act="rmc">취소</button>`:`<button class="fdx" data-act="rmx" data-i="${r.i}" aria-label="${esc(EX[r.x.id].name)} 삭제" title="이 운동 삭제">✕</button>`}</div>`}).join('')}</div>`:''}</div>`}
 /* ---- 회원 월드맵 관리창 ---- */
 function fCore(o,ph,sel){
   const P0=PHS[ph],n=P0.ax.length,lu=o.lu[ph];
@@ -1337,7 +1344,13 @@ function mqHTML(){
   if(!all.length)return '<div class="mu" style="margin:6px 0">검색 결과가 없어요</div>';
   return '<div style="margin:6px 0;border:1px solid var(--ln);border-radius:10px;overflow:hidden">'+all.slice(0,8).map(e=>`<div class="row" style="padding:6px 10px;border-bottom:1px solid var(--ln);gap:8px"><span style="min-width:0"><b style="color:${PC[e.part]}">${P[e.part]}</b> ${esc(e.name)}${eqTag(e)?` <span class="mu">· ${eqTag(e)}</span>`:''}</span>${have.has(e.id)?'<span class="mu" style="white-space:nowrap">추가됨</span>':`<button class="btn sm" style="white-space:nowrap" data-act="mqadd" data-id="${e.id}">추가</button>`}</div>`).join('')+(all.length>8?`<div class="mu" style="padding:6px 10px">외 ${all.length-8}개 · 더 입력해 좁혀 보세요</div>`:'')+'</div>'}
 function mapRe(){const sh=document.querySelector('#md .sheet');if(!sh)return;const f=document.activeElement&&document.activeElement.id==='mq';sh.innerHTML=mapHTML();if(f){const i=$('#mq');if(i){i.focus();try{i.setSelectionRange(i.value.length,i.value.length)}catch(_){}}}}
-let FQ='';
+let FQ='',RMC=-1;
+function moveRoute(from,to){const sl=draft().slots,ix=[];sl.forEach((x,i)=>{if(x&&EX[x.id])ix.push(i)});if(from===to||from<0||to<0||from>=ix.length||to>=ix.length)return;const v=ix.map(i=>sl[i]),m=v.splice(from,1)[0];v.splice(to,0,m);ix.forEach((i,k)=>{sl[i]=v[k]})}
+let RD=null;
+document.addEventListener('pointerdown',e=>{const h=e.target.closest&&e.target.closest('.fgh');if(!h)return;const row=h.closest('.frow'),list=row.parentNode;RD={row,list,rows:[...list.querySelectorAll('.frow')],from:+row.dataset.q,to:+row.dataset.q,sy:e.clientY};row.classList.add('drg');try{h.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
+document.addEventListener('pointermove',e=>{if(!RD)return;const dy=e.clientY-RD.sy;RD.row.style.transform='translateY('+dy+'px)';const my=RD.row.getBoundingClientRect().top+RD.row.offsetHeight/2-dy+dy;let t=RD.from;RD.rows.forEach((r,i)=>{if(r===RD.row)return;const b=r.getBoundingClientRect(),c=b.top+b.height/2;if(i<RD.from&&my<c)t=Math.min(t,i);if(i>RD.from&&my>c)t=Math.max(t,i)});RD.to=t;RD.rows.forEach((r,i)=>r.classList.toggle('tgt',i===t&&t!==RD.from))});
+const rdEnd=()=>{if(!RD)return;const d=RD;RD=null;d.row.style.transform='';d.row.classList.remove('drg');d.rows.forEach(r=>r.classList.remove('tgt'));swSup=Date.now();if(d.to!==d.from){moveRoute(d.from,d.to);persist();render()}};
+document.addEventListener('pointerup',rdEnd);document.addEventListener('pointercancel',rdEnd);
 function fqHTML(d){
   const q=FQ.trim();if(!q)return '';
   const sn=x=>String(x||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,''),toks=q.split(/\s+/).map(sn).filter(Boolean);if(!toks.length)return '';
@@ -2224,7 +2237,7 @@ function openPick(i,lu){
   pickList();
 }
 /* ---- 세트 입력 옆 실시간 구간 안내: 이 무게에서 몇 회면 노말 / 하드 / 슬레이어인지 (내 현재 티어 기준, 참고용) ---- */
-let RZ=null;
+let RZ=null,RDL=false;
 function zoneCalc(x){
   const R=window.RuneTier,e=EX[x.id];if(!e||e.missing)return null;
   const mem=memberCalc();if(!mem.bodyKg||!mem.sex||mem.age==null)return null;
@@ -2279,7 +2292,8 @@ function recHTML(){
   ${x.sets.map((s,i)=>{const n=x.sets.slice(0,i+1).filter(q=>q.t==='M').length;const p=pv&&pv.sets[i];
   return `<div class="sw" data-i="${i}"><button class="sdl" data-act="sdel" data-i="${i}">삭제하기</button><div class="r2${s.done?' dn':''}"><button class="ty ${s.t}" data-act="ty" data-i="${i}">${s.t==='M'?'M'+n:s.t}</button>${p?`<button class="pvb" data-act="pfill" data-i="${i}" title="누르면 지난번 값이 입력돼요">${wTxt(p)}×${p.r}</button>`:'<span class="pvb">-</span>'}${EX[x.id].name==='푸시업'?(s.v=s.v||'floor',`<select data-f="v" data-i="${i}" aria-label="푸시업 자세" style="min-width:0;font-size:13px">${PU_V.map(v=>`<option value="${v[0]}"${s.v===v[0]?' selected':''}>${v[1]}</option>`).join('')}</select>`):`<input type="number" inputmode="decimal" step="0.5" min="0" class="${s.tmp?'tmp':''}" value="${s.w}" data-f="w" data-i="${i}" aria-label="무게">`}<input type="number" inputmode="numeric" min="0" class="${(s.tr!==undefined?s.tr:s.tmp)?'tmp':''}" value="${s.r}" data-f="r" data-i="${i}" aria-label="횟수"><button class="ckb" data-act="sck" data-i="${i}" aria-label="세트 완료">✓</button></div></div>${RF===i?zoneRow(x,i):''}`}).join('')}
   <input type="text" data-nf="1" placeholder="(통증 · 자극 부위 · 궁금증을 적어요)" value="${esc(x.note)}" style="margin:6px 0;border-style:dashed">${EX[x.id].name==='푸시업'?'<div class="mu" style="margin:4px 0">자세를 고르면 체중의 약 40%(인클라인 높음)~78%(디클라인 60cm)를 든 것으로 계산해요. 낮은 인클라인일수록 쉽고, 디클라인일수록 어려워요.</div>':''}<div class="mu" style="margin:4px 0 10px">W 웜업 · M 메인 · F 실패 (왼쪽 버튼을 누르면 바뀌어요). 웜업은 볼륨에서 빠져요. <b>이전</b>을 누르면 지난번 값이 입력되고, 회색 값은 ✓만 눌러도 그대로 저장돼요. 세트를 왼쪽으로 밀면 삭제 버튼이 나와요. 지금 입력 중인 메인 세트 아래 칩은 이 무게에서 몇 회면 리커버리(초록, 컨디션이 안 좋을 때 권장)·노말·하드·슬레이어인지 알려 주는 참고 지표예요(내 현재 티어 기준). 칩을 누르면 그 횟수가 입력돼요.${pv?` 이전 기록: ${pv.d}`:''}</div>
-  <div class="row" style="margin-bottom:8px"><button class="btn ghost" data-act="sadd" data-t="W">+ 웜업 세트</button><button class="btn ghost" data-act="sadd" data-t="M">+ 메인 세트</button></div><button class="btn" data-act="close">기록 완료</button>`;
+  <div class="row" style="margin-bottom:8px"><button class="btn ghost" data-act="sadd" data-t="W">+ 웜업 세트</button><button class="btn ghost" data-act="sadd" data-t="M">+ 메인 세트</button></div><button class="btn" data-act="close">기록 완료</button>
+  ${RDL?`<div class="wb red" role="alert" style="display:block;margin-top:8px"><b>완료한 세트 ${nd}개의 기록도 함께 사라져요. 정말 삭제할까요?</b><div style="display:flex;gap:6px;margin-top:6px"><button class="btn sm" style="background:#d8372a;border-color:#d8372a" data-act="rdel">네, 삭제해요</button><button class="btn ghost sm" data-act="rdelc">취소</button></div></div>`:`<button class="btn ghost" style="margin-top:8px;color:#e5484d;border-color:#e5484d66" data-act="rdel">이 운동 삭제</button>`}`;
 }
 /* ---- 종목 관리(트레이너): 코드 수정·재배포 없이 종목 추가/숨김/이름·연결·기준표 변경 ---- */
 const CU={part:'chest'};
@@ -2454,9 +2468,9 @@ const A={
   tab:d=>{tab=d.v;ADM.cur=null;ADM.pop=false;render()},
   wm:d=>setMode(d.v),
   wmrec:()=>setMode(recMode().mode),
-  rtab:d=>{const i=+d.i;if(i===RC)return;RC=i;RF=-1;RFc=-1;recRe();const e=$('#md .xt.on');if(e&&e.scrollIntoView)e.scrollIntoView({inline:'center',block:'nearest'})},
+  rtab:d=>{const i=+d.i;if(i===RC)return;RDL=false;RC=i;RF=-1;RFc=-1;recRe();const e=$('#md .xt.on');if(e&&e.scrollIntoView)e.scrollIntoView({inline:'center',block:'nearest'})},
   rtadd:d=>{openPick(+d.i)},
-  slot:d=>{const i=+d.i,x=draft().slots[i];if(x){RC=i;openM(recHTML())}else openPick(i)},
+  slot:d=>{const i=+d.i,x=draft().slots[i];if(x){RDL=false;RC=i;openM(recHTML())}else openPick(i)},
   fqadd:d=>{const id=d.id;
     if(FM==='world'){const o=luObj();fEnsure(o,o.phase,id);persist();toast('라인업에 올렸어요')}
     else{if(!fAddRoute(id))return;persist();toast('오늘 산책로에 담았어요')}
@@ -2483,6 +2497,10 @@ const A={
     const sl=draft().slots,i=sl.findIndex(x=>x&&x.id===id);
     if(i>=0){sl[i]=null;persist();render()}else if(fAddRoute(id)){persist();render()}},
   rm:d=>{draft().slots[+d.i]=null;persist();render()},
+  rmx:d=>{const i=+d.i,x=draft().slots[i];if(!x)return;if(x.sets.some(s=>s.done)&&RMC!==i){RMC=i;render();return}RMC=-1;draft().slots[i]=null;persist();render();toast('운동을 삭제했어요')},
+  rmc:()=>{RMC=-1;render()},
+  rdelc:()=>{RDL=false;openM(recHTML())},
+  rdel:()=>{const i=RC,x=draft().slots[i];if(!x)return;if(x.sets.some(s=>s.done)&&!RDL){RDL=true;openM(recHTML());return}RDL=false;draft().slots[i]=null;persist();closeM();toast('운동을 삭제했어요')},
   ptab:d=>{PK.part=d.v;PK.q='';$('#pq').value='';document.querySelectorAll('#ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
   peq:d=>{PK.eq=d.v;document.querySelectorAll('#eqt button').forEach(b=>b.classList.toggle('on',b.dataset.v===d.v));pickList()},
   pick:d=>{const sl=draft().slots;
