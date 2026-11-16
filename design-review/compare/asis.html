@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>룬PT 현재</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root { --bg:#080d14; --pn:#0f1822; --ln:#2a3a4a; --tx:#e8e0cc; --mu:#8a98a8; --gd:#d9aa4e; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #000; }
+  .phone { display: none; width: 390px; height: 844px; background: var(--bg); color: var(--tx);
+    font-family: Pretendard, "Apple SD Gothic Neo", sans-serif; font-size: 14px; position: relative; overflow: hidden; }
+  .phone.on { display: block; }
+  .app { padding: 12px 12px 92px; }
+  .av { width: 100%; aspect-ratio: 4/5; max-height: 74vh; border-radius: 14px; background: #050a15;
+    display: flex; align-items: center; justify-content: center; padding: 16px; color: var(--mu); font-size: 13px; }
+  .gift { width: 100%; margin-top: 10px; padding: 12px; border-radius: 10px; border: 1px solid var(--ln);
+    background: transparent; color: var(--tx); text-align: left; display: flex; justify-content: space-between; align-items: center; }
+  .gift b { font-size: 15px; }
+  .gift small { display: block; color: var(--mu); font-size: 12px; font-weight: 450; margin-top: 2px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .grid button, .gold, .ghost {
+    border-radius: 10px; font-weight: 800; font-size: 15px; font-family: inherit;
+  }
+  .grid button { padding: 14px 8px; border: 0; background: var(--gd); color: #fff; }
+  .note { margin-top: 8px; text-align: center; color: var(--mu); font-size: 12px; line-height: 1.45; }
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; background: var(--pn); border-top: 1px solid var(--ln);
+    display: flex; padding: 8px 4px 12px; }
+  .nav span { flex: 1; text-align: center; font-size: 12px; font-weight: 700; color: var(--mu); line-height: 1.25; padding: 8px 2px; }
+  .nav span.on { color: var(--gd); box-shadow: inset 0 3px 0 var(--gd); }
+  .row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  h1 { margin: 0; font-size: 20px; }
+  .mu { color: var(--mu); font-size: 12px; line-height: 1.4; }
+  .vol { text-align: right; font-size: 12px; color: var(--mu); }
+  .vol b { display: block; font-size: 22px; color: var(--gd); }
+  .card { background: var(--pn); border: 1px solid var(--ln); border-radius: 12px; padding: 12px; margin-top: 12px; }
+  h2 { margin: 0; font-size: 16px; }
+  .rec { width: 100%; margin-top: 8px; padding: 12px; border: 0; border-radius: 10px; background: #ffb62e; color: #2a1b00;
+    font-weight: 800; font-size: 14px; font-family: inherit; line-height: 1.35; }
+  .rec small { display: block; font-weight: 500; }
+  .seg { display: flex; gap: 6px; margin-top: 10px; }
+  .seg span { flex: 1; text-align: center; padding: 9px 4px; border: 1px solid var(--ln); border-radius: 8px; font-size: 12px; font-weight: 700; line-height: 1.3; }
+  .seg span.on { background: var(--gd); color: #fff; border-color: var(--gd); }
+  .seg small { display: block; font-weight: 500; }
+  .gold, .ghost { width: 100%; padding: 12px; margin-top: 8px; }
+  .gold { border: 0; background: var(--gd); color: #fff; }
+  .ghost { background: transparent; border: 1px solid var(--ln); color: var(--tx); font-weight: 700; }
+  .ex { display: flex; justify-content: space-between; gap: 8px; padding-top: 8px; }
+</style>
+</head>
+<body>
+<section class="phone" id="home">
+  <div class="app">
+    <div class="av">내 아바타</div>
+    <button class="gift"><span><b>선물함</b><small>트레이너가 보낸 루틴</small></span><b>2</b></button>
+    <div class="grid">
+      <button>운동시작</button>
+      <button>캘린더조회</button>
+      <button>통계분석</button>
+      <button>계정 정보</button>
+    </div>
+    <p class="note">아바타 화면이 안 보이면 avatar 폴더가 같은 저장소에 올라가 있는지 확인해 주세요</p>
+  </div>
+  <div class="nav">
+    <span class="on">홈</span><span>운동시작</span><span>캘린더조회</span><span>통계분석</span><span>계정 정보</span>
+  </div>
+</section>
+<section class="phone" id="today">
+  <div class="app">
+    <div class="row">
+      <div><h1>룬PT</h1><div class="mu">11월 14일 (토)</div></div>
+      <div class="vol">완료 볼륨 (예정 2,400)<b>960 kg</b></div>
+    </div>
+    <div class="card">
+      <h2>오늘의 운동 방식</h2>
+      <button class="rec">★ 오늘의 추천 · 퍼포먼스형<small>최근 기록과 시험 가능 종목으로 골랐어요</small></button>
+      <div class="seg">
+        <span>볼륨형<small>5·5·10·10·15·20회</small></span>
+        <span class="on">퍼포먼스형<small>5회 3세트 + 8회 3세트</small></span>
+        <span>회복형<small>15RM 무게 10회×3</small></span>
+      </div>
+      <p class="mu" style="margin:8px 0 0">종목을 장착하면 최근 기록과 내 몸 정보로 무게가 자동으로 채워져요.</p>
+    </div>
+    <div class="card">
+      <div class="mu">미니맵 · 오늘 산책로</div>
+      <div class="ex"><b>벤치프레스</b><span class="mu">60kg × 8</span></div>
+      <div class="ex"><b>인클라인 덤벨프레스</b><span class="mu">대기</span></div>
+    </div>
+    <button class="gold">오늘 기록 저장</button>
+    <button class="ghost">세트 평가 보기</button>
+  </div>
+  <div class="nav">
+    <span>홈</span><span class="on">운동시작</span><span>캘린더조회</span><span>통계분석</span><span>계정 정보</span>
+  </div>
+</section>
+<script>
+  const id = new URLSearchParams(location.search).get("s") || "home";
+  const el = document.getElementById(id);
+  if (el) el.classList.add("on");
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AS-IS TO-BE</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root { --bg:#09090b; --fg:#fafafa; --muted:#a1a1aa; --line:#27272a; --card:#111113; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: Pretendard, "Apple SD Gothic Neo", sans-serif; }
+  .board { display: none; padding: 28px 32px 32px; }
+  .board.on { display: block; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: -0.04em; font-weight: 700; }
+  .lead { margin: 8px 0 0; color: var(--muted); font-size: 15px; line-height: 1.5; max-width: 70ch; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 20px; }
+  figure { margin: 0; }
+  figcaption { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; font-size: 14px; font-weight: 650; }
+  figcaption span { color: var(--muted); font-weight: 450; font-size: 13px; }
+  .frame { background: #000; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .frame img { display: block; width: 100%; height: auto; }
+  .phones .frame { width: 390px; }
+  .phones .pair { justify-content: start; grid-template-columns: 390px 390px; }
+  #desk { width: 1480px; }
+  #mlogin, #home, #today { width: 876px; }
+  .desk .frame { background: #080d14; }
+  .desk .frame img { width: 100%; height: auto; object-fit: contain; }
+</style>
+</head>
+<body>
+<section class="board phones" id="mlogin">
+  <h1>로그인 · 모바일</h1>
+  <p class="lead">현재는 카드가 화면 한가운데 있고 테마 세 버튼이 로그인과 같이 놓입니다. 개선안은 제품이 먼저 보이고, 시작 버튼은 아래에 있습니다.</p>
+  <div class="pair">
+    <figure>
+      <figcaption>현재 <span>실제 화면</span></figcaption>
+      <div class="frame"><img src="../current/login-mobile-dark.png" alt="현재 모바일 로그인"></div>
+    </figure>
+    <figure>
+      <figcaption>개선안 <span>390px</span></figcaption>
+      <div class="frame"><img src="../proposed/04-login-mobile.png" alt="개선안 모바일 로그인"></div>
+    </figure>
+  </div>
+</section>
+<section class="board desk" id="desk">
+  <h1>로그인 · 데스크톱</h1>
+  <p class="lead">현재는 빈 배경 위의 카드입니다. 개선안은 왼쪽에 오늘 운동과 근육, 오른쪽에 로그인이 있습니다.</p>
+  <div class="pair">
+    <figure>
+      <figcaption>현재 <span>실제 화면</span></figcaption>
+      <div class="frame"><img src="../current/login-desktop-dark.png" alt="현재 데스크톱 로그인"></div>
+    </figure>
+    <figure>
+      <figcaption>개선안 <span>shadcn 다크</span></figcaption>
+      <div class="frame"><img src="../proposed/01-login-desktop.png" alt="개선안 데스크톱 로그인"></div>
+    </figure>
+  </div>
+</section>
+<section class="board phones" id="home">
+  <h1>들어온 직후</h1>
+  <p class="lead">현재 홈은 아바타 아래에 같은 크기 버튼 네 개, 하단에는 같은 말의 탭이 다섯 개입니다. 개선안은 오늘 운동이 첫 화면이고 탭은 네 개입니다. 왼쪽은 로그인 전이라 소스 구조로 다시 그린 것입니다.</p>
+  <div class="pair">
+    <figure>
+      <figcaption>현재 <span>소스 재구성</span></figcaption>
+      <div class="frame"><img src="asis-home.png" alt="현재 홈 재구성"></div>
+    </figure>
+    <figure>
+      <figcaption>개선안 <span>오늘이 첫 화면</span></figcaption>
+      <div class="frame"><img src="../proposed/05-today-mobile.png" alt="개선안 오늘 운동"></div>
+    </figure>
+  </div>
+</section>
+<section class="board phones" id="today">
+  <h1>오늘 운동</h1>
+  <p class="lead">현재는 추천이 노란 큰 버튼이고, 저장이 또 하나의 채운 버튼입니다. 개선안은 세트 완료가 하나이고, 쓰는 근육이 같은 화면에 있습니다.</p>
+  <div class="pair">
+    <figure>
+      <figcaption>현재 <span>소스 재구성 · 예시 숫자</span></figcaption>
+      <div class="frame"><img src="asis-today.png" alt="현재 오늘 운동 재구성"></div>
+    </figure>
+    <figure>
+      <figcaption>개선안 <span>예시 숫자</span></figcaption>
+      <div class="frame"><img src="../proposed/05-today-mobile.png" alt="개선안 오늘 운동"></div>
+    </figure>
+  </div>
+</section>
+<script>
+  const id = new URLSearchParams(location.search).get("s") || "mlogin";
+  const el = document.getElementById(id);
+  if (el) el.classList.add("on");
+</script>
+</body>
+</html>

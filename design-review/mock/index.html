@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>룬PT 개선안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root {
+    --background: #09090b;
+    --foreground: #fafafa;
+    --card: #111113;
+    --muted: #a1a1aa;
+    --muted-bg: #27272a;
+    --border: #27272a;
+    --primary: #fafafa;
+    --primary-fg: #18181b;
+    --secondary: #27272a;
+    --ring: #d4d4d8;
+    --kakao: #fee500;
+    --kakao-fg: #191919;
+    --rune: #e4b15a;
+    --chest: #e5604a;
+    --ok: #4ade80;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+    font-family: Pretendard, "Apple SD Gothic Neo", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #000; color: var(--foreground); }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: default; }
+  .screen { display: none; width: 1440px; height: 900px; background: var(--background); overflow: hidden; }
+  .screen.on { display: block; }
+  .screen.phone { width: 390px; height: 844px; }
+  .cap { display: none; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid transparent;
+    font-size: 14px; font-weight: 600; letter-spacing: -0.01em; background: var(--primary); color: var(--primary-fg);
+    width: 100%;
+  }
+  .btn.outline { background: transparent; color: var(--foreground); border-color: var(--border); font-weight: 500; }
+  .btn.ghost { background: transparent; color: var(--foreground); font-weight: 500; width: auto; }
+  .btn.kakao { background: var(--kakao); color: var(--kakao-fg); }
+  .btn.sm { height: 32px; padding: 0 12px; font-size: 13px; width: auto; border-radius: 8px; }
+  .iconbtn {
+    width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
+    background: transparent; color: var(--foreground); display: grid; place-items: center;
+  }
+  .badge {
+    display: inline-flex; align-items: center; align-self: flex-start; width: fit-content;
+    height: 22px; padding: 0 8px; border-radius: 999px;
+    background: rgba(228,177,90,.15); color: var(--rune); font-size: 12px; font-weight: 650;
+  }
+  .badge.neutral { background: var(--muted-bg); color: var(--foreground); font-weight: 500; }
+  .badge.chest { background: rgba(229,96,74,.15); color: #f0a090; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+  .mu { color: var(--muted); }
+  h1, h2, p { margin: 0; }
+
+  /* login desktop */
+  #login { position: relative; padding: 28px 48px 40px; display: none; }
+  #login.on { display: grid; grid-template-rows: auto 1fr; }
+  .topline { display: flex; align-items: center; justify-content: space-between; height: 40px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.03em; }
+  .mark { width: 28px; height: 28px; border-radius: 8px; background: var(--foreground); color: var(--primary-fg); display: grid; place-items: center; font-size: 14px; font-weight: 800; }
+  .split { display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: center; min-height: 0; }
+  .hero h1 { font-size: 44px; line-height: 1.2; letter-spacing: -0.045em; font-weight: 700; max-width: 640px; }
+  .hero .lead { margin-top: 14px; color: var(--muted); font-size: 16px; line-height: 1.55; max-width: 520px; }
+  .proof { margin-top: 28px; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
+  .proof figure { margin: 0; background: #101820; position: relative; min-height: 250px; }
+  .proof img { width: 100%; height: 100%; object-fit: cover; object-position: center 40%; display: block; }
+  .hot { position: absolute; left: 46%; top: 58%; width: 54px; height: 36px; border: 1.5px solid rgba(229,96,74,.9); border-radius: 40%; box-shadow: 0 0 0 6px rgba(229,96,74,.18); }
+  .proof .copy { padding: 22px 22px 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .proof h2 { font-size: 16px; letter-spacing: -0.02em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .points { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .points div { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: #e4e4e7; line-height: 1.45; }
+  .dot { width: 6px; height: 6px; border-radius: 99px; background: var(--rune); margin-top: 7px; flex: none; }
+  .attr { font-size: 12px; color: var(--muted); line-height: 1.45; }
+  .auth { width: 420px; justify-self: end; padding: 28px; }
+  .auth h2 { font-size: 18px; letter-spacing: -0.03em; }
+  .auth .sub { margin: 8px 0 18px; font-size: 13px; line-height: 1.55; color: var(--muted); }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+  .note { display: flex; gap: 8px; margin-top: 16px; font-size: 12px; line-height: 1.5; color: var(--muted); }
+  .fine { margin-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* today */
+  #today.on, #muscle.on { display: grid; grid-template-columns: 232px 1fr 332px; }
+  .side { border-right: 1px solid var(--border); padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .side .brand { padding: 6px 8px 16px; }
+  .navbtn {
+    height: 36px; border: 0; background: transparent; border-radius: 8px; text-align: left;
+    padding: 0 10px; color: #d4d4d8; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px;
+  }
+  .navbtn.on { background: #27272a; color: white; }
+  .side .grow { flex: 1; }
+  .sync { margin: 8px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .sync i { width: 7px; height: 7px; border-radius: 99px; background: var(--ok); display: block; }
+  .main { padding: 22px 28px; min-width: 0; }
+  .kicker { font-size: 12px; color: var(--muted); }
+  .main h1 { margin-top: 4px; font-size: 28px; letter-spacing: -0.04em; }
+  .main .meta { margin-top: 4px; font-size: 13px; }
+  .mode { margin-top: 18px; padding: 14px 16px 16px; }
+  .mode .row { display: flex; align-items: center; justify-content: space-between; }
+  .seg { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; background: #18181b; padding: 4px; border-radius: 10px; }
+  .seg button { height: 56px; border: 0; border-radius: 8px; background: transparent; color: #d4d4d8; font-size: 13px; font-weight: 600; }
+  .seg button.on { background: #27272a; color: white; box-shadow: var(--shadow); }
+  .seg small { display: block; font-weight: 450; color: var(--muted); margin-top: 2px; }
+  .hint { margin-top: 10px; font-size: 12px; line-height: 1.5; }
+  .ex { margin-top: 14px; overflow: hidden; }
+  .exitem { display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border-top: 1px solid var(--border); }
+  .exitem:first-child { border-top: 0; }
+  .n { width: 28px; height: 28px; border-radius: 8px; background: #27272a; display: grid; place-items: center; font-size: 12px; color: #e4e4e7; }
+  .n.now { background: white; color: #18181b; font-weight: 700; }
+  .exitem b { font-size: 14px; font-weight: 620; letter-spacing: -0.02em; }
+  .exitem .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .setbox { margin-top: 14px; padding: 16px; display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .stepper { min-height: 40px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; background: #09090b; }
+  .stepper span { flex: 1; text-align: center; font-variant-numeric: tabular-nums; font-weight: 620; }
+  .stepper i { width: 28px; text-align: center; color: var(--muted); font-style: normal; }
+  .rail { border-left: 1px solid var(--border); padding: 22px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .muscle { overflow: hidden; }
+  .muscle figure { margin: 0; height: 230px; background: #101820; position: relative; }
+  .muscle img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; display: block; }
+  .muscle .pad { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .vol { padding: 14px; }
+  .vol .num { font-size: 28px; letter-spacing: -0.04em; font-weight: 700; margin-top: 4px; }
+  .bar { margin-top: 10px; height: 6px; background: #27272a; border-radius: 99px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 40%; background: var(--chest); }
+
+  /* dialog */
+  #muscle { position: relative; }
+  #muscle .dim { position: absolute; inset: 0; background: rgba(0,0,0,.62); display: grid; place-items: center; }
+  #muscle .dialog { width: 920px; height: 620px; background: #111113; border: 1px solid #3f3f46; border-radius: 14px; display: grid; grid-template-columns: 1.2fr .8fr; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.45); }
+  .stage { background: #101820; position: relative; padding: 16px; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  .stage img { width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center 42%; background: #101820; }
+  .stage .orbit { position: absolute; left: 16px; bottom: 16px; display: flex; gap: 6px; }
+  .panel { padding: 22px 22px 16px; display: flex; flex-direction: column; }
+  .panel h2 { font-size: 20px; letter-spacing: -0.03em; }
+  .presets { display: flex; gap: 6px; margin-top: 14px; }
+  .presets button { height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: transparent; font-size: 13px; }
+  .presets button.on { background: white; color: #18181b; border-color: white; font-weight: 650; }
+  .list { margin-top: 16px; display: flex; flex-direction: column; }
+  .list button { text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--border); padding: 10px 0; display: flex; justify-content: space-between; font-size: 14px; }
+  .list button.on b { color: #f0a090; }
+  .panel .grow { flex: 1; }
+  .disc { font-size: 12px; line-height: 1.5; color: var(--muted); }
+
+  /* phones */
+  .appbar { min-height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .phone .body { padding: 16px 16px 96px; }
+  .phone h1 { font-size: 24px; letter-spacing: -0.04em; margin-top: 2px; }
+  .m-muscle { margin-top: 14px; display: grid; grid-template-columns: 112px 1fr; overflow: hidden; }
+  .m-muscle figure { margin: 0; background: #101820; position: relative; height: 132px; }
+  .m-muscle img { width: 100%; height: 100%; object-fit: cover; object-position: center 35%; }
+  .m-muscle .pad { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .m-muscle h2 { font-size: 14px; letter-spacing: -0.02em; }
+  .dock {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 18px;
+    background: rgba(9,9,11,.92); border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .tabs span { text-align: center; font-size: 12px; color: var(--muted); padding-top: 2px; }
+  .tabs span.on { color: white; font-weight: 650; }
+  #loginm.on { display: flex; flex-direction: column; position: relative; }
+  #loginm .hero-m { padding: 8px 20px 0; }
+  #loginm h1 { font-size: 28px; letter-spacing: -0.04em; line-height: 1.25; }
+  #loginm .lead { margin-top: 8px; font-size: 14px; line-height: 1.5; }
+  .mini { margin: 16px 20px 0; display: grid; grid-template-columns: 96px 1fr; overflow: hidden; }
+  .mini figure { margin: 0; height: 112px; background: #101820; }
+  .mini img { width: 100%; height: 100%; object-fit: cover; object-position: center 35%; }
+  .mini .pad { padding: 12px; }
+  .mini h2 { font-size: 13px; }
+  #loginm .auth { width: auto; margin: auto 20px 28px; justify-self: stretch; padding: 18px; }
+  #onboard.on { display: block; position: relative; }
+  .prog { display: flex; gap: 4px; margin: 16px 0 18px; }
+  .prog i { height: 4px; flex: 1; border-radius: 99px; background: #27272a; }
+  .prog i.on { background: white; }
+  .q { font-size: 13px; color: var(--muted); }
+  #onboard h1 { font-size: 26px; margin-top: 6px; }
+  .input {
+    margin-top: 18px; height: 48px; border-radius: 10px; border: 1px solid var(--border);
+    background: #09090b; display: flex; align-items: center; padding: 0 14px; font-size: 18px; font-weight: 620;
+  }
+  .input em { margin-left: auto; font-style: normal; color: var(--muted); font-size: 13px; font-weight: 500; }
+  .help { margin-top: 10px; font-size: 13px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<section class="screen" id="login">
+  <div class="cap">개선안 · shadcn</div>
+  <div class="topline">
+    <div class="brand"><span class="mark">룬</span> 룬PT</div>
+    <button class="iconbtn" aria-label="테마">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+    </button>
+  </div>
+  <div class="split">
+    <div class="hero">
+      <h1>오늘 한 세트가<br>숙련도가 돼요</h1>
+      <p class="lead">루틴을 받고, 세트를 남기고, 종목마다 티어가 쌓여요. 고른 운동이 쓰는 근육은 그 자리에서 돌려 볼 수 있어요.</p>
+      <div class="card proof">
+        <figure>
+          <img src="../assets/muscle-chest.png" alt="벤치프레스가 쓰는 가슴·어깨·팔 근육 모형">
+          <span class="hot" aria-hidden="true"></span>
+        </figure>
+        <div class="copy">
+          <div class="badge">예시 · 오늘 운동</div>
+          <h2>벤치프레스 · 대흉근</h2>
+          <div class="chips">
+            <span class="badge chest">대흉근</span>
+            <span class="badge neutral">삼두근</span>
+            <span class="badge neutral">전면 삼각근</span>
+          </div>
+          <div class="points">
+            <div><i class="dot"></i><span>세트마다 무게와 횟수를 남겨요</span></div>
+            <div><i class="dot"></i><span>내 몸 기준으로 티어가 정해져요</span></div>
+            <div><i class="dot"></i><span>부위를 누르면 모형이 그쪽으로 돌아요</span></div>
+          </div>
+          <div class="attr">BodyParts3D © Life Science, CC BY 4.0. 교육용 모형이며 진단이 아니에요.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card auth">
+      <h2>로그인 · 계정 만들기</h2>
+      <p class="sub">처음이면 계정이 자동으로 만들어져요. 기록은 계정에 저장돼서 기기를 바꿔도 이어져요.</p>
+      <div class="stack">
+        <button class="btn kakao">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="11" rx="9" ry="7.2" fill="#191919"/><path d="M8 17.2 9.2 14.6" stroke="#191919" stroke-width="1.6"/></svg>
+          카카오로 시작하기
+        </button>
+        <button class="btn outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.5z"/><path fill="#34A853" d="M12 24c3.2 0 5.8-1 7.7-2.8l-3.7-2.9c-1 .7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.6v3c1.9 3.8 5.8 6.4 10.4 6.4z"/><path fill="#FBBC05" d="M5.4 14.6A7.2 7.2 0 0 1 5 12c0-.9.1-1.8.4-2.6V6.4H1.6A12 12 0 0 0 0 12c0 1.9.5 3.8 1.6 5.6l3.8-3z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.3.6 4.5 1.8l3.4-3.4C17.8 1.1 15.2 0 12 0 7.4 0 3.5 2.6 1.6 6.4l3.8 3C6.3 6.9 8.9 4.8 12 4.8z"/></svg>
+          구글로 시작하기
+        </button>
+      </div>
+      <div class="note">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+        <span>카톡 안에서 열었다면 크롬·사파리로 열어 로그인해 주세요.</span>
+      </div>
+      <p class="fine">카카오·구글에는 로그인만 맡겨요. 나이, 체중, 부상 기록은 로그인 제공자에게 보내지 않아요.</p>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="today">
+  <div class="cap">개선안 · 오늘</div>
+  <aside class="side">
+    <div class="brand"><span class="mark">룬</span> 룬PT</div>
+    <button class="navbtn on">오늘</button>
+    <button class="navbtn">달력</button>
+    <button class="navbtn">통계</button>
+    <button class="navbtn">내 정보</button>
+    <div class="grow"></div>
+    <button class="navbtn">선물함 <span class="badge" style="margin-left:auto">2</span></button>
+    <div class="sync"><i></i> 저장됨</div>
+  </aside>
+  <div class="main">
+    <div class="kicker">예시 데이터 · 11월 14일 (토)</div>
+    <h1>오늘 운동</h1>
+    <div class="meta mu">1번째 운동 · 가슴 · 벤치프레스 진행 중</div>
+    <div class="card mode">
+      <div class="row"><b>오늘의 운동 방식</b><span class="badge">추천 · 퍼포먼스형</span></div>
+      <div class="seg" role="group" aria-label="운동 방식">
+        <button>볼륨형<small>5·5·10·10·15·20회</small></button>
+        <button class="on">퍼포먼스형<small>5회 3세트 + 8회 3세트</small></button>
+        <button>회복형<small>15RM 무게 10회×3</small></button>
+      </div>
+      <div class="hint mu">종목을 올리면 최근 기록과 내 몸 정보로 무게가 채워져요. 세트는 언제든 추가하거나 지울 수 있어요.</div>
+    </div>
+    <div class="card ex">
+      <div class="exitem">
+        <span class="n now">1</span>
+        <div><b>벤치프레스</b><div class="sub">60kg × 8회 · 2/3세트 완료</div></div>
+        <span class="badge chest">진행 중</span>
+      </div>
+      <div class="exitem">
+        <span class="n">2</span>
+        <div><b>인클라인 덤벨프레스</b><div class="sub">아직 시작 전</div></div>
+        <span class="badge neutral">대기</span>
+      </div>
+      <div class="exitem">
+        <span class="n">3</span>
+        <div><b>체스트 플라이</b><div class="sub">아직 시작 전</div></div>
+        <span class="badge neutral">대기</span>
+      </div>
+    </div>
+    <div class="card setbox">
+      <div class="field"><label>무게</label><div class="stepper"><i>−</i><span>60 kg</span><i>+</i></div></div>
+      <div class="field"><label>횟수</label><div class="stepper"><i>−</i><span>8 회</span><i>+</i></div></div>
+      <button class="btn" style="width:180px">이 세트 완료</button>
+    </div>
+  </div>
+  <aside class="rail">
+    <div class="card muscle">
+      <figure>
+        <img src="../assets/muscle-chest.png" alt="">
+        <span class="hot" aria-hidden="true"></span>
+      </figure>
+      <div class="pad">
+        <div class="kicker">지금 운동</div>
+        <h2 style="font-size:16px;letter-spacing:-.03em">벤치프레스가 쓰는 근육</h2>
+        <div class="chips">
+          <span class="badge chest">대흉근</span>
+          <span class="badge neutral">삼두근</span>
+          <span class="badge neutral">전면 삼각근</span>
+        </div>
+        <button class="btn outline">회전해서 보기</button>
+        <div class="attr">CC BY 4.0 · 교육용. 처음 열 때 모형을 받아요.</div>
+      </div>
+    </div>
+    <div class="card vol">
+      <div class="kicker">완료 볼륨 · 예정 2,400kg</div>
+      <div class="num">960 kg</div>
+      <div class="bar"><i></i></div>
+      <div class="hint mu">예시 숫자예요. 세트를 완료하면 이 막대가 늘어요.</div>
+    </div>
+  </aside>
+</section>
+
+<section class="screen" id="muscle">
+  <div class="cap">개선안 · 근육 보기</div>
+  <aside class="side" style="opacity:.45">
+    <div class="brand"><span class="mark">룬</span> 룬PT</div>
+    <button class="navbtn on">오늘</button>
+    <button class="navbtn">달력</button>
+    <button class="navbtn">통계</button>
+    <button class="navbtn">내 정보</button>
+  </aside>
+  <div></div><div></div>
+  <div class="dim">
+    <div class="dialog" role="dialog" aria-label="근육 회전">
+      <div class="stage">
+        <img src="../assets/muscle-chest.png" alt="가슴 중심 근육 모형">
+        <span class="hot" style="left:42%;top:62%"></span>
+        <div class="orbit">
+          <span class="badge neutral">드래그로 회전</span>
+          <span class="badge neutral">휠로 확대</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="badge">벤치프레스</span>
+          <button class="iconbtn" aria-label="닫기">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <h2 style="margin-top:10px">이 운동이 쓰는 근육</h2>
+        <p class="mu" style="margin-top:6px;font-size:13px;line-height:1.5">부위를 고르면 모형이 그 방향으로 돌아가요. 계정 정보는 이 화면으로 전달되지 않아요.</p>
+        <div class="presets">
+          <button class="on">앞</button>
+          <button>옆</button>
+          <button>뒤</button>
+          <button>처음 위치</button>
+        </div>
+        <div class="list">
+          <button class="on"><b>대흉근</b><span class="mu">기준</span></button>
+          <button>삼두근 <span class="mu">보조</span></button>
+          <button>전면 삼각근 <span class="mu">보조</span></button>
+        </div>
+        <div class="grow"></div>
+        <p class="disc">BodyParts3D © The Database Center for Life Science, CC BY 4.0. 성인 남성 참고 모형이며 개인 신체나 의학적 소견이 아니에요.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen phone" id="todaym">
+  <div class="cap">개선안 · 모바일</div>
+  <div class="appbar">
+    <div class="brand"><span class="mark">룬</span> 룬PT</div>
+    <span class="sync"><i></i> 저장됨</span>
+  </div>
+  <div class="body">
+    <div class="kicker">예시 · 11월 14일 (토)</div>
+    <h1>오늘 운동</h1>
+    <div class="meta mu">가슴 · 벤치프레스 2/3세트</div>
+    <div class="card m-muscle">
+      <figure><img src="../assets/muscle-chest.png" alt=""><span class="hot" style="width:36px;height:24px;left:38%;top:58%"></span></figure>
+      <div class="pad">
+        <h2>대흉근이 기준</h2>
+        <div class="chips"><span class="badge chest">대흉근</span><span class="badge neutral">삼두</span></div>
+        <button class="btn outline sm">회전해서 보기</button>
+      </div>
+    </div>
+    <div class="card setbox" style="grid-template-columns:1fr 1fr;margin-top:12px">
+      <div class="field"><label>무게</label><div class="stepper"><i>−</i><span>60 kg</span><i>+</i></div></div>
+      <div class="field"><label>횟수</label><div class="stepper"><i>−</i><span>8 회</span><i>+</i></div></div>
+    </div>
+    <div class="card ex" style="margin-top:12px">
+      <div class="exitem"><span class="n now">1</span><div><b>벤치프레스</b><div class="sub">진행 중</div></div><span class="badge chest">2/3</span></div>
+      <div class="exitem"><span class="n">2</span><div><b>인클라인 덤벨프레스</b><div class="sub">대기</div></div></div>
+      <div class="exitem"><span class="n">3</span><div><b>체스트 플라이</b><div class="sub">대기</div></div></div>
+    </div>
+  </div>
+  <div class="dock">
+    <button class="btn">이 세트 완료</button>
+    <div class="tabs"><span class="on">오늘</span><span>달력</span><span>통계</span><span>내 정보</span></div>
+  </div>
+</section>
+
+<section class="screen phone" id="loginm">
+  <div class="cap">개선안</div>
+  <div class="appbar">
+    <div class="brand"><span class="mark">룬</span> 룬PT</div>
+    <button class="iconbtn" aria-label="테마">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+    </button>
+  </div>
+  <div class="hero-m">
+    <h1>오늘 한 세트가<br>숙련도가 돼요</h1>
+    <p class="lead mu">기록은 계정에 남고, 기기를 바꿔도 이어져요.</p>
+  </div>
+  <div class="card mini">
+    <figure><img src="../assets/muscle-chest.png" alt=""></figure>
+    <div class="pad">
+      <div class="badge">예시</div>
+      <h2 style="margin-top:6px">벤치프레스 · 대흉근</h2>
+      <div class="attr" style="margin-top:6px">돌려 보며 부위를 확인해요</div>
+    </div>
+  </div>
+  <div class="card auth">
+    <div class="stack">
+      <button class="btn kakao">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="11" rx="9" ry="7.2" fill="#191919"/></svg>
+        카카오로 시작하기
+      </button>
+      <button class="btn outline">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.5z"/><path fill="#34A853" d="M12 24c3.2 0 5.8-1 7.7-2.8l-3.7-2.9c-1 .7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.6v3c1.9 3.8 5.8 6.4 10.4 6.4z"/><path fill="#FBBC05" d="M5.4 14.6A7.2 7.2 0 0 1 5 12c0-.9.1-1.8.4-2.6V6.4H1.6A12 12 0 0 0 0 12c0 1.9.5 3.8 1.6 5.6l3.8-3z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.3.6 4.5 1.8l3.4-3.4C17.8 1.1 15.2 0 12 0 7.4 0 3.5 2.6 1.6 6.4l3.8 3C6.3 6.9 8.9 4.8 12 4.8z"/></svg>
+        구글로 시작하기
+      </button>
+    </div>
+    <div class="note"><span>카톡 안에서 열었다면 크롬·사파리로 열어 주세요.</span></div>
+  </div>
+</section>
+
+<section class="screen phone" id="onboard">
+  <div class="cap">개선안 · 온보딩</div>
+  <div class="appbar">
+    <button class="btn ghost" style="padding:0">이전</button>
+    <span class="mu" style="font-size:13px">1 / 6</span>
+    <button class="iconbtn" aria-label="닫기" style="visibility:hidden"></button>
+  </div>
+  <div class="body">
+    <div class="prog"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="q">처음 한 번만 입력해요</div>
+    <h1>만 나이를 알려주세요</h1>
+    <p class="help mu">운동 기준과 안전 수칙을 맞추는 데만 써요. 나중에 내 정보에서 고칠 수 있어요.</p>
+    <div class="input">34<em>세</em></div>
+    <p class="help mu">8에서 90 사이로 입력해요.</p>
+  </div>
+  <div class="dock">
+    <button class="btn">다음</button>
+  </div>
+</section>
+<script>
+  const id = new URLSearchParams(location.search).get("s") || "login";
+  const el = document.getElementById(id);
+  if (el) el.classList.add("on");
+  document.title = "룬PT 개선안 " + id;
+</script>
+</body>
+</html>
