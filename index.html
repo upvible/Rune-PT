@@ -1302,7 +1302,8 @@ async function rpShare(it){
   }catch(e){if(e&&e.name==='AbortError')return}
   copyText(msg||title,'공유를 지원하지 않는 기기예요 · 메시지를 복사했어요')}
 function trReport(it){
-  try{const m=memOfIt(it);if(!m)return false;
+  try{let m=memOfIt(it);
+    if(!m){const nm=pnm(it);if(!nm)return false;m={id:'gt_'+nm+'_'+(Date.now()%100000),name:nm,temp:1};AD().members.push(m);it.mid=m.id;persist()}   // 비회원: 임시회원을 만들어 몸 정보를 받을 수 있게
     const sl=(it.slots||[]).filter(x=>x&&EX[x.id]&&!EX[x.id].missing).map(x=>({id:x.id,sets:(x.sets||[]).map(q=>Object.assign({},q,{done:!!(q.done||(!q.tmp&&+q.r>0))}))})).filter(x=>x.sets.some(q=>q.done));
     if(!sl.length)return false;
     const ss=memSess(m),date=ADM.date||T,days=new Set(),n=Object.keys(ss).reduce((a,d)=>a+(d<=date?ss[d].filter(i=>i===it||submitted(i)).length:0),0);
@@ -1312,8 +1313,16 @@ function trReport(it){
     const can=sendable(it);
     openM(reportHTML(sl,{tr:1,who:m.name,n:Math.max(1,n),days,date,mem,all,rows:memRows(m),foot:rpFoot(it,can)}));
     return true}catch(e){console.error(e);return false}}
+function rpBodyForm(m){
+  if(!m||(m.uid&&memBodyOk(m)))return '';const b=m.body||{},ok=memBodyOk(m);
+  const f=(i,ph,v)=>`<input id="${i}" class="fi" type="number" inputmode="decimal" placeholder="${ph}" value="${v==null?'':v}" style="flex:1;min-width:0">`;
+  return `<details class="pn" style="margin:0 0 8px"${ok?'':' open'}><summary style="font-weight:700;min-height:40px;display:flex;align-items:center;gap:8px">${ok?'회원 몸 정보 수정':'⚠ 몸 정보를 입력하면 티어를 평가해요'}${ok?`<span class="mu">${b.sex==='F'?'여':'남'} ${b.age}세 · ${b.heightCm}cm · ${b.bodyKg}kg</span>`:''}</summary>
+  <div class="mu" style="margin:4px 0 8px;line-height:1.6">${m.uid?'':'연결되지 않은 회원이라 트레이너가 직접 입력해요. '}저장하면 이 성적표가 바로 다시 계산돼요.</div>
+  <div class="row" style="gap:8px"><select id="pxs" class="fi" style="flex:1"><option value="">성별</option><option value="M"${b.sex==='M'?' selected':''}>남</option><option value="F"${b.sex==='F'?' selected':''}>여</option></select>${f('pxa','나이',b.age)}</div>
+  <div class="row" style="gap:8px;margin-top:8px">${f('pxh','신장 cm',b.heightCm)}${f('pxw','체중 kg',b.bodyKg)}${f('pxf','체지방 %',b.bf)}</div>
+  <button class="btn" style="margin-top:8px" data-act="rpbody" data-id="${m.id}">저장하고 성적표 다시 계산</button></details>`}
 function rpFoot(it,can){const msg=lessonMsg(it);
-  return (msg?`<div class="pn" style="margin:0 0 8px"><b>성적표와 함께 공유되는 메시지</b><div class="mu" style="white-space:pre-wrap;margin-top:4px;font-size:13px;line-height:20px">${esc(msg)}</div></div>`:'')+`<button class="btn" data-act="rpshare">📤 성적표 공유 (카톡·인스타 등)</button>`+(can?`<button class="btn ghost" style="margin-top:8px" data-act="trnext">${S.autoSend&&sb&&UID?'회원 앱으로도 발송':'회원 앱으로 발송하기'}</button>`:'')+`<button class="btn ghost" style="margin-top:8px" data-act="close">완료</button>`}
+  return rpBodyForm(memOfIt(it))+(msg?`<div class="pn" style="margin:0 0 8px"><b>성적표와 함께 공유되는 메시지</b><div class="mu" style="white-space:pre-wrap;margin-top:4px;font-size:13px;line-height:20px">${esc(msg)}</div></div>`:'')+`<button class="btn" data-act="rpshare">📤 성적표 공유 (카톡·인스타 등)</button>`+(can?`<button class="btn ghost" style="margin-top:8px" data-act="trnext">${S.autoSend&&sb&&UID?'회원 앱으로도 발송':'회원 앱으로 발송하기'}</button>`:'')+`<button class="btn ghost" style="margin-top:8px" data-act="close">완료</button>`}
 document.addEventListener('scroll',e=>{const x=e.target;if(!x||x.id!=='rpx')return;const i=Math.round(x.scrollLeft/x.clientWidth);document.querySelectorAll('#rpd i').forEach((d,k)=>d.classList.toggle('on',k===i))},true);
 /* ---- 승급 이펙트 ---- */
 function promoHTML(ups){
@@ -3573,6 +3582,9 @@ const A={
   aexp:()=>{const l=plan(ADM.date);if(!l.length){toast('보낼 수업 칸이 없어요');return}copyText('RPT1:'+btoa(unescape(encodeURIComponent(JSON.stringify({d:ADM.date,items:l})))),'코드를 복사했어요. 카톡 나와의 채팅 등으로 보내세요')},
   aimp:()=>{const raw=($('#imp').value||'').trim();try{if(!raw.startsWith('RPT1:'))throw 0;const o=JSON.parse(decodeURIComponent(escape(atob(raw.slice(5)))));const l=plan(o.d);let add=0,upd=0,skip=0;o.items.forEach(it=>{const i=l.findIndex(x=>x.id===it.id);if(i>=0){l[i]=it;upd++}else if(l.some(x=>x.time===it.time)){skip++}else{l.push(it);add++}});ADM.date=o.d;persist();render();toast(`가져왔어요 (추가 ${add}, 갱신 ${upd}, 시간 겹쳐 건너뜀 ${skip})`)}catch(e){toast('코드를 읽을 수 없어요. 처음부터 끝까지 복사했는지 확인해 주세요')}},
   aback:()=>closeEdit(),
+  rpbody:d=>{const m=AD().members.find(x=>x.id===d.id);if(!m)return;const sex=$('#pxs').value,age=+$('#pxa').value,h=+$('#pxh').value,w=+$('#pxw').value,bf=$('#pxf').value===''?null:+$('#pxf').value;
+    if(!sex||!(age>=5&&age<=110)||!(h>=100&&h<=250)||!(w>=20&&w<=300)||(bf!=null&&!(bf>=3&&bf<=70))){toast('성별·나이(5~110)·신장(100~250)·체중(20~300)을 확인해 주세요');return}
+    m.body={sex,age,heightCm:h,bodyKg:w,bf,ts:Date.now()};persist();const it=fi(TRN);if(it&&trReport(it)){render();toast('몸 정보를 저장하고 성적표를 다시 계산했어요')}else toast('저장했어요')},
   rpshare:()=>{const it=fi(TRN);if(it)rpShare(it)},
   asheet:d=>{const it=fi(d.id);if(!it)return;if(!trReport(it))toast('성적표를 만들려면 회원 연결과 완료한 세트가 필요해요')},
   trnext:()=>{const it=fi(TRN);closeM();if(!it)return;if(sendable(it)){if(S.autoSend&&sb&&UID)A.asend({id:it.id});else openM(sendAsk(it))}},
