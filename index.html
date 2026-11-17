@@ -1256,6 +1256,7 @@ function reportHTML(sl,o){o=o||{};
       ev.push(`<div class="rpr"><span>⚔ ${nm}<small>${p?'돌파! ':'이번 세션은 '+R2.TIERS[T2]+' 수준에 못 미쳤어요. '}<b>이제 ${need}세션만 더 돌파하시면 ${R2.TIERS[T2]} 승급이에요</b> (남은 기회 ${left}번)</small></span><b style="color:${TIERC[T2]}">${o.got}/${TRIAL_N}</b></div>`)}
     else if(t.fail===TD)ev.push(`<div class="rpr"><span>💤 ${nm}<small><b>퀘스트에 실패하셨습니다.</b> ${R2.TIERS[T2]} 수준 세트를 다시 해내면 새 퀘스트가 도착해요</small></span><b class="mu">실패</b></div>`);
     else if(!t.win&&t.arr===TD)ev.push(`<div class="rpr"><span>⚔ ${nm}<small><b>퀘스트 도착!</b> ${R2.TIERS[T2]} 승급전 · 수락 후 ${TRIAL_W}번의 운동 중 ${TRIAL_N}번 통과하면 승급</small>${o.tr?'':`<button class="btn sm" style="width:auto;margin-top:6px" data-act="qacc" data-k="${q.m.id}">퀘스트 수락</button>`}</span><b style="color:${TIERC[T2]}">NEW</b></div>`)})}catch(e){}
+  if(o.tr&&RPT)RPT.ev=ev.slice();
   if(ev.length)cards.push(`<div class="rpc"><div class="rpt">승급전 소식</div><div class="rps">종목별 티어 승급 상황이에요</div>${ev.join('')}</div>`);
   return `<div class="row"><b class="h2">${o.tr?esc(o.who)+'님 수업 성적표':'운동 성적표'}</b><button class="x" data-act="close">✕</button></div><div class="rpx" id="rpx">${cards.join('')}</div><div class="rpd" id="rpd">${cards.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div><div class="mu" style="text-align:center;margin:4px 0 8px">옆으로 넘겨 보세요</div>${o.foot!=null?o.foot:`<button class="btn ghost" data-act="grades">세트 평가 자세히 보기</button><button class="btn" style="margin-top:8px" data-act="close">완료</button>`}`;
 }
@@ -1281,6 +1282,15 @@ async function rpImages(msg){
     x.textAlign='left';x.fillStyle='#eef2f8';x.font='700 44px '+F;let y=520;d.names.slice(0,9).forEach(q=>{x.fillStyle='#4aa8ff';x.fillText(q.ns+'x',64,y);x.fillStyle='#eef2f8';x.fillText(q.nm,180,y);y+=96})}));
   if(d.topT>=0)out.push(mk('오늘의 수행 티어',x=>{x.textAlign='center';x.fillStyle=TIERC[d.topT];x.font='900 72px '+F;x.fillText('오늘 최고 '+R.TIERS[d.topT],W/2,290);
     x.textAlign='left';let y=460;d.rows.slice(0,6).forEach(q=>{x.fillStyle='#eef2f8';x.font='700 40px '+F;x.fillText(q.nm,64,y);x.fillStyle='#8da2c0';x.font='500 30px '+F;x.fillText(q.txt,64,y+52);if(q.t>=0){x.textAlign='right';x.fillStyle=TIERC[q.t];x.font='900 40px '+F;x.fillText(R.TIERS[q.t],W-64,y+8);x.textAlign='left'}y+=150})}));
+  const SC={s:'#a5b0be',y:'#e6b800',r:'#ff6b6b'};
+  if(d.earn&&d.earn.length)out.push(mk('숙련도 마일리지 적립',x=>{x.textAlign='center';x.fillStyle='#8da2c0';x.font='500 30px '+F;x.fillText('★ 1천 kg · ★ 1만 kg · ★ 10만 kg',W/2,250);x.textAlign='left';let y=340;
+    d.earn.slice(0,6).forEach(e=>{x.fillStyle='#eef2f8';x.font='700 42px '+F;x.fillText(e.nm+' +'+fmt(e.add)+' kg',64,y);x.fillStyle='#8da2c0';x.font='500 30px '+F;x.fillText('누적 '+fmt(e.tot)+' kg · 다음 별까지 '+fmt(1000-e.tot%1000)+' kg',64,y+58);
+      const st=mStars(e.tot,1000),parts=[['r',st.r],['y',st.y],['s',st.s]].filter(q=>q[1]);let rx=W-64;x.textAlign='right';x.font='900 40px '+F;parts.reverse().forEach(q=>{const t='★'+q[1];x.fillStyle=SC[q[0]];x.fillText(t,rx,y+8);rx-=x.measureText(t).width+20});x.textAlign='left';
+      x.fillStyle='#22304a';x.fillRect(64,y+112,W-128,3);y+=170})}));
+  if(d.ev&&d.ev.length){const pe=d.ev.map(h=>{const t=document.createElement('div');t.innerHTML=h;const sp=t.querySelector('span'),sm=t.querySelector('small'),tg=t.querySelector(':scope > .rpr > :last-child')||t.querySelector('.rpr').lastElementChild,nmEl=sp&&sp.childNodes[0];
+      return{nm:nmEl?nmEl.textContent.trim():'',sub:sm?sm.textContent.trim():'',tag:tg?tg.textContent.trim():'',col:tg&&tg.querySelector('b')&&tg.querySelector('b').style.color||(tg&&tg.style&&tg.style.color)||'#4aa8ff'}});
+    out.push(mk('승급 소식',x=>{x.textAlign='left';let y=270;pe.slice(0,4).forEach(e=>{x.fillStyle='#eef2f8';x.font='700 42px '+F;x.fillText(e.nm,64,y);if(e.tag){x.textAlign='right';x.fillStyle=e.col||'#4aa8ff';x.font='900 38px '+F;x.fillText(e.tag,W-64,y+4);x.textAlign='left'}
+      x.fillStyle='#8da2c0';x.font='500 30px '+F;y=wrap(x,e.sub,W-128,y+62,44,y+300)+20;x.fillStyle='#22304a';x.fillRect(64,y,W-128,3);y+=40})}))}
   if(msg)out.push(mk('코치 메시지',x=>{x.fillStyle='#eef2f8';x.font='500 42px '+F;wrap(x,msg,W-128,280,66)}));
   return Promise.all(out.map((c,i)=>new Promise(r=>c.toBlob(b=>r(new File([b],'rune-성적표-'+(i+1)+'.png',{type:'image/png'})),'image/png'))))}
 async function rpShare(it){
