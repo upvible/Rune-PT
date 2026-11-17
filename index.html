@@ -1242,6 +1242,7 @@ function reportHTML(sl,o){o=o||{};
   const today=mileOf(sl),all=o.all||mileAll(),earn=MAX.filter(([k])=>k!=='cardio'&&today[k]>0).map(([k,nm])=>{const bf=all[k]-today[k];return{nm,add:today[k],got:Math.floor(all[k]/1000)-Math.floor(Math.max(0,bf)/1000),st:mStars(all[k],1000),tot:all[k]}});
   let topT=-1;sl.forEach(x=>{const b=bestOf(x,o.mem);if(b.ok&&b.t>topT)topT=b.t});
   const rows=sl.map(x=>{const b=bestOf(x,o.mem),nm=esc(EX[x.id]?EX[x.id].name:x.nm||'종목');return b.ok?`<div class="rpr"><span>${nm}<small>최고 세트 ${b.txt?b.txt+'kg':b.w+'kg×'+b.r} · 예상 1RM ${Math.round(b.e1)}kg</small></span><span class="emw">${embImg(b.t,36)}<b style="color:${TIERC[b.t]}">${R.TIERS[b.t]}</b></span></div>`:`<div class="rpr"><span>${nm}<small>${b.why}</small></span><b class="mu">-</b></div>`}).join('');
+  if(o.tr)RPT={who:o.who,n,date:TD,wk,wn,tv,ns,nx:sl.length,names:sl.map(x=>({nm:EX[x.id]?EX[x.id].name:x.nm||'종목',ns:x.sets.filter(q=>q.done&&q.t!=='W').length})),topT,rows:sl.map(x=>{const b=bestOf(x,o.mem);return{nm:EX[x.id]?EX[x.id].name:x.nm||'종목',ok:b.ok,txt:b.ok?(b.txt?b.txt+'kg':b.w+'kg×'+b.r)+' · 예상 1RM '+Math.round(b.e1)+'kg':(b.why||''),t:b.ok?b.t:-1}}),earn:earn.map(e=>({nm:e.nm,add:e.add,tot:e.tot}))};
   const cards=[
    `<div class="rpc"><div class="rpt">${o.tr?"수업 제출 완료!":"좋아요!"}</div><div class="rps">${o.tr?esc(o.who)+"님과 "+n+"번째 수업이에요":"이번이 "+n+"번째 운동이에요"}</div><div class="rpw">${wk.map(x=>`<span><small>${x.w}</small><i class="${x.on?'on':''}">${x.on?'✓':''}</i></span>`).join('')}</div><div class="rps">지난 7일 동안 <b>${wn}번</b> ${o.tr?"수업했어요":"운동했어요"}</div></div>`,
    `<div class="rpc"><div class="rpt">${o.tr?"오늘의 수업":"오늘의 운동"}</div><div class="rpg"><div><b>${dur==null?'-':dur+'분'}</b><span>${o.tr?"수업":"운동"} 시간</span></div><div><b>${fmt(tv)} kg</b><span>볼륨</span></div><div><b>${sl.length}</b><span>운동</span></div><div><b>${ns}</b><span>세트</span></div></div><div class="rpl">${sl.map(x=>`<div><b>${x.sets.filter(q=>q.done&&q.t!=='W').length}x</b> ${esc(EX[x.id]?EX[x.id].name:x.nm||'종목')}</div>`).join('')}</div></div>`,
@@ -1259,7 +1260,37 @@ function reportHTML(sl,o){o=o||{};
   return `<div class="row"><b class="h2">${o.tr?esc(o.who)+'님 수업 성적표':'운동 성적표'}</b><button class="x" data-act="close">✕</button></div><div class="rpx" id="rpx">${cards.join('')}</div><div class="rpd" id="rpd">${cards.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div><div class="mu" style="text-align:center;margin:4px 0 8px">옆으로 넘겨 보세요</div>${o.foot!=null?o.foot:`<button class="btn ghost" data-act="grades">세트 평가 자세히 보기</button><button class="btn" style="margin-top:8px" data-act="close">완료</button>`}`;
 }
 /* 트레이너: 수업 제출 시 회원 운동 종료 때 나오는 성적표와 같은 화면 (회원 체격·회원 기록 기준) */
-let TRN=null;
+let TRN=null,RPT=null;
+/* ---- 성적표 공유: 성적표 카드 이미지 묶음 + (있을 때만) 코치 메시지 한 장 ---- */
+function lessonMsg(it){compileLesson(it);const g=(it.goal||'').trim(),sp=(it.special||'').trim(),hw=(it.hw||'').trim();if(!g&&!sp&&!hw)return '';
+  const L=[`${(it.name||'').trim()?it.name.trim()+' 회원님, ':''}오늘 수업 수고하셨어요! 💪`];
+  if(g)L.push('','🎯 [다음 수업 기대치]',g);if(sp)L.push('','⚠️ [특이사항]',sp);if(hw)L.push('','📝 [과제]',hw);return L.join('\n')}
+async function rpImages(msg){
+  const R=window.RuneTier,d=RPT;if(!d)return [];
+  try{await document.fonts.load('700 40px "Noto Sans KR"');await document.fonts.load('900 40px "Noto Sans KR"')}catch(e){}
+  const W=1080,H=1350,F='"Noto Sans KR",system-ui,sans-serif',out=[];
+  const mk=(title,draw)=>{const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+    const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0b1424');g.addColorStop(1,'#101c33');x.fillStyle=g;x.fillRect(0,0,W,H);
+    x.fillStyle='#4aa8ff';x.fillRect(0,0,W,12);x.textBaseline='top';x.fillStyle='#8da2c0';x.font='500 32px '+F;x.textAlign='left';x.fillText('RUNE PT · '+d.date,64,56);
+    x.fillStyle='#eef2f8';x.font='900 64px '+F;x.textAlign='center';x.fillText(title,W/2,150);x.textAlign='left';draw(x);return c};
+  const wrap=(x,t,mx,y,lh,maxY)=>{const lines=[];String(t).split('\n').forEach(par=>{let cur='';for(const ch of par){if(x.measureText(cur+ch).width>mx){lines.push(cur);cur=ch}else cur+=ch}lines.push(cur)});lines.forEach(l=>{if(y+lh<=(maxY||H-80)){x.fillText(l,64,y);y+=lh}});return y};
+  out.push(mk('수업 제출 완료!',x=>{x.textAlign='center';x.fillStyle='#eef2f8';x.font='500 44px '+F;x.fillText(d.who+'님과 '+d.n+'번째 수업이에요',W/2,300);
+    d.wk.forEach((q,i)=>{const cx=150+i*130,cy=560;x.fillStyle=q.on?'#1e90ff':'#24324a';x.beginPath();x.arc(cx,cy,44,0,7);x.fill();x.fillStyle='#8da2c0';x.font='500 32px '+F;x.fillText(q.w,cx,470);if(q.on){x.fillStyle='#fff';x.font='900 44px '+F;x.fillText('✓',cx,cy-26)}});
+    x.fillStyle='#eef2f8';x.font='500 44px '+F;x.fillText('지난 7일 동안 '+d.wn+'번 수업했어요',W/2,720)}));
+  out.push(mk('오늘의 수업',x=>{[[fmt(d.tv)+' kg','볼륨'],[String(d.nx),'운동'],[String(d.ns),'세트']].forEach((v,i)=>{const cx=220+i*320;x.textAlign='center';x.fillStyle='#4aa8ff';x.font='900 64px '+F;x.fillText(v[0],cx,290);x.fillStyle='#8da2c0';x.font='500 32px '+F;x.fillText(v[1],cx,376)});
+    x.textAlign='left';x.fillStyle='#eef2f8';x.font='700 44px '+F;let y=520;d.names.slice(0,9).forEach(q=>{x.fillStyle='#4aa8ff';x.fillText(q.ns+'x',64,y);x.fillStyle='#eef2f8';x.fillText(q.nm,180,y);y+=96})}));
+  if(d.topT>=0)out.push(mk('오늘의 수행 티어',x=>{x.textAlign='center';x.fillStyle=TIERC[d.topT];x.font='900 72px '+F;x.fillText('오늘 최고 '+R.TIERS[d.topT],W/2,290);
+    x.textAlign='left';let y=460;d.rows.slice(0,6).forEach(q=>{x.fillStyle='#eef2f8';x.font='700 40px '+F;x.fillText(q.nm,64,y);x.fillStyle='#8da2c0';x.font='500 30px '+F;x.fillText(q.txt,64,y+52);if(q.t>=0){x.textAlign='right';x.fillStyle=TIERC[q.t];x.font='900 40px '+F;x.fillText(R.TIERS[q.t],W-64,y+8);x.textAlign='left'}y+=150})}));
+  if(msg)out.push(mk('코치 메시지',x=>{x.fillStyle='#eef2f8';x.font='500 42px '+F;wrap(x,msg,W-128,280,66)}));
+  return Promise.all(out.map((c,i)=>new Promise(r=>c.toBlob(b=>r(new File([b],'rune-성적표-'+(i+1)+'.png',{type:'image/png'})),'image/png'))))}
+async function rpShare(it){
+  const msg=lessonMsg(it);toast('성적표를 만드는 중…');
+  const files=await rpImages(msg),title=(RPT?RPT.who+'님 수업 성적표':'수업 성적표');
+  try{
+    if(navigator.canShare&&files.length&&navigator.canShare({files})){await navigator.share({files,title,text:msg||title});return}
+    if(navigator.share){await navigator.share({title,text:(msg||title)});toast('이 기기는 이미지 공유를 지원하지 않아 메시지만 공유했어요');return}
+  }catch(e){if(e&&e.name==='AbortError')return}
+  copyText(msg||title,'공유를 지원하지 않는 기기예요 · 메시지를 복사했어요')}
 function trReport(it){
   try{const m=memOfIt(it);if(!m)return false;
     const sl=(it.slots||[]).filter(x=>x&&EX[x.id]&&!EX[x.id].missing).map(x=>({id:x.id,sets:(x.sets||[]).map(q=>Object.assign({},q,{done:!!(q.done||(!q.tmp&&+q.r>0))}))})).filter(x=>x.sets.some(q=>q.done));
@@ -1269,8 +1300,10 @@ function trReport(it){
     const mem=memBody(m),items=memItems(m),all=mileOf(items,m.runs);
     TRN=it.id;
     const can=sendable(it);
-    openM(reportHTML(sl,{tr:1,who:m.name,n:Math.max(1,n),days,date,mem,all,rows:memRows(m),foot:(can?`<button class="btn" data-act="trnext">${S.autoSend&&sb&&UID?'확인 · 회원에게 발송':'다음 · 회원에게 발송하기'}</button><button class="btn ghost" style="margin-top:8px" data-act="close">발송은 나중에</button>`:`<button class="btn" data-act="close">완료</button>`)}));
+    openM(reportHTML(sl,{tr:1,who:m.name,n:Math.max(1,n),days,date,mem,all,rows:memRows(m),foot:rpFoot(it,can)}));
     return true}catch(e){console.error(e);return false}}
+function rpFoot(it,can){const msg=lessonMsg(it);
+  return (msg?`<div class="pn" style="margin:0 0 8px"><b>성적표와 함께 공유되는 메시지</b><div class="mu" style="white-space:pre-wrap;margin-top:4px;font-size:13px;line-height:20px">${esc(msg)}</div></div>`:'')+`<button class="btn" data-act="rpshare">📤 성적표 공유 (카톡·인스타 등)</button>`+(can?`<button class="btn ghost" style="margin-top:8px" data-act="trnext">${S.autoSend&&sb&&UID?'회원 앱으로도 발송':'회원 앱으로 발송하기'}</button>`:'')+`<button class="btn ghost" style="margin-top:8px" data-act="close">완료</button>`}
 document.addEventListener('scroll',e=>{const x=e.target;if(!x||x.id!=='rpx')return;const i=Math.round(x.scrollLeft/x.clientWidth);document.querySelectorAll('#rpd i').forEach((d,k)=>d.classList.toggle('on',k===i))},true);
 /* ---- 승급 이펙트 ---- */
 function promoHTML(ups){
@@ -2178,7 +2211,7 @@ function sugHTML(){const c=ADM.cur,q=c.name.trim();if(!q)return '';if(c.mid)retu
 function viewAdm(){
   const d=ADM.date,list=plan(d).slice().sort((a,b)=>a.time<b.time?-1:1),sent=list.filter(x=>x.sent).length;
   const cards=list.map(it=>{const n=it.slots.filter(Boolean).length;
-    return `<div class='pn'><div class='row'><b class='h2'>${it.time}–${endT(it.time)} · ${esc(it.name)||'회원 미지정'}${it.no?' · '+it.no+'차시':''}</b><span class='mu'>${it.sent?'✔ 발송됨':'작성중'}</span></div><div class='mu' style='margin:4px 0 8px'>룬 ${n}/6${n?' · '+esc(it.slots.filter(Boolean).map(x=>EX[x.id].name).join(', ')):''}${it.special?' · 특이사항 있음':''}</div><div style='display:flex;flex-wrap:wrap;gap:6px'><button class='btn sm' data-act='aedit' data-id='${it.id}'>편집</button><a class='btn ghost sm' href='${esc(calURL(it,d))}' target='_blank' rel='noopener'>캘린더</a><button class='btn ghost sm' data-act='acopy' data-id='${it.id}'>카톡 복사</button><button class='btn ghost sm' data-act='asend' data-id='${it.id}'>발송</button><button class='btn ghost sm' data-act='adel' data-id='${it.id}'>삭제</button></div></div>`}).join('');
+    return `<div class='pn'><div class='row'><b class='h2'>${it.time}–${endT(it.time)} · ${esc(it.name)||'회원 미지정'}${it.no?' · '+it.no+'차시':''}</b><span class='mu'>${it.sent?'✔ 발송됨':'작성중'}</span></div><div class='mu' style='margin:4px 0 8px'>룬 ${n}/6${n?' · '+esc(it.slots.filter(Boolean).map(x=>EX[x.id].name).join(', ')):''}${it.special?' · 특이사항 있음':''}</div><div style='display:flex;flex-wrap:wrap;gap:6px'><button class='btn sm' data-act='aedit' data-id='${it.id}'>편집</button><a class='btn ghost sm' href='${esc(calURL(it,d))}' target='_blank' rel='noopener'>캘린더</a><button class='btn ghost sm' data-act='acopy' data-id='${it.id}'>카톡 복사</button><button class='btn ghost sm' data-act='asheet' data-id='${it.id}'>성적표</button><button class='btn ghost sm' data-act='adel' data-id='${it.id}'>삭제</button></div></div>`}).join('');
   return `<h1 class='h1'>관리자 · 수업 시간표</h1><div class='mu'>데모 화면이에요. 실서비스에서는 서버가 트레이너로 지정한 계정만 관리자 버전을 켤 수 있어요.</div>${syCard()}<div class='pn' style='margin-top:10px'><div class='row' style='gap:8px'><input type='date' class='fi' id='ad' value='${d}'><span class='vb'>수업 <b style='font-size:18px'>${list.length}</b>칸 · 발송 ${sent}</span></div><div class='row' style='gap:8px;margin-top:8px'><select class='fi' id='at'>${HRS.map(h=>`<option ${h==='06:00'?'selected':''}>${h}</option>`).join('')}</select><button class='btn sm' style='white-space:nowrap' data-act='aadd'>+ 수업 칸 추가</button></div><div class='row' style='gap:8px;margin-top:8px'><button class='btn ghost sm' data-act='aexp'>다른 기기로 보내기 (코드 복사)</button></div><details style='margin-top:8px'><summary class='mu'>다른 기기에서 가져오기</summary><textarea id='imp' class='fi' rows='3' style='width:100%;margin-top:6px' placeholder='복사한 코드를 붙여넣기'></textarea><button class='btn sm' data-act='aimp' style='margin-top:6px'>가져오기</button></details><button class='btn ghost' style='margin-top:8px' data-act='agcal'>구글 캘린더에서 [PT] 일정 불러오기</button></div>${cards||`<div class='mu'>이 날짜에는 수업 칸이 없어요</div>`}${list.length?`<button class='btn' data-act='asendall'>회원 지정된 칸 모두 발송</button>`:''}`;
 }
 function viewAdmEdit(){
@@ -3526,6 +3559,8 @@ const A={
   aexp:()=>{const l=plan(ADM.date);if(!l.length){toast('보낼 수업 칸이 없어요');return}copyText('RPT1:'+btoa(unescape(encodeURIComponent(JSON.stringify({d:ADM.date,items:l})))),'코드를 복사했어요. 카톡 나와의 채팅 등으로 보내세요')},
   aimp:()=>{const raw=($('#imp').value||'').trim();try{if(!raw.startsWith('RPT1:'))throw 0;const o=JSON.parse(decodeURIComponent(escape(atob(raw.slice(5)))));const l=plan(o.d);let add=0,upd=0,skip=0;o.items.forEach(it=>{const i=l.findIndex(x=>x.id===it.id);if(i>=0){l[i]=it;upd++}else if(l.some(x=>x.time===it.time)){skip++}else{l.push(it);add++}});ADM.date=o.d;persist();render();toast(`가져왔어요 (추가 ${add}, 갱신 ${upd}, 시간 겹쳐 건너뜀 ${skip})`)}catch(e){toast('코드를 읽을 수 없어요. 처음부터 끝까지 복사했는지 확인해 주세요')}},
   aback:()=>closeEdit(),
+  rpshare:()=>{const it=fi(TRN);if(it)rpShare(it)},
+  asheet:d=>{const it=fi(d.id);if(!it)return;if(!trReport(it))toast('성적표를 만들려면 회원 연결과 완료한 세트가 필요해요')},
   trnext:()=>{const it=fi(TRN);closeM();if(!it)return;if(sendable(it)){if(S.autoSend&&sb&&UID)A.asend({id:it.id});else openM(sendAsk(it))}},
   admdone:()=>{const it=ADM.cur;if(it)it.done=true;const m=it&&memOfIt(it),can=it&&sendable(it);closeEdit();if(!it)return;
     if(trReport(it))return;
