@@ -3427,21 +3427,27 @@ const CU={part:'chest'};
 const HEADS=[['squat','스쿼트'],['bench','벤치프레스'],['deadlift','데드리프트'],['ohp','오버헤드 프레스'],['bbrow','바벨 로우']];
 const catRow=id=>CAT.rows.find(r=>r.id===id);
 /* ---- 전적조회(트레이너): 서버 전체 회원의 기록을 이름으로 찾고, 기록을 열어 신체 정보·운동 순서(기보)를 봐요. 열람하면 회원 쪽에 열람 기록이 남아요 ---- */
-const REC={q:'',tab:'feed',members:null,feed:null,more:false,err:'',busy:false,cur:null,ov:null,ss:null,sel:null,derr:''};
+const ALI={ok:null,m:{}};
+function recNm(uid,nick){const a=ALI.m[uid];if(a)return{n:a,src:'별칭',nick};const m=AD().members.find(x=>x.uid===uid);if(m&&m.name)return{n:m.name,src:'연결 회원',nick};return{n:nick||'회원',src:'',nick}}
+function recHit(uid,nick,q){q=(q||'').trim().toLowerCase();if(!q)return true;const r=recNm(uid,nick);return r.n.toLowerCase().includes(q)||String(nick||'').toLowerCase().includes(q)}
+function recNmHTML(uid,nick){const r=recNm(uid,nick);return `<b>${esc(r.n)}</b>${r.src&&nick&&nick!==r.n?` <small class="mu" style="background:var(--bg2,#0001);border-radius:6px;padding:1px 6px">${esc(nick||'회원')}</small>`:''}`}
+const REC={ed:false,q:'',tab:'feed',members:null,feed:null,more:false,err:'',busy:false,cur:null,ov:null,ss:null,sel:null,derr:''};
 const recErr=e=>/function|does not exist|schema cache/i.test((e&&e.message)||'')?'서버에 7단계 SQL(phase7)을 먼저 실행해 주세요':/트레이너만/.test((e&&e.message)||'')?'트레이너 계정으로 로그인해야 볼 수 있어요':((e&&e.message)||'불러오지 못했어요');
 async function recLoad(more){
   if(REC.busy)return;
   if(!sb||!UID){REC.err='서버에 로그인해야 전적을 조회할 수 있어요';REC.feed=REC.members=[];render();return}
-  REC.busy=true;const q=REC.q.trim()||null;
+  REC.busy=true;let q=REC.q.trim()||null;
   try{
+    if(ALI.ok===null||!more){const a=await sb.rpc('trainer_alias_list');if(a.error){ALI.ok=false}else{ALI.ok=true;ALI.m={};(a.data||[]).forEach(x=>{ALI.m[x.member_id]=x.real_name})}}
+    if(q){const ql=q.toLowerCase();const hit=Object.keys(ALI.m).some(k=>ALI.m[k].toLowerCase().includes(ql))||AD().members.some(m=>m.uid&&m.name&&m.name.toLowerCase().includes(ql));if(hit)q=null}
     if(REC.tab==='feed'){const off=more&&REC.feed?REC.feed.length:0,r=await sb.rpc('trainer_record_feed',{p_q:q,p_limit:30,p_offset:off});
       if(r.error){REC.err=recErr(r.error);REC.feed=REC.feed||[]}else{REC.err='';const d=r.data||[];REC.feed=off?REC.feed.concat(d):d;REC.more=d.length>=30}}
     else{const r=await sb.rpc('trainer_record_members',{p_q:q});if(r.error){REC.err=recErr(r.error);REC.members=REC.members||[]}else{REC.err='';REC.members=r.data||[]}}
   }catch(e){REC.err='불러오지 못했어요'}
   REC.busy=false;if(tab==='rec'&&!REC.cur)render();
 }
-async function recOpen(id,nm,date,no){
-  REC.cur={id,nm};REC.ov=null;REC.ss=null;REC.sel=date?date+'#'+(no||1):null;REC.derr='';render();
+async function recOpen(id,nm,date,no,nick){
+  REC.cur={id,nm,nick:nick||''};REC.ed=false;REC.ov=null;REC.ss=null;REC.sel=date?date+'#'+(no||1):null;REC.derr='';render();
   try{const [a,b]=await Promise.all([sb.rpc('trainer_member_overview',{p_member:id}),sb.rpc('trainer_member_sessions',{p_member:id,p_limit:60})]);
     if(a.error||b.error){REC.derr=recErr(a.error||b.error)}else{REC.ov=a.data||{};REC.ss=b.data||[];if(!REC.sel&&REC.ss.length)REC.sel=REC.ss[0].session_date+'#'+REC.ss[0].session_no}
   }catch(e){REC.derr='불러오지 못했어요'}
@@ -3468,7 +3474,7 @@ function recSessionHTML(g,mem){
 }
 function recDetail(){
   const c=REC.cur,R=window.RuneTier;
-  let h=`<div class="pn"><div class="row"><button class="btn ghost sm" style="width:auto" data-act="recback">← 목록</button><b class="h2">${esc(c.nm||'회원')}</b></div>${lkRecBar(c)}`;
+  let h=`<div class="pn"><div class="row"><button class="btn ghost sm" style="width:auto" data-act="recback">← 목록</button><b class="h2">${recNmHTML(c.id,c.nick||c.nm)}</b><button class="btn ghost sm" style="width:auto" data-act="recalias" data-uid="${c.id}" data-nick="${esc(c.nick||'')}">✎ 본명</button></div>${REC.ed?`<div class="row" style="gap:6px;margin:8px 0"><input class="fi" id="recal" placeholder="본명 (비우고 저장하면 삭제)" value="${esc(ALI.m[c.id]||'')}" maxlength="30" style="flex:1"><button class="btn sm" style="width:auto" data-act="recalsave" data-uid="${c.id}">저장</button></div>${ALI.ok===false?'<div class="mu" style="color:#c0392b">서버에 15단계 SQL을 먼저 실행해 주세요</div>':''}`:''}${(()=>{const m=AD().members.find(x=>x.uid===c.id);return m?`<div style="margin:6px 0"><button class="btn ghost sm" style="width:auto" data-act="amem" data-id="${m.id}">📒 회원명부에서 열기</button></div>`:''})()}${lkRecBar(c)}`;
   if(REC.derr)return h+`<div class="mu" style="color:#c0392b;margin-top:8px">${esc(REC.derr)}</div></div>`;
   if(!REC.ov)return h+'<div class="mu" style="margin-top:8px">불러오는 중…</div></div>';
   const o=REC.ov,b=o.body||{},p=o.profile||{},st=o.stat||{};
@@ -3488,10 +3494,10 @@ function viewRec(){
   if(REC.feed===null&&REC.members===null&&!REC.busy)setTimeout(()=>recLoad(false),0);
   else if(REC.tab==='feed'&&REC.feed===null&&!REC.busy)setTimeout(()=>recLoad(false),0);
   else if(REC.tab==='mem'&&REC.members===null&&!REC.busy)setTimeout(()=>recLoad(false),0);
-  const list=REC.tab==='feed'?REC.feed:REC.members;
+  const list0=REC.tab==='feed'?REC.feed:REC.members;const list=list0&&list0.filter(x=>recHit(x.member_id,x.nickname,REC.q));
   const rows=!list?'<div class="mu">불러오는 중…</div>':!list.length?`<div class="mu">${REC.err?'':'결과가 없어요'}</div>`:REC.tab==='feed'
-    ?list.map(x=>{const nm=(x.ex||[]).map(recExName).slice(0,4).join(', '),n=(x.ex||[]).length;return `<button class="ex" data-act="recopen" data-uid="${x.member_id}" data-nm="${esc(x.nickname||'회원')}" data-d="${x.session_date}" data-no="${x.session_no}"><span><b>${esc(x.nickname||'회원')}</b> <small class="mu">${x.session_date}${x.session_no>1?' · '+x.session_no+'회차':''}</small><br><small class="mu">${esc(nm)}${n>4?' 외 '+(n-4):''}</small></span><span class="mu">${n}종목</span></button>`}).join('')+(REC.more?'<button class="btn ghost" data-act="recmore">더 보기</button>':'')
-    :list.map(x=>`<button class="ex" data-act="recopen" data-uid="${x.member_id}" data-nm="${esc(x.nickname||'회원')}"><span><b>${esc(x.nickname||'회원')}</b><br><small class="mu">${String(x.joined_at||'').slice(0,10)} 가입</small></span><span class="mu">${x.sessions}회${x.last_date?' · 최근 '+x.last_date:''}</span></button>`).join('');
+    ?list.map(x=>{const nm=(x.ex||[]).map(recExName).slice(0,4).join(', '),n=(x.ex||[]).length;return `<button class="ex" data-act="recopen" data-uid="${x.member_id}" data-nm="${esc(recNm(x.member_id,x.nickname).n)}" data-nick="${esc(x.nickname||'')}" data-d="${x.session_date}" data-no="${x.session_no}"><span>${recNmHTML(x.member_id,x.nickname)} <small class="mu">${x.session_date}${x.session_no>1?' · '+x.session_no+'회차':''}</small><br><small class="mu">${esc(nm)}${n>4?' 외 '+(n-4):''}</small></span><span class="mu">${n}종목</span></button>`}).join('')+(REC.more?'<button class="btn ghost" data-act="recmore">더 보기</button>':'')
+    :list.map(x=>`<button class="ex" data-act="recopen" data-uid="${x.member_id}" data-nm="${esc(recNm(x.member_id,x.nickname).n)}" data-nick="${esc(x.nickname||'')}"><span>${recNmHTML(x.member_id,x.nickname)}${recNm(x.member_id,x.nickname).src?'':` <span data-act="recalias" data-uid="${x.member_id}" data-nick="${esc(x.nickname||'')}" style="color:var(--ac,#c8451f);font-size:12px">✎ 본명 지정</span>`}<br><small class="mu">${String(x.joined_at||'').slice(0,10)} 가입</small></span><span class="mu">${x.sessions}회${x.last_date?' · 최근 '+x.last_date:''}</span></button>`).join('');
   return `<div class="pn"><b class="h2">전적조회</b><div class="mu" style="margin:4px 0 8px">서버에 가입한 전체 회원의 운동 기록을 열람해요. 기록을 열면 회원의 내 정보 화면에 열람 기록이 남아요.</div>
   <input class="fi" id="recq" type="search" placeholder="회원 이름 검색" value="${esc(REC.q)}" style="width:100%;margin-bottom:8px">
   <div class="tabs"><button data-act="rectab" data-v="feed" class="${REC.tab==='feed'?'on':''}">최근 운동</button><button data-act="rectab" data-v="mem" class="${REC.tab==='mem'?'on':''}">회원</button></div>
@@ -3723,7 +3729,9 @@ const A={
   asendall:async()=>{if(!sb||!UID){toast('서버에 로그인해야 보낼 수 있어요');return}let ok=0,no=0,bad=0;for(const it of plan(ADM.date)){if(!it.name.trim()||it.sent)continue;const x=await sendGift(it);if(x==='ok'||x==='upd'||x==='new')ok++;else if(x==='nolink')no++;else bad++}persist();render();toast(`${ok}건 보냈어요${no?' · 계정 미연결 '+no+'건':''}${bad?' · 실패 '+bad+'건':''}`)},
   pushon:()=>pushOn(),pushoff:()=>pushOff(),
   rectab:d=>{REC.tab=d.v;if((d.v==='feed'?REC.feed:REC.members)===null)REC.err='';recLoad(false);render()},
-  recopen:d=>recOpen(d.uid,d.nm,d.d,d.no),
+  recopen:d=>recOpen(d.uid,d.nm,d.d,d.no,d.nick),
+  recalias:d=>{if(!REC.cur||REC.cur.id!==d.uid){recOpen(d.uid,d.nm||'',null,null,d.nick)}REC.ed=true;render()},
+  recalsave:async d=>{const v=(($('#recal')||{}).value||'').trim();try{const r=await sb.rpc('trainer_alias_set',{p_member:d.uid,p_name:v});if(r.error){ALI.ok=/function|schema cache|does not exist/i.test(r.error.message||'')?false:ALI.ok;toast(ALI.ok===false?'15단계 SQL을 먼저 실행해 주세요':r.error.message);render();return}if(v)ALI.m[d.uid]=v;else delete ALI.m[d.uid];REC.ed=false;toast(v?'본명을 저장했어요':'본명을 지웠어요')}catch(e){toast('저장하지 못했어요')}render()},
   recback:()=>{REC.cur=null;REC.ov=null;REC.ss=null;render()},
   recday:d=>{REC.sel=REC.sel===d.k?null:d.k;render()},
   recmore:()=>recLoad(true),
