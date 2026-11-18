@@ -248,7 +248,7 @@ input[type=text],input[type=number]{width:100%;padding:9px;border:1px solid var(
 .fi{flex:1;min-width:0;padding:9px;border:1px solid var(--ln);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
 .tr{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;width:100%;text-align:left;padding:10px;margin-bottom:6px;border:1px solid var(--ln);border-radius:10px;background:var(--pn)}.tr.empty{background:transparent;border-style:dashed}
 .qr{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--ln)}.qr.dn .qt{opacity:.5;text-decoration:line-through}.qc{flex:none;width:30px;height:30px;border-radius:8px;border:2px solid var(--gd);background:transparent;font-weight:900;color:var(--gd)}.qr.dn .qc{background:var(--gd);color:#fff}.qt{flex:1;text-align:left;border:0;background:transparent;padding:0;font-size:14px;line-height:1.5}
-.trw{margin-bottom:6px}.trw .tr{margin-bottom:0;border-radius:10px 10px 0 0}.ra{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px;border:1px solid var(--ln);border-top:0;border-radius:0 0 10px 10px;background:var(--pn)}
+.trw.mmglow .tr,.trw.mmglow .ra{border-color:#e0a82e}.trw.mmglow{animation:mmglow 1.3s ease-in-out infinite;border-radius:10px}@keyframes mmglow{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 10px 2px rgba(224,168,46,.7)}}@media (prefers-reduced-motion:reduce){.trw.mmglow{animation:none}}.trw{margin-bottom:6px}.trw .tr{margin-bottom:0;border-radius:10px 10px 0 0}.ra{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px;border:1px solid var(--ln);border-top:0;border-radius:0 0 10px 10px;background:var(--pn)}
 .stars{display:flex;gap:6px;margin:8px 0}.sb{flex:1;border:1px solid var(--ln);background:transparent;border-radius:10px;padding:10px 0;font-size:22px;font-weight:900;color:var(--mu)}.sb.on{background:#d9aa4e;color:#1d2430;border-color:#d9aa4e}
 .cal .st{position:absolute;left:0;right:0;bottom:1px;font-style:normal;font-size:11px;color:#f5b301}
 .cal button.hl{background:rgba(205,255,0,.62);color:#1d2430;font-weight:700}
@@ -2342,6 +2342,10 @@ function viewMem(){
 const MM={rows:null,busy:false,at:0,noSql:false};
 function memoMap(){const o={};(MM.rows||[]).forEach(r=>o[r.member_id]=r);return o}
 function memoNew(uid){const r=uid&&memoMap()[uid];if(!r)return false;const sn=(S.memoSeen||{})[uid];return !sn||String(r.last_at)>sn}
+function memoWeek(){const dow=new Date(T+'T00:00:00').getDay(),st=addDays(T,-((dow+6)%7));return[st,addDays(st,6)]}
+function memoItemMem(it){return AD().members.find(m=>m.id===it.mid)||AD().members.find(m=>m.name&&m.name===it.name)}
+function memoItemDue(it,d){if(!it||!MM.rows)return null;const [a,b]=memoWeek();if(d<a||d>b)return null;const m=memoItemMem(it);return m&&m.uid&&memoNew(m.uid)?m:null}
+function memoDayDue(d){return uniqPlan(AD().plans[d]||[]).some(it=>memoItemDue(it,d))}
 function memoNewList(){const mp=memoMap();return AD().members.filter(m=>m.uid&&mp[m.uid]&&memoNew(m.uid))}
 async function memoLoad(force){
   if(S.mode!=='admin'||!sb||!UID||MM.busy||MM.noSql)return;
@@ -2359,7 +2363,7 @@ function memoBanner(){
   return `<div class="mmb" role="status"><div style="flex:1;min-width:0"><div class="mmc" style="flex-direction:column;align-items:stretch;margin:0">${[1,2,3,0].map(line).join('')}</div></div></div>`}
 function memoGradeOpen(g){
   const L=memoByGrade()[g],mp=memoMap();
-  openM(`<div class="row"><b class="h2"><i class="bang" style="background:${MGC[g]}">!</i> ${MGN[g]} 회원 메모</b><button class="x" data-act="mmclose">✕</button></div><div class="mu" style="margin:4px 0 8px">회원을 누르면 운동 루틴과 메모를 볼 수 있어요</div>${L.map(m=>`<button class="mmchip" style="display:flex;width:100%;justify-content:space-between;margin-bottom:6px;border-color:${MGC[g]}" data-act="mmopen" data-uid="${m.uid}"><span>${esc(m.name)}</span><small style="color:${MGC[g]}">메모 ${mp[m.uid].memo_n}건 · ${String(mp[m.uid].last_date).slice(5).replace('-','/')}</small></button>`).join('')||'<div class="mu">새 메모가 없어요</div>'}<button class="btn" style="margin-top:8px" data-act="mmclose">닫기</button>`)}
+  openM(`<div class="row"><b class="h2"><i class="bang" style="background:${MGC[g]}">!</i> ${MGN[g]} 회원 메모</b><button class="x" data-act="mmclose">✕</button></div><div class="mu" style="margin:4px 0 8px">회원을 눌러 메모를 확인하고, 읽음처리를 눌러야 알림이 꺼져요</div>${L.map(m=>`<button class="mmchip" style="display:flex;width:100%;justify-content:space-between;margin-bottom:6px;border-color:${MGC[g]}" data-act="mmopen" data-uid="${m.uid}"><span>${esc(m.name)}</span><small style="color:${MGC[g]}">메모 ${mp[m.uid].memo_n}건 · ${String(mp[m.uid].last_date).slice(5).replace('-','/')}</small></button>`).join('')||'<div class="mu">새 메모가 없어요</div>'}${L.length?`<button class="btn" style="margin-top:8px" data-act="mmreadg" data-g="${g}">${MGN[g]} 전체 읽음처리</button>`:''}<button class="btn ghost" style="margin-top:8px" data-act="mmclose">닫기</button>`)}
 const MM_WARN=/통증|아프|아파|불편|부상|당김|당겨|저림|저려|어지|무리|삐|염좌|찢|뻐근|쥐|울렁|숨이|가슴이/;
 async function memoOpen(uid){
   const m=AD().members.find(x=>x.uid===uid),g=m?(grOf(m)||0):0,hd=`<div class="row"><b class="h2"><i class="bang" style="background:${MGC[g]}">!</i> ${esc(m?m.name:'회원')} 운동메모</b><button class="x" data-act="mmclose">✕</button></div>`;
@@ -2376,8 +2380,7 @@ async function memoOpen(uid){
         const memos=Object.keys(sm).map(n=>`<div class="mmtx">📝 ${n}번째 세트: ${esc(sm[n])}${flag(sm[n])}</div>`).join('')+nt.map(t=>`<div class="mmtx">📝 종목 메모: ${esc(t)}${flag(t)}</div>`).join('');
         return `<div style="margin-top:8px"><b>${nm}</b><div class="mmsets">${sets}</div>${memos}</div>`}).join('');
       return `<div class="pn" style="margin:8px 0"><b>${+d[1]}/${+d[2]}</b> <span class="mu">${items.length}종목 루틴</span>${ex||'<div class="mu">루틴 정보가 없어요</div>'}</div>`}).join('');
-    S.memoSeen=S.memoSeen||{};S.memoSeen[uid]=new Date().toISOString();DB.save(S);
-    openM(hd+`<div class="mu" style="margin:4px 0">최근 14일 · 메모 ${rows.length}건${warn?` · <b style="color:#e5484d">⚠ 불편·통증 표현 ${warn}건</b>`:''} · 읽음으로 표시했어요</div>${body||'<div class="mu">메모가 없어요</div>'}<button class="btn" style="margin-top:8px" data-act="mmclose">닫기</button>`)
+    openM(hd+`<div class="mu" style="margin:4px 0">최근 14일 · 메모 ${rows.length}건${warn?` · <b style="color:#e5484d">⚠ 불편·통증 표현 ${warn}건</b>`:''} · ${memoNew(uid)?'<b style="color:#e5484d">아직 읽음처리 전</b>':'✔ 읽음처리됨'}</div>${body||'<div class="mu">메모가 없어요</div>'}${memoNew(uid)?`<button class="btn" style="margin-top:8px" data-act="mmread" data-uid="${uid}">✔ 읽음처리 (알림 끄기)</button>`:''}<button class="btn ghost" style="margin-top:8px" data-act="mmclose">닫기</button>`)
   }catch(e){openM(hd+`<div class="mu" style="margin:8px 0;color:#e5484d">${esc(e.message)}</div>`)}}
 setInterval(()=>{if(S.mode==='admin'&&!document.hidden)memoLoad(true)},60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)memoLoad(true)});
@@ -2535,7 +2538,7 @@ function viewACal(){
   const {y,m}=ACM,first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
   let cells=['일','월','화','수','목','금','토'].map(x=>`<span>${x}</span>`).join('')+'<i></i>'.repeat(first);
   for(let i=1;i<=dim;i++){const k=`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`,n=uniqPlan(AD().plans[k]).length;
-    const pd=k<=T&&pendSend(AD().plans[k]||[]).length;cells+=`<button data-act='aday' data-d='${k}' data-l='${n?(n<5?1:n<9?2:3):0}' style='position:relative' class='${k===ADM.date?'sel':''} ${k===T?'td':''}'>${i}${n?`<i class='st' style='color:inherit'>${n}</i>`:''}${pd?`<b style='position:absolute;top:1px;right:4px;color:#e5484d;font-size:10px'>●</b>`:''}</button>`}
+    const pd=k<=T&&pendSend(AD().plans[k]||[]).length;const md=memoDayDue(k);cells+=`<button data-act='aday' data-d='${k}' data-l='${n?(n<5?1:n<9?2:3):0}' style='position:relative' class='${k===ADM.date?'sel':''} ${k===T?'td':''}'>${i}${md?`<span class='mmk' style='position:absolute;top:0;left:3px;font-size:10px;color:#e0a82e'>✦</span>`:''}${n?`<i class='st' style='color:inherit'>${n}</i>`:''}${pd?`<b style='position:absolute;top:1px;right:4px;color:#e5484d;font-size:10px'>●</b>`:''}</button>`}
   return `<h1 class='h1'>관리자 · 수업 달력</h1><div class='mu'>날짜를 누르면 그날의 일일 스케줄이 열려요. 칸 안의 숫자는 수업 칸 수예요.</div>${gcalCard()}<div class='pn' style='margin-top:10px'><div class='row'><button class='x' data-act='amon2' data-v='-1'>◀</button><b class='h2'>${y}년 ${m+1}월</b><button class='x' data-act='amon2' data-v='1'>▶</button></div><div class='cal' style='margin-top:8px'>${cells}</div></div>${acStats()}${rmCard()}`;
 }
 function viewDay(){
@@ -2555,7 +2558,8 @@ function viewDay2(){
   const rows=HRS.map(h=>{const it=by[h];
     if(!it){if(!showE){run++;return ''}return `<button class='tr empty' data-act='aslot' data-t='${h}'><b>${h}</b><span class='mu'>+ 비어 있음 · 눌러서 룬 페이지 추가</span><span></span></button>`}
     const n=it.slots.filter(Boolean).length;
-    return flush()+`<div class='trw'><button class='tr' data-act='aslot' data-t='${h}'><b>${h}</b><span><b>${it.amb?"<span style='color:#e5484d'>❗ </span>":''}${esc(it.name)||'회원 미지정'}</b>${it.no?' · '+it.no+'차시':''}<br><span class='mu'>룬 ${n}/6${n?' · '+esc(it.slots.filter(Boolean).map(x=>EX[x.id].name).join(', ')):''}${it.special?' · 특이사항':''}</span></span><span class='mu'>${it.sent?'✔ 발송':it.done?(sendable(it)?"<b style='color:#e5484d'>제출·미발송</b>":'✔ 제출 완료'):'작성중'}</span></button><div class='ra'>${it.sent?'':`<button class='btn sm${it.done?' ghost':''}' data-act='asub' data-id='${it.id}'>${it.done?'제출 취소':'✔ 제출'}</button>`}<a class='btn ghost sm' href='${esc(calURL(it,d))}' target='_blank' rel='noopener'>캘린더</a><button class='btn ghost sm' data-act='asheet' data-id='${it.id}'>성적표 확인</button><button class='btn ghost sm' data-act='adel' data-id='${it.id}'>삭제</button></div></div>`}).join('')+flush();
+    const dm=memoItemDue(it,d);
+    return flush()+`<div class='trw${dm?' mmglow':''}'><button class='tr' data-act='aslot' data-t='${h}'><b>${h}</b><span><b>${it.amb?"<span style='color:#e5484d'>❗ </span>":''}${esc(it.name)||'회원 미지정'}</b>${it.no?' · '+it.no+'차시':''}<br><span class='mu'>룬 ${n}/6${n?' · '+esc(it.slots.filter(Boolean).map(x=>EX[x.id].name).join(', ')):''}${it.special?' · 특이사항':''}</span></span><span class='mu'>${it.sent?'✔ 발송':it.done?(sendable(it)?"<b style='color:#e5484d'>제출·미발송</b>":'✔ 제출 완료'):'작성중'}</span></button><div class='ra'>${dm?`<button class='btn sm' style='border-color:#e0a82e;color:#b27a00' data-act='mmopen' data-uid='${dm.uid}'><span class='mmk'>✦</span> 이번 주 메모 재확인</button>`:''}${it.sent?'':`<button class='btn sm${it.done?' ghost':''}' data-act='asub' data-id='${it.id}'>${it.done?'제출 취소':'✔ 제출'}</button>`}<a class='btn ghost sm' href='${esc(calURL(it,d))}' target='_blank' rel='noopener'>캘린더</a><button class='btn ghost sm' data-act='asheet' data-id='${it.id}'>성적표 확인</button><button class='btn ghost sm' data-act='adel' data-id='${it.id}'>삭제</button></div></div>`}).join('')+flush();
   const pend=pendSend(l),todo=l.filter(x=>!submitted(x)).length;
   return `<div class='row'><button class='x' data-act='adnav' data-v='-1'>◀</button><b class='h2'>${dt}</b><button class='x' data-act='adnav' data-v='1'>▶</button></div><div class='mu' style='margin:6px 0 10px'>수업 ${uniqPlan(l).length}칸 · 발송 ${sent}${todo?' · 미입력 '+todo:''} · 시간을 누르면 룬 페이지가 열려요</div>${todo?`<button class='btn sm' style='margin-bottom:8px;width:100%' data-act='anext'>▶ 다음 미입력 수업 입력하기 (${todo}건)</button>`:''}${pend.length?`<div class='pn' style='border-color:#e5484d;margin-bottom:8px'><div class='row'><b style='color:#e5484d'>미발송 ${pend.length}건</b><button class='btn sm' style='width:auto' data-act='asendall'>한 번에 발송</button></div><div class='mu'>${pend.map(x=>esc(pnm(x))).join(', ')}</div></div>`:''}${showE&&l.length?`<button class='x' style='font-size:12px;margin-bottom:4px' data-act='ashowe'>빈 시간 접기</button>`:''}${rows}<div class='pn' style='margin-top:10px'><button class='btn' data-act='asendall'>회원 지정된 칸 모두 발송</button><div class='row' style='gap:8px;margin-top:8px'><button class='btn ghost sm' data-act='aexp'>다른 기기로 보내기 (코드 복사)</button></div><details style='margin-top:8px'><summary class='mu'>다른 기기에서 가져오기</summary><textarea id='imp' class='fi' rows='3' style='width:100%;margin-top:6px' placeholder='복사한 코드를 붙여넣기'></textarea><button class='btn sm' data-act='aimp' style='margin-top:6px'>가져오기</button></details><button class='btn ghost' style='margin-top:8px' data-act='agcal'>구글 캘린더에서 [PT] 일정 불러오기</button></div>`;
 }
@@ -3731,7 +3735,7 @@ const A={
   rectab:d=>{REC.tab=d.v;if((d.v==='feed'?REC.feed:REC.members)===null)REC.err='';recLoad(false);render()},
   recopen:d=>recOpen(d.uid,d.nm,d.d,d.no,d.nick),
   recalias:d=>{if(!REC.cur||REC.cur.id!==d.uid){recOpen(d.uid,d.nm||'',null,null,d.nick)}REC.ed=true;render()},
-  recalsave:async d=>{const v=(($('#recal')||{}).value||'').trim();try{const r=await sb.rpc('trainer_alias_set',{p_member:d.uid,p_name:v});if(r.error){ALI.ok=/function|schema cache|does not exist/i.test(r.error.message||'')?false:ALI.ok;toast(ALI.ok===false?'15단계 SQL을 먼저 실행해 주세요':r.error.message);render();return}if(v)ALI.m[d.uid]=v;else delete ALI.m[d.uid];REC.ed=false;toast(v?'본명을 저장했어요':'본명을 지웠어요')}catch(e){toast('저장하지 못했어요')}render()},
+  recalsave:async d=>{const v=(($('#recal')||{}).value||'').trim();try{const r=await sb.rpc('trainer_alias_set',{p_member:d.uid,p_name:v});if(r.error){ALI.ok=/function|schema cache|does not exist/i.test(r.error.message||'')?false:ALI.ok;toast(ALI.ok===false?'15단계 SQL을 먼저 실행해 주세요':r.error.message);render();return}if(v){ALI.m[d.uid]=v;if(S.memoSeen){delete S.memoSeen[d.uid];persist()}}else delete ALI.m[d.uid];REC.ed=false;toast(v?'본명을 저장했어요':'본명을 지웠어요')}catch(e){toast('저장하지 못했어요')}render()},
   recback:()=>{REC.cur=null;REC.ov=null;REC.ss=null;render()},
   recday:d=>{REC.sel=REC.sel===d.k?null:d.k;render()},
   recmore:()=>recLoad(true),
@@ -3818,6 +3822,8 @@ const A={
   mmopen:d=>{memoOpen(d.uid)},
   mmgrade:d=>{memoGradeOpen(+d.g)},
   mmclose:()=>{closeM()},
+  mmread:d=>{S.memoSeen=S.memoSeen||{};S.memoSeen[d.uid]=new Date().toISOString();persist();toast('읽음처리했어요');closeM()},
+  mmreadg:d=>{S.memoSeen=S.memoSeen||{};const now=new Date().toISOString();(memoByGrade()[+d.g]||[]).forEach(m=>{S.memoSeen[m.uid]=now});persist();toast('읽음처리했어요');closeM()},
   ty:d=>{const s=draft().slots[RC].sets[+d.i],o={W:'M',M:'F',F:'W'};s.t=o[s.t];if(s.t==='F'&&s.g==null)s.g=+s.r||0;persist();recRe()},
   sdel:d=>{const x=draft().slots[RC];if(x.sets.length<=1){toast('세트는 최소 1개 필요해요');return}x.sets.splice(+d.i,1);persist();recRe()},
   sadd:d=>{const x=draft().slots[RC],m=x.sets.filter(s=>s.t==='M'),l=m[m.length-1]||x.sets[x.sets.length-1],w=d.t==='W';const at=w?Math.max(0,x.sets.findIndex(s=>s.t==='M')):x.sets.length;const ns={t:d.t,w:w?rnd(l.w/2):l.w,r:l.r,done:false,tmp:(w||l.tmp)?1:0};if(l.lr){ns.lr=1;ns.w2=w?rnd(l.w2/2):l.w2;ns.r2=l.r2}x.sets.splice(at,0,ns);persist();recRe()},
