@@ -239,7 +239,7 @@ input[type=text],input[type=number]{width:100%;padding:9px;border:1px solid var(
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .cards div{border:1px solid var(--ln);border-radius:10px;padding:10px}.cards b{display:block;font-size:18px}
 .eg{margin:0 0 10px}.egt{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mu)}.egt b{color:#d9aa4e}.egb{height:10px;border-radius:5px;background:var(--ln);overflow:hidden;margin-top:4px}.egb i{display:block;height:100%;background:linear-gradient(90deg,#e8b923,#ffd54a)}
-.home .avf{width:100%;aspect-ratio:4/5;max-height:74vh;border:0;border-radius:14px;background:#050a15;display:block}.hgo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.hgo .btn{padding:14px 0;font-size:16px}
+.home .avf{width:100%;aspect-ratio:4/5;max-height:74vh;border:0;border-radius:14px;background:#050a15;display:block}.hgo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.hgo .btn{padding:20px 0;font-size:17px}
 .bar{height:8px;background:var(--ln);border-radius:4px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--c)}
 .toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:9px 16px;border-radius:20px;font-size:13px;z-index:99}
 .sp{border-top:1px solid var(--ln);padding:8px 0}
@@ -1354,10 +1354,11 @@ function homeTiers(){
 }
 function viewHome(){
   setTimeout(()=>loadGifts(false),0);
-  return `<div class="home">${lkCard()}<iframe id="avf" class="avf" src="avatar/avatar.html?embed=1" title="내 아바타" loading="eager"></iframe>
+  return `<div class="home">${lkCard()}
   ${homeTiers()}
   <button class="btn ghost gbox" data-act="gifts"><span>🎁 선물함 <small class="mu">트레이너가 보낸 루틴</small></span><b class="gcnt${GIFTS.length?' on':''}">${GIFTS.length}</b></button>
   <div class="hgo"><button class="btn" data-act="tab" data-v="today">운동시작</button><button class="btn" data-act="tab" data-v="cal">캘린더조회</button><button class="btn" data-act="tab" data-v="stat">통계분석</button><button class="btn" data-act="tab" data-v="me">계정 정보</button></div>
+  <iframe id="avf" class="avf" style="margin-top:16px" src="avatar/avatar.html?embed=1" title="내 아바타" loading="eager"></iframe>
   <div class="mu" style="text-align:center;margin-top:6px">아바타 화면이 안 보이면 avatar 폴더가 같은 저장소에 올라가 있는지 확인해 주세요</div></div>`;
 }
 addEventListener('message',e=>{if(e.data&&e.data.type==='rune-ready'){const f=document.getElementById('avf');if(f&&f.contentWindow&&e.source===f.contentWindow){try{f.contentWindow.postMessage(avatarState(),'*')}catch(x){}}}});
@@ -2659,7 +2660,73 @@ function proxyHTML(m){
   h+=`<div class="pn" style="margin:10px 0"><div class="h2">장비 (획득)</div><div class="mu" style="line-height:1.8">${EQ_SLOTS.map(sl=>{const g=own[sl.src]||0;return `<span class="emw" style="color:${EQ_COL[g]}">${sl.ic} ${g?embImg(g,18):''}${g?EQ_G[g-1]:'기본'}</span>`}).join(' · ')}</div></div>`;
   return h;
 }
-function memInfo(id){const m=AD().members.find(x=>x.id===id);return memInfo0(id)+(m&&!m.uid?proxyHTML(m):'')}
+function memInfo(id){const m=AD().members.find(x=>x.id===id);if(m){setTimeout(()=>ibLoad(m),30);setTimeout(()=>dgLoad(m),60)}return memInfo0(id)+(m?ibShell(m)+dgShell(m):'')+(m&&!m.uid?proxyHTML(m):'')}
+/* ---- 인바디 이력 × 운동 변화 매칭 (트레이너 회원 상세) ----
+   연결된 회원은 서버(body_measurements, 회원이 진단 도구·앱에서 저장), 연결 안 된 회원은 트레이너가 넣은 값(m.ib)을 이력으로 써요. */
+const IBC={};
+const ibFmt=(v,d)=>v==null||isNaN(v)?'-':(+v).toFixed(d==null?1:d);
+const ibDl=(a,b,d,inv)=>{if(a==null||b==null)return '';const x=+(a-b).toFixed(d==null?1:d);if(!x)return '<span class="mu">±0</span>';const good=inv?x<0:x>0;return `<b style="color:${good?'#2fbf73':'#e5484d'}">${x>0?'+':''}${x}</b>`};
+async function ibRows(m){
+  if(m.uid&&sb&&UID){const r=await sb.rpc('trainer_member_body',{p_member:m.uid});if(r.error)throw r.error;
+    return (r.data||[]).map(x=>({d:x.measured_on,kg:+x.body_kg,bf:x.body_fat_pct==null?null:+x.body_fat_pct,smm:x.smm_kg==null?null:+x.smm_kg,src:x.source})).sort((a,b)=>a.d<b.d?-1:1)}
+  return (m.ib||[]).slice().sort((a,b)=>a.d<b.d?-1:1)}
+function ibShell(m){return `<div class="pn" id="ibh" data-m="${m.id}"><b class="h2">인바디 이력 · 운동 변화</b><div class="mu" style="margin-top:6px">불러오는 중…</div></div>`}
+async function ibLoad(m){
+  const el=document.getElementById('ibh');if(!el||el.dataset.m!==m.id)return;
+  try{const rows=await ibRows(m);IBC[m.id]={rows};el.innerHTML=ibHTML(m,rows)}
+  catch(e){const miss=/trainer_member_body|schema cache|function/i.test((e&&e.message)||'');el.innerHTML=`<b class="h2">인바디 이력 · 운동 변화</b><div class="mu" style="margin-top:6px;line-height:1.6">${miss?'서버 설정(supabase-phase13-inbody.sql)을 실행하면 연결된 회원의 인바디 이력을 볼 수 있어요.':esc((e&&e.message)||'불러오지 못했어요')}</div>`}
+}
+/* ---- 진단 도구(diag.html) 연동: 내 기록 넘기기 + 트레이너 설문 수신함·토큰 ---- */
+function diagPayload(){
+  const R=window.RuneTier,p=S.profile||{},L=(S.bodyLog||[]).slice().sort((a,b)=>a.d<b.d?-1:1),c=L[L.length-1]||null,cs=L.slice().reverse().find(x=>x.smm!=null)||null;
+  let rows=[];try{rows=tierRows()}catch(e){}
+  const mem=memberCalc(),cut=addDays(T,-28),lifts={};
+  ['squat','bench','deadlift','ohp','bbrow'].forEach(id=>{
+    const ex=R.BY_ID[id];if(!ex)return;const row=rows.find(q=>q.m.id===id),recs=((row&&row.recs)||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    const best=r=>{let b=null;(r.sets||[]).forEach(s=>{if(!s.done||s.t==='W')return;const e=e1of(s.w,s.r);if(e>0&&(!b||e>b.e))b={e,w:+s.w,r:+s.r}});return b};
+    const bs=recs.map(r=>({d:r.date,b:best(r)})).filter(x=>x.b);
+    const recent=bs.slice(-6),rm=recent.length?Math.max.apply(null,recent.map(x=>x.b.e)):0;
+    let ladder=[];try{ladder=R.ladderFor(ex,mem).map(x=>x&&x.ok&&x.eq1rm?x.eq1rm:null)}catch(e){}
+    let sets4w=0;const days=new Set();recs.forEach(r=>{if(r.date>=cut){const n=(r.sets||[]).filter(s=>s.done&&s.t!=='W'&&+s.r>0).length;if(n){sets4w+=n;days.add(r.date)}}});
+    const last8=bs.slice(-8);let up=0,pairs=0;for(let i=1;i<last8.length;i++){pairs++;if(last8[i].b.e>last8[i-1].b.e+.01)up++}
+    lifts[id]={name:ex.name,rm:Math.round(rm*10)/10,tier:row?row.p.tier:0,ladder,sess:bs.slice(-3).map(x=>({d:x.d,w:x.b.w,r:x.b.r})),stat:{sets4w,days4w:days.size,up:pairs?up/pairs:0.5}}});
+  let passes=0;Object.values(S.tiers||{}).forEach(st=>{passes+=((st&&st.hist)||[]).filter(h=>h.trial).length});
+  return{v:1,ts:Date.now(),uid:UID||null,name:p.nickname||(S.user&&S.user.name)||'',sex:p.sex==='F'?'f':'m',age:p.age||null,height:p.heightCm||null,
+    body:c?{w:c.kg,smm:cs?cs.smm:null,fat:cs&&cs.bf!=null&&cs.kg?+(cs.kg*cs.bf/100).toFixed(1):(c.bf!=null?+(c.kg*c.bf/100).toFixed(1):null),bf:c.bf!=null?c.bf:null,d:(cs||c).d}:{w:p.bodyKg||0},
+    bodyLog:L.slice(-12),passes,sessLocal:rpCount(),lifts}}
+function dgShell(m){return m.uid?`<div class="pn" id="dgh" data-m="${m.id}"><b class="h2">진단 설문 · 토큰</b><div class="mu" style="margin-top:6px">불러오는 중…</div></div>`:''}
+const DGN={ib:'인바디 변화',rz:'레드존 대비',hb:'힘바디 성장'};
+async function dgLoad(m){
+  const el=document.getElementById('dgh');if(!el||el.dataset.m!==m.id||!sb||!UID)return;
+  try{const [a,b]=await Promise.all([sb.rpc('trainer_diag_inbox',{p_limit:100}),sb.rpc('trainer_diag_tokens',{p_member:m.uid})]);if(a.error)throw a.error;if(b.error)throw b.error;
+    const sv=(a.data||[]).filter(x=>x.member_id===m.uid),tk=b.data||[];
+    const tkh=tk.map(t=>`<div class="row"><div><b>${DGN[t.tool]}</b><div class="mu">발행 ${t.issued} · 지급 ${t.bonus} · 사용 ${t.used}${t.tool==='ib'?' · 다음까지 '+t.progress+'/10':''}</div></div><div style="display:flex;gap:6px;align-items:center"><button class="btn ghost sm" data-act="dggrant" data-id="${m.id}" data-t="${t.tool}" data-d="-1" aria-label="토큰 1개 회수">−</button><b style="min-width:24px;text-align:center">${t.bal}</b><button class="btn sm" data-act="dggrant" data-id="${m.id}" data-t="${t.tool}" data-d="1" aria-label="토큰 1개 지급">+</button></div></div>`).join('');
+    const svh=sv.slice(0,6).map(x=>{const dt=new Date(x.created_at),ds=(dt.getMonth()+1)+'/'+dt.getDate()+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
+      return `<details style="padding:8px 0;border-top:1px solid var(--ln)"><summary><b>${DGN[x.tool]||x.tool}</b> 사전 설문 <span class="mu">${ds}</span></summary><div class="mu" style="line-height:1.7;margin-top:4px">${Object.keys(x.answers||{}).map(k=>esc(k)+': <b>'+esc(x.answers[k])+'</b>').join('<br>')}</div></details>`}).join('');
+    el.innerHTML=`<div class="row"><b class="h2">진단 설문 · 토큰</b><span class="mu">설문 ${sv.length}건</span></div>${tkh}<div style="margin-top:6px">${svh||'<div class="mu">아직 제출한 설문이 없어요</div>'}</div>`}
+  catch(e){const miss=/diag|schema cache|function/i.test((e&&e.message)||'');el.innerHTML=`<b class="h2">진단 설문 · 토큰</b><div class="mu" style="margin-top:6px;line-height:1.6">${miss?'서버 설정(supabase-phase14-diag.sql)을 실행하면 회원의 진단 설문과 토큰을 볼 수 있어요.':esc((e&&e.message)||'불러오지 못했어요')}</div>`}}
+function ibMatch(m,rows){
+  const it=memItems(m),cnt={};const dates={};it.forEach(x=>{(dates[x.id]=dates[x.id]||new Set()).add(x.date)});Object.keys(dates).forEach(k=>cnt[k]=dates[k].size);
+  const top=Object.keys(cnt).filter(k=>cnt[k]>=2).sort((a,b)=>cnt[b]-cnt[a]).slice(0,3);
+  const best=(id,D)=>{let b=0;it.forEach(x=>{if(x.id!==id||x.date>D)return;x.sets.forEach(s=>{if(s.done&&s.t!=='W'){const e=e1of(s.w,s.r);if(e>b)b=e}})});return b};
+  return rows.map((r,i)=>{const prev=i?rows[i-1].d:'0000-00-00',seg=it.filter(x=>x.date>prev&&x.date<=r.d);
+    const days=new Set(seg.map(x=>x.date)).size,vol=seg.reduce((a,x)=>a+x.sets.reduce((b,s)=>b+(s.done&&s.t!=='W'?(+s.w||0)*(+s.r||0):0),0),0);
+    return{days,vol,lifts:top.map(id=>({id,e:best(id,r.d),p:i?best(id,rows[i-1].d):0}))}})}
+function ibHTML(m,rows){
+  const R=window.RuneTier,mt=ibMatch(m,rows),rev=rows.map((r,i)=>({r,i,x:mt[i]})).reverse();
+  const f=(i,ph,v,st)=>`<input id="${i}" class="fi" type="number" inputmode="decimal" placeholder="${ph}" value="${v==null?'':v}" style="flex:1;min-width:0;${st||''}">`;
+  const L=rows[rows.length-1];
+  const list=rev.map(({r,i,x})=>{const p=i?rows[i-1]:null;
+    const lifts=x.lifts.filter(l=>l.e>0).map(l=>`${EX[l.id]?EX[l.id].name:l.id} <b>${Math.round(l.e)}kg</b>${l.p>0?' ('+ibDl(l.e,l.p,0)+')':''}`).join(' · ');
+    return `<div style="padding:8px 0;border-top:1px solid var(--ln)"><div class="row"><b>${r.d.slice(2).replace(/-/g,'.')}</b><span class="mu">${BSRC[r.src]||''}</span></div>
+    <div style="margin-top:4px;line-height:1.7">체중 <b>${ibFmt(r.kg)}</b>kg ${p?ibDl(r.kg,p.kg):''} · 체지방 <b>${ibFmt(r.bf)}</b>% ${p?ibDl(r.bf,p.bf,1,true):''} · 골격근 <b>${ibFmt(r.smm)}</b>kg ${p?ibDl(r.smm,p.smm):''}</div>
+    <div class="mu" style="margin-top:4px;line-height:1.6">${p?'직전 측정 이후 ':'기준 시점 · '}운동 <b>${x.days}</b>일 · 볼륨 <b>${Math.round(x.vol).toLocaleString()}</b>kg${lifts?'<br>'+lifts:''}</div></div>`}).join('');
+  const sum=rows.length>=2?(()=>{const a=rows[0],b=L;return `<div class="mu" style="margin:8px 0;line-height:1.6">처음(${a.d.slice(2).replace(/-/g,'.')}) → 최근(${b.d.slice(2).replace(/-/g,'.')}): 체중 ${ibDl(b.kg,a.kg)}kg · 체지방 ${ibDl(b.bf,a.bf,1,true)}% · 골격근 ${ibDl(b.smm,a.smm)}kg</div>`})():'';
+  return `<div class="row"><b class="h2">인바디 이력 · 운동 변화</b><span class="mu">${rows.length}건${m.uid?' · 계정 연동':' · 트레이너 입력'}</span></div>${sum}
+  <div class="row" style="gap:6px;margin-top:6px"><input id="ibd" class="fi" type="date" value="${T}" style="flex:1.6;min-width:0">${f('ibk','체중kg')}${f('ibf','체지방%')}${f('ibs','골격근kg')}</div><div class="mu" style="font-size:11px;margin-top:2px">같은 날짜를 다시 저장하면 그 날 값이 바뀌어요.</div>
+  <button class="btn sm" style="margin-top:6px" data-act="ibadd" data-id="${m.id}">측정 추가</button>
+  <div style="margin-top:8px">${list||'<div class="mu">아직 기록이 없어요. 회원이 진단 도구에서 인바디를 저장하거나, 위에서 직접 추가하세요.</div>'}</div>
+  <div class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn ghost sm" data-act="ibopen" data-id="${m.id}" data-t="inbody">인바디 변화</button><button class="btn ghost sm" data-act="ibopen" data-id="${m.id}" data-t="redzone">레드존 대비</button><button class="btn ghost sm" data-act="ibopen" data-id="${m.id}" data-t="himbody">힘바디 성장</button></div>`}
 function memInfo0(id){
   const m=AD().members.find(x=>x.id===id),ss=memSess(m),all=[];
   Object.keys(ss).sort().forEach(d=>ss[d].slice().sort((a,b)=>a.time<b.time?-1:1).forEach(it=>all.push({d,it})));
@@ -3079,8 +3146,19 @@ async function loadMe(){
     else if(S.profile&&S.profile.done)upProfile();
   }catch(e){}
   await loadHope();
-  try{const m=await sb.from('body_measurements').select('measured_on,body_kg,body_fat_pct,source').order('measured_on',{ascending:false}).limit(60);if(!m.error&&m.data&&m.data.length){S.bodyLog=m.data.slice().reverse().map(x=>({d:x.measured_on,kg:+x.body_kg,bf:x.body_fat_pct==null?null:+x.body_fat_pct,src:x.source}));DB.save(S)}}catch(e){}
+  await bodyReload(true)
 }
+/* 체중·체지방·골격근 이력: 서버(body_measurements)와 맞추고, 최신 값을 내 체중에 반영해요 (진단 도구에서 인바디를 저장하면 여기로 이어져요) */
+async function bodyReload(quiet){
+  if(!sb||!UID)return;
+  try{let m=await sb.from('body_measurements').select('measured_on,body_kg,body_fat_pct,smm_kg,source').order('measured_on',{ascending:false}).limit(120);
+    if(m.error)m=await sb.from('body_measurements').select('measured_on,body_kg,body_fat_pct,source').order('measured_on',{ascending:false}).limit(120);
+    if(m.error||!m.data||!m.data.length)return;
+    const nl=m.data.slice().reverse().map(x=>({d:x.measured_on,kg:+x.body_kg,bf:x.body_fat_pct==null?null:+x.body_fat_pct,smm:x.smm_kg==null?null:+x.smm_kg,src:x.source}));
+    if(JSON.stringify(nl)===JSON.stringify(S.bodyLog))return;
+    S.bodyLog=nl;const c=nl[nl.length-1];if(S.profile&&c)S.profile.bodyKg=c.kg;DB.save(S);if(!quiet&&SCR==='app')render()}catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode!=='admin')bodyReload(false)});
 async function upProfile(){
   if(!sb||!UID||!S.profile||!S.profile.done)return false;const p=S.profile;
   try{const r=await sb.from('member_body').upsert({member_id:UID,sex:p.sex,birth_year:new Date().getFullYear()-p.age,body_kg:p.bodyKg||null,height_cm:p.heightCm||null,experience:p.exp,interests:p.interests,injuries:p.injuries,injury_note:p.note||null,onboarded_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:'member_id'});
@@ -3138,7 +3216,7 @@ function bodyPanel(){
   const days=c?Math.floor((new Date(T+'T00:00:00')-new Date(c.d+'T00:00:00'))/864e5):null;
   const bTxt={measured:'측정한 체지방률',estimated:'키·체중 추정값',none:'체중'}[basis];
   const ss=[['squat','스쿼트'],['bench','벤치프레스'],['deadlift','데드리프트']].map(([id,n])=>{const t=R.targetFor(R.BY_ID[id],3,m);return t.ok&&t.kg?`${n} ${t.reps}RM ${t.kg}kg`:''}).filter(Boolean).join(' · ');
-  const hist=(S.bodyLog||[]).slice(-4).reverse().map(x=>`<div class="mu">${x.d.slice(5).replace('-','/')} · ${x.kg}kg · ${x.bf!=null?'체지방률 '+x.bf+'%':'체지방률 -'} · ${BSRC[x.src]||''}</div>`).join('');
+  const hist=(S.bodyLog||[]).slice(-4).reverse().map(x=>`<div class="mu">${x.d.slice(5).replace('-','/')} · ${x.kg}kg · ${x.bf!=null?'체지방률 '+x.bf+'%':'체지방률 -'}${x.smm!=null?' · 골격근 '+x.smm+'kg':''} · ${BSRC[x.src]||''}</div>`).join('');
   return `<div class="pn"><div class="row"><b class="h2">내 몸 정보</b><button class="btn ghost sm" data-act="bodyedit">수정</button></div>
   <div class="cards" style="margin-top:8px"><div><span class="mu">키</span><b>${p.heightCm?p.heightCm+'cm':'-'}</b></div><div><span class="mu">체중</span><b>${c?c.kg+'kg':'-'}</b></div><div><span class="mu">나이·성별</span><b>${p.age?'만 '+p.age+'세 · '+(p.sex==='F'?'여':'남'):'-'}</b></div><div><span class="mu">체지방률</span><b>${c&&c.bf!=null?c.bf+'%':'-'}</b></div></div>
   <div class="mu" style="line-height:1.7;margin-top:6px">승급 기준 무게는 <b>${bTxt}</b>으로 몸에 맞춰 조정돼요${basis!=='measured'?'. 체지방률을 입력하면 더 정확해져요':''}.</div>
@@ -3146,8 +3224,8 @@ function bodyPanel(){
   ${ss?`<div class="mu" style="margin-top:8px">내 기준 미리보기 (골드 승급, 참고용)<br>${ss}</div>`:''}
   ${hist?`<div style="margin-top:8px">${hist}</div>`:''}</div>`;
 }
-async function addBody(kg,bf,src,quiet){
-  S.bodyLog=S.bodyLog||[];const e={d:T,kg,bf:bf==null?null:bf,src:src||'self'};
+async function addBody(kg,bf,src,quiet,smm){
+  S.bodyLog=S.bodyLog||[];const e={d:T,kg,bf:bf==null?null:bf,src:src||'self'};if(smm!=null)e.smm=smm;
   const i=S.bodyLog.findIndex(x=>x.d===T);if(i>=0)S.bodyLog[i]=e;else S.bodyLog.push(e);
   S.bodyLog.sort((a,b)=>a.d<b.d?-1:1);S.bodyLog=S.bodyLog.slice(-60);
   if(S.profile)S.profile.bodyKg=kg;
@@ -3586,7 +3664,22 @@ const A={
   aexp:()=>{const l=plan(ADM.date);if(!l.length){toast('보낼 수업 칸이 없어요');return}copyText('RPT1:'+btoa(unescape(encodeURIComponent(JSON.stringify({d:ADM.date,items:l})))),'코드를 복사했어요. 카톡 나와의 채팅 등으로 보내세요')},
   aimp:()=>{const raw=($('#imp').value||'').trim();try{if(!raw.startsWith('RPT1:'))throw 0;const o=JSON.parse(decodeURIComponent(escape(atob(raw.slice(5)))));const l=plan(o.d);let add=0,upd=0,skip=0;o.items.forEach(it=>{const i=l.findIndex(x=>x.id===it.id);if(i>=0){l[i]=it;upd++}else if(l.some(x=>x.time===it.time)){skip++}else{l.push(it);add++}});ADM.date=o.d;persist();render();toast(`가져왔어요 (추가 ${add}, 갱신 ${upd}, 시간 겹쳐 건너뜀 ${skip})`)}catch(e){toast('코드를 읽을 수 없어요. 처음부터 끝까지 복사했는지 확인해 주세요')}},
   aback:()=>closeEdit(),
-  diag:()=>{const w=window.open('analyzer.html#inbody','_blank');if(!w)location.href='analyzer.html#inbody'},
+  ibadd:async d=>{const m=AD().members.find(x=>x.id===d.id);if(!m)return;const on=($('#ibd').value||'').trim(),kg=+$('#ibk').value,bf=$('#ibf').value===''?null:+$('#ibf').value,smm=$('#ibs').value===''?null:+$('#ibs').value;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(on)||!(kg>=20&&kg<=300)||(bf!=null&&!(bf>=3&&bf<=60))||(smm!=null&&!(smm>=5&&smm<=80))){toast('날짜(YYYY-MM-DD)·체중(20~300)을 확인해 주세요 (체지방 3~60, 골격근 5~80)');return}
+    try{if(m.uid&&sb&&UID){const r=await sb.rpc('trainer_body_save',{p_member:m.uid,p_on:on,p_kg:kg,p_bf:bf,p_smm:smm});if(r.error)throw r.error}
+      else{m.ib=m.ib||[];const i=m.ib.findIndex(x=>x.d===on),e={d:on,kg,bf,smm,src:'trainer'};if(i>=0)m.ib[i]=e;else m.ib.push(e);m.ib.sort((a,b)=>a.d<b.d?-1:1);
+        const L=m.ib[m.ib.length-1];m.body=Object.assign({},m.body||{},{bodyKg:L.kg,bf:L.bf,ts:Date.now()});persist()}
+      toast('측정을 저장했어요');openM(memInfo(m.id))}catch(e){toast('저장하지 못했어요: '+((e&&e.message)||'연결을 확인해 주세요'))}},
+  ibopen:d=>{const m=AD().members.find(x=>x.id===d.id);if(!m)return;const rows=(IBC[m.id]&&IBC[m.id].rows)||m.ib||[],L=rows[rows.length-1]||{},b=m.body||{};
+    const sex=(b.sex||'M')==='F'?'f':'m',age=b.age||35,h=b.heightCm||170;
+    try{localStorage.setItem('rune-unified-profile',JSON.stringify({name:m.name,sex,age,height:h,bw:L.kg||b.bodyKg||'',bf:L.bf!=null?L.bf:(b.bf!=null?b.bf:''),smm:L.smm!=null?L.smm:'',auto:true}));
+      const K='4t-inbody-sim-v1';let st=null;try{st=JSON.parse(localStorage.getItem(K))}catch(e){}if(!st||!Array.isArray(st.members))st={members:[],currentId:null};
+      let t=st.members.find(x=>x.rpt===m.id);if(!t){t={id:'rpt_'+m.id,rpt:m.id,name:m.name,sex,age,height:h,exp:0,type:'',nextDate:'',memo:'',habits:{cur:{str:0,car:60,def:100,pro:0.9,slp:6,alc:2},tgt:{str:3,car:150,def:-500,pro:1.6,slp:7,alc:0}},measures:[],baseId:null};st.members.push(t)}
+      t.sex=sex;t.age=age;t.height=h;const have=new Set(t.measures.map(x=>x.date));rows.forEach(r=>{if(r.smm!=null&&!have.has(r.d))t.measures.push({id:'rpt_'+r.d,date:r.d,w:r.kg,smm:r.smm,fat:r.bf})});t.measures.sort((a,c)=>a.date.localeCompare(c.date));if(!t.baseId&&t.measures.length)t.baseId=t.measures[0].id;
+      st.currentId=t.id;localStorage.setItem(K,JSON.stringify(st))}catch(e){}
+    const w=window.open('analyzer.html#'+d.t,'_blank');if(!w)location.href='analyzer.html#'+d.t},
+  diag:d=>{const h='diag.html#'+((d&&d.t)||'inbody');try{localStorage.setItem('rune-diag-payload',JSON.stringify(diagPayload()))}catch(e){toast('내 기록을 넘기지 못했어요');return}const w=window.open(h,'_blank');if(!w)location.href=h},
+  dggrant:async d=>{const m=AD().members.find(x=>x.id===d.id);if(!m||!m.uid||!sb)return;try{const r=await sb.rpc('trainer_diag_grant',{p_member:m.uid,p_tool:d.t,p_delta:+d.d});if(r.error)throw r.error;toast(+d.d>0?'토큰을 지급했어요':'토큰을 회수했어요');dgLoad(m)}catch(e){toast((e&&e.message)||'처리하지 못했어요')}},
   rpbody:d=>{const m=AD().members.find(x=>x.id===d.id);if(!m)return;const sex=$('#pxs').value,age=+$('#pxa').value,h=+$('#pxh').value,w=+$('#pxw').value,bf=$('#pxf').value===''?null:+$('#pxf').value;
     if(!sex||!(age>=5&&age<=110)||!(h>=100&&h<=250)||!(w>=20&&w<=300)||(bf!=null&&!(bf>=3&&bf<=70))){toast('성별·나이(5~110)·신장(100~250)·체중(20~300)을 확인해 주세요');return}
     m.body={sex,age,heightCm:h,bodyKg:w,bf,ts:Date.now()};persist();const it=fi(TRN);if(it&&trReport(it)){render();toast('몸 정보를 저장하고 성적표를 다시 계산했어요')}else toast('저장했어요')},

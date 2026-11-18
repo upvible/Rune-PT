@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>룬 PT 진단·점검</title>
+<script>(function(){try{var t=localStorage.getItem("rune-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}})()</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#f3efe6;--pn:#fffaf0;--ln:#d9cdb2;--tx:#1d2430;--mu:#6b7280;--gd:#9a6f1c;--gdb:#d9aa4e;--ok:#1f9d55;--bad:#d6362b;--warn:#c98a14;--bl:#2a78d6;--s1:#2a78d6;--s2:#c98a14;--s3:#1f9d55;--hx:#efe6d0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#080d14;--pn:#0f1822;--ln:#2a3a4a;--tx:#e8e0cc;--mu:#8a98a8;--gd:#d9aa4e;--ok:#43c48a;--bad:#f0604f;--warn:#e6b84f;--bl:#5ea3f0;--s1:#5ea3f0;--s2:#e6b84f;--s3:#43c48a;--hx:#16222f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#080d14;--pn:#0f1822;--ln:#2a3a4a;--tx:#e8e0cc;--mu:#8a98a8;--gd:#d9aa4e;--ok:#43c48a;--bad:#f0604f;--warn:#e6b84f;--bl:#5ea3f0;--s1:#5ea3f0;--s2:#e6b84f;--s3:#43c48a;--hx:#16222f;color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Inter,"Noto Sans KR",system-ui,-apple-system,sans-serif;font-size:14px;line-height:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 96px}
+.wrap{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1{font-size:20px;line-height:28px;margin:0}h2{font-size:16px;line-height:24px;margin:0}
+.mu{color:var(--mu);font-size:12px;line-height:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.back{min-height:40px;padding:0 12px;border:1px solid var(--ln);border-radius:12px;background:transparent;color:var(--tx);font:inherit;font-weight:700;text-decoration:none;display:inline-flex;align-items:center}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg button{min-height:48px;border:1px solid var(--ln);border-radius:12px;background:var(--pn);color:var(--tx);font:inherit;font-weight:800}
+.seg button.on{background:var(--gdb);color:#1d1a10;border-color:var(--gdb)}
+.pn{background:var(--pn);border:1px solid var(--ln);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.btn{min-height:48px;padding:12px 16px;border:0;border-radius:12px;background:var(--gdb);color:#1d1a10;font:inherit;font-weight:800;font-size:16px}
+.btn.ghost{background:transparent;border:1px solid var(--ln);color:var(--tx)}.btn.sm{min-height:40px;padding:8px 12px;font-size:14px}
+.btn[disabled]{opacity:.45}
+.tok{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.coin{display:inline-grid;place-items:center;min-width:40px;height:40px;border-radius:20px;background:var(--gdb);color:#1d1a10;font-weight:900;font-size:16px;padding:0 8px}.coin.z{background:var(--hx);color:var(--mu)}
+.bar{height:8px;border-radius:4px;background:var(--hx);overflow:hidden}.bar i{display:block;height:100%;background:var(--c,var(--gdb))}
+.tag{padding:4px 8px;border-radius:8px;font-size:12px;line-height:16px;font-weight:800;background:var(--hx);white-space:nowrap}.tag.ok{color:var(--ok)}.tag.bad{color:var(--bad)}.tag.warn{color:var(--warn)}.tag.auto{color:var(--bl)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}.f>span{font-size:12px;line-height:16px;color:var(--mu)}
+select,input[type=number],input[type=date],input[type=text],textarea{border:1px solid var(--ln);border-radius:12px;background:var(--bg);color:var(--tx);font:inherit;font-size:16px;padding:0 12px;width:100%;min-width:0;height:48px}
+textarea{height:80px;padding:12px;resize:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chips span{padding:4px 12px;border-radius:999px;background:var(--hx);font-size:12px;line-height:16px;font-weight:700}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:12px 16px;border-radius:12px;font-weight:700;z-index:50;max-width:90%}
+.note{background:var(--hx);border-radius:12px;padding:12px;font-size:12px;line-height:16px;color:var(--mu)}
+.new{border-left:4px solid var(--gdb);padding-left:12px}
+.plans{display:flex;flex-direction:column;gap:12px}
+.plan{border:2px solid var(--ln);border-radius:16px;padding:16px;background:var(--pn);display:flex;flex-direction:column;gap:8px;text-align:left;font:inherit;color:var(--tx);width:100%}
+.plan.on{border-color:var(--c)}.plan .hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.big{font-size:24px;line-height:32px;font-weight:900;color:var(--c)}
+.press{display:flex;gap:4px}.press i{width:16px;height:8px;border-radius:4px;background:var(--ln)}.press i.on{background:var(--c)}
+ul.chg{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:13px}ul.chg li b{color:var(--c,var(--gd))}
+.pills{display:flex;gap:8px;flex-wrap:wrap}.pill{padding:4px 12px;border:1px solid var(--ln);border-radius:999px;background:transparent;color:var(--tx);font:inherit;font-weight:700;font-size:14px;min-height:40px}.pill.on{background:var(--gdb);color:#1d1a10;border-color:var(--gdb)}
+svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px}.legend i{display:inline-block;width:12px;height:4px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.why{border:1px solid var(--gdb);border-radius:16px;padding:16px;background:var(--pn);display:flex;flex-direction:column;gap:12px}
+.why .it{display:flex;flex-direction:column;gap:4px}.why .it b{font-size:14px}
+.ratio{height:8px;border-radius:4px;background:var(--hx);position:relative;overflow:visible}.ratio i{position:absolute;top:0;left:0;height:100%;border-radius:4px}.ratio u{position:absolute;top:-4px;height:16px;width:2px;background:var(--tx)}
+.focus{border-left:4px solid var(--gdb);padding:8px 0 8px 12px;display:flex;flex-direction:column;gap:4px}
+.mv{display:flex;flex-direction:column;gap:4px;padding:12px 0;border-bottom:1px solid var(--ln)}.mv:last-child{border:0}.mv .l{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.t6{width:100%;border-collapse:collapse;font-size:13px}.t6 th{font-size:12px;color:var(--mu);font-weight:600;text-align:right;padding:4px}.t6 td{text-align:right;padding:8px 4px;border-top:1px solid var(--ln);font-weight:700}.t6 td:first-child{text-align:left;font-weight:600}.t6 td i{display:inline-block;width:12px;height:4px;border-radius:2px;margin-right:8px;vertical-align:middle}
+.sm{width:100%;border-collapse:collapse}.sm th{font-size:12px;color:var(--mu);font-weight:600;text-align:left;padding:4px}.sm td{padding:4px;border-top:1px solid var(--ln);font-size:13px}.sm td:first-child{white-space:nowrap;font-weight:600}.sm tr.ro td{color:var(--mu)}.sm input{height:40px;font-size:15px;padding:0 8px;text-align:right}
+.q{display:flex;flex-direction:column;gap:8px}.q>.l{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.o{min-height:40px;padding:8px 12px;border:1px solid var(--ln);border-radius:999px;background:transparent;color:var(--tx);font:inherit;font-size:14px;font-weight:600}.o.on{background:var(--gdb);color:#1d1a10;border-color:var(--gdb)}.o.bad.on{background:var(--bad);color:#fff;border-color:var(--bad)}
+.mx{display:grid;grid-template-columns:84px repeat(4,1fr);gap:4px;align-items:stretch}.mx .h{font-size:11px;line-height:14px;color:var(--mu);text-align:center;padding:4px 0}.mx .r{font-size:12px;font-weight:700;display:flex;align-items:center}
+.cell{min-height:44px;border:1px solid var(--ln);border-radius:8px;background:var(--bg);color:var(--mu);font:inherit;font-size:12px;font-weight:800}.cell[data-v="1"]{background:var(--hx);color:var(--tx)}.cell[data-v="2"]{background:var(--gdb);color:#1d1a10;border-color:var(--gdb)}
+.rec{background:var(--hx);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}.steps button{min-height:48px;line-height:14px;border:1px solid var(--ln);border-radius:8px;background:var(--pn);color:var(--mu);font:inherit;font-size:12px;font-weight:700;padding:0 4px}.steps button.on{background:var(--gdb);color:#1d1a10;border-color:var(--gdb)}.steps button.done{color:var(--ok)}
+.nav{display:grid;grid-template-columns:1fr 2fr;gap:8px}
+.warnb{border-left:4px solid var(--warn);padding-left:12px}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--ln)}.row:last-child{border:0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:40}
+.modal .box{background:var(--pn);width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow:auto}
+a.lk{color:var(--bl);font-weight:700}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="top"><a class="back" href="./">◀ 룬 PT</a><span class="mu" id="who"></span></div>
+ <div><h1>진단·점검</h1><div class="mu">내 운동 기록으로 몸 상태를 점검해요</div></div>
+ <div class="seg" id="tabs"><button data-k="ib" class="on">인바디 변화</button><button data-k="rz">레드존 대비</button><button data-k="hb">힘바디 성장</button></div>
+ <section class="pn" id="tokCard"></section>
+ <div id="body" class="wrap"></div>
+ <div class="note" id="foot"></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div class="modal" id="qrm" hidden><div class="box" id="qrbox"></div></div>
+<script>
+const $=id=>document.getElementById(id);
+const toast=m=>{const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,2600)};
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const lerp=(x,xs,ys)=>{if(x<=xs[0])return ys[0];for(let i=1;i<xs.length;i++)if(x<=xs[i]){const t=(x-xs[i-1])/(xs[i]-xs[i-1]);return ys[i-1]+t*(ys[i]-ys[i-1])}return ys[ys.length-1]};
+const mix=(c,t,a)=>{const o={};for(const k in c)o[k]=c[k]+(t[k]-c[k])*a;return o};
+const PC=['var(--s1)','var(--s3)','var(--s2)'];
+const NAME={ib:'인바디 변화',rz:'레드존 대비',hb:'힘바디 성장'};
+const HASH={inbody:'ib',redzone:'rz',himbody:'hb'};
+
+/* ---------- 룬PT 앱에서 넘겨준 내 기록 ---------- */
+let P=null;try{P=JSON.parse(localStorage.getItem('rune-diag-payload')||'null')}catch(e){}
+const TIERS=['아이언','브론즈','실버','골드','플래티넘','에메랄드','다이아몬드','마스터','그랜드마스터','챌린저'];
+const BODY={sex:'m',age:38,w:0,smm:0,fat:0,d:''};
+const LK=['squat','bench','deadlift','ohp','bbrow'],LNAME={squat:'스쿼트',bench:'벤치프레스',deadlift:'데드리프트',ohp:'오버헤드 프레스',bbrow:'바벨 로우'};
+const MV={squat:{m:.85,fr:.72,red:.40,rf:.85},deadlift:{m:1.0,fr:.7,red:.50,rf:.85},bench:{m:.65,fr:.55,red:.30,rf:.65},ohp:{m:.42,fr:.50,red:.18,rf:.65},bbrow:{m:.55,fr:.55,red:.28,rf:.65}};
+const AGEM={20:1,30:1,40:.94,50:.85,60:.74,70:.61,80:.48};
+function initBody(){if(!P)return;BODY.sex=P.sex==='f'?'f':'m';BODY.age=P.age||38;BODY.height=P.height||null;const b=P.body||{};BODY.w=+b.w||0;BODY.smm=+b.smm||0;BODY.fat=+b.fat||0;if(!BODY.fat&&b.bf&&BODY.w)BODY.fat=+(BODY.w*b.bf/100).toFixed(1);BODY.d=b.d||''}
+initBody();
+const hasBody=()=>BODY.w>0&&BODY.smm>0&&BODY.fat>0;
+const L=k=>(P&&P.lifts&&P.lifts[k])||null;
+
+/* ---------- Supabase ---------- */
+const SB_URL='https://vpdemapnpunsuxqdffgn.supabase.co',SB_KEY='sb_publishable_fonyE5eloRwvXb7hacPTow_d6JR0zMv';
+let sb=null,UID=null,ONLINE=false;
+try{sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){}
+const LOC={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let TOK={ib:{issued:0,bonus:0,used:0,bal:0,progress:0},hb:{issued:0,bonus:0,used:0,bal:0,progress:0},src:'local'};
+async function loadTokens(){
+ const sess=P?P.sessLocal||0:0,pass=P?P.passes||0:0;
+ if(sb){try{const s=await sb.auth.getSession();UID=s.data&&s.data.session?s.data.session.user.id:null}catch(e){}}
+ if(sb&&UID){try{await sb.rpc('diag_sync',{p_hb_passes:pass});const r=await sb.rpc('diag_balance');if(r.error)throw r.error;
+   (r.data||[]).forEach(x=>{TOK[x.tool]={issued:x.issued,bonus:x.bonus,used:x.used,bal:x.bal,progress:x.progress}});TOK.src='server';ONLINE=true;flushQ();return}catch(e){}}
+ const u=LOC.get('rune-diag-used',{ib:0,hb:0});
+ TOK.ib={issued:Math.floor(sess/10),bonus:0,used:u.ib||0,progress:sess%10};TOK.ib.bal=TOK.ib.issued-TOK.ib.used;
+ TOK.hb={issued:pass,bonus:0,used:u.hb||0,progress:0};TOK.hb.bal=TOK.hb.issued-TOK.hb.used;TOK.src='local'}
+async function useToken(k){
+ if(TOK.src==='server'){const r=await sb.rpc('diag_use_token',{p_tool:k});if(r.error)throw new Error(r.error.message||'토큰을 쓰지 못했어요');await loadTokens();return}
+ const u=LOC.get('rune-diag-used',{ib:0,hb:0});u[k]=(u[k]||0)+1;LOC.set('rune-diag-used',u);await loadTokens()}
+async function sendSurvey(tool,answers,summary){
+ if(sb&&UID){try{const r=await sb.rpc('diag_submit_survey',{p_tool:tool,p_answers:answers,p_summary:summary});if(r.error)throw r.error;return true}catch(e){}}
+ const q=LOC.get('rune-diag-queue',[]);q.push({tool,answers,summary,at:Date.now()});LOC.set('rune-diag-queue',q.slice(-20));return false}
+async function flushQ(){const q=LOC.get('rune-diag-queue',[]);if(!q.length||!sb||!UID)return;const rest=[];for(const x of q){try{const r=await sb.rpc('diag_submit_survey',{p_tool:x.tool,p_answers:x.answers,p_summary:x.summary});if(r.error)throw r.error}catch(e){rest.push(x)}}LOC.set('rune-diag-queue',rest)}
+async function reloadBody(){ // 서버에 쌓인 최신 인바디(체중·체지방·골격근)를 다시 읽어요
+ if(!sb||!UID)return false;try{const r=await sb.from('body_measurements').select('measured_on,body_kg,body_fat_pct,smm_kg').eq('member_id',UID).order('measured_on',{ascending:false}).limit(5);if(r.error)throw r.error;
+  const x=(r.data||[]).find(v=>v.smm_kg!=null&&v.body_kg!=null&&v.body_fat_pct!=null)||(r.data||[])[0];if(!x)return false;
+  BODY.w=+x.body_kg||BODY.w;if(x.smm_kg!=null)BODY.smm=+x.smm_kg;if(x.body_fat_pct!=null)BODY.fat=+(BODY.w*x.body_fat_pct/100).toFixed(1);BODY.d=x.measured_on;return true}catch(e){return false}}
+
+/* ---------- 인바디 계산식 (기존 4T 시뮬레이터) ---------- */
+function simulate(p,h,N){const male=p.sex==='m',base=[0.45,0.25,0.12][p.exp]*(male?1:0.6),freqF=lerp(h.str,[0,1,2,3,4],[0,0.4,0.75,0.95,1]),proF=lerp(h.pro,[0.8,1.2,1.6],[0.55,0.8,1]),slpF=lerp(h.slp,[5,6,7],[0.75,0.85,1]),ageF=lerp(p.age,[30,45,60,75],[1,0.85,0.7,0.55]),ess=male?0.04:0.11;
+ let fat=p.fat,smm=p.smm,w=p.weight;const out=[{w,smm,fat,pbf:fat/w*100}];
+ for(let wk=1;wk<=N;wk++){const month=wk/4.345,intake=h.def+h.alc*400/7-h.car,adapt=(p.weight-w)*35,bal=intake+adapt,def=Math.max(0,-bal);let dS;
+  if(h.str>=0.5){const dF=lerp(def,[0,300,500,750,1000],[1,0.95,0.85,0.65,0.45]);dS=base*freqF*proF*slpF*ageF*dF*Math.exp(-0.035*month)/4.345}else dS=-(def/500)*0.15/4.345-(p.age>40?0.008:0.004)/4.345;
+  let dFat=bal*7/7700*0.8;if(bal<0){dFat*=(h.slp<6?0.85:1);dFat=Math.max(dFat,-0.01*w);dFat=Math.max(dFat,ess*w-fat)}else dFat*=(h.str>=0.5?0.8:0.95);
+  smm+=dS;fat+=dFat;w=p.weight+(smm-p.smm)*1.7+(fat-p.fat);out.push({w,smm,fat,pbf:fat/w*100})}
+ return out}
+const NW=156,moOf=w=>w==null?null:+(w/4.345).toFixed(1);
+const fmtM=(m,cap)=>m==null?`${cap/12}년 이상`:`약 ${m}개월`;
+
+/* ---------- 설문 정의 ---------- */
+const O=a=>a.map(x=>Array.isArray(x)?x:[x,x]);
+const SVY={
+ib:[['지금 나의 생활',[
+ ['str','근력운동 (회/주)','sel',[[0,'안 해요'],[1,'1회'],[2,'2회'],[3,'3회'],[4,'4회'],[5,'5회']],1],
+ ['car','유산소 (분/주)','sel',[[0,'안 해요'],[30,'30분'],[60,'60분'],[90,'90분'],[150,'150분'],[210,'210분 이상']],30],
+ ['def','식단 관리 수준','sel',[[300,'자주 과식·야식'],[100,'조금 많이 먹는 편'],[0,'평소 먹는 대로'],[-150,'조금 신경 씀'],[-300,'꽤 철저히 관리']],100],
+ ['pro','단백질 (체중 1kg당)','sel',[[0.7,'거의 신경 안 씀'],[0.9,'보통 0.9g'],[1.2,'챙기는 편 1.2g'],[1.6,'충분히 1.6g'],[2.0,'매우 충분 2.0g']],0.9],
+ ['slp','수면 (시간/일)','sel',[[5,'5시간 이하'],[6,'6시간'],[7,'7시간'],[8,'8시간 이상']],6],
+ ['alc','음주 (회/주)','sel',[[0,'안 마셔요'],[1,'1회'],[2,'2회'],[3,'3회'],[5,'5회']],2]]],
+ ['내가 이루고 싶은 목표',[
+ ['gw','목표 체중 (kg)','num',0,'W'],['gs','목표 골격근량 (kg)','num',0,'S'],['gf','목표 체지방률 (%)','num',0,'F'],
+ ['gm','이루고 싶은 기간','sel',[[3,'3개월'],[6,'6개월'],[9,'9개월'],[12,'12개월']],6]]],
+ ['식사·생활 환경',[
+ ['meal','식사 시간은 규칙적인가요?','sel',O(['매우 규칙','대체로','불규칙','교대·야간 근무']),'대체로'],
+ ['why','최근 체중 변화에 영향 준 일','sel',O(['다이어트 시도','식욕 변화','부상·휴식','특별한 일 없음']),'특별한 일 없음']]]],
+rz:[['일상과 회복',[
+ ['walk','하루 걸음 수','sel',O(['3천 미만','3천~6천','6천~1만','1만 이상']),'3천~6천'],
+ ['out','PT 외 따로 하는 운동','sel',O(['없음','러닝·유산소','다른 근력운동','구기·등산 등']),'없음'],
+ ['rec','운동 후 회복(피로·근육통)','sel',O(['빨리 회복','보통','오래 감','늘 피곤함']),'보통']]],
+ ['몸의 신호',[
+ ['chair','의자·바닥에서 일어설 때','sel',O(['문제 없음','가끔 힘들어요','자주 힘들어요']),'문제 없음'],
+ ['fall','최근 1년 휘청이거나 넘어진 적','sel',O(['없음','1번','여러 번']),'없음'],
+ ['pain','자주 불편한 부위','sel',O(['없음','무릎','허리','어깨·목']),'없음']]]]};
+const SV={ib:{},rz:{},hb:{}};
+
+/* ---------- 힘바디 5단계 설문 ---------- */
+const ROWS=[['free','프리웨이트(바벨)'],['db','덤벨·케이블'],['mach','머신'],['body','맨몸·밴드']],COLS=['1~5회','6~10회','11~15회','16회+'],LV=['안 함','가끔','자주'];
+const H={mx:{free:[0,2,1,0],db:[0,1,1,0],mach:[0,1,2,1],body:[0,0,0,1]},lift:'bench',
+ split:'상하체',adh:80,solo:'1회',dur:'60분',gap:'없음',slp:'6시간',pro:'0.9g',recv:'보통',act:'앉아서 일함',stress:'보통',wplan:'유지',
+ pain:[],avoid:[],place:'센터(PT 장소)만',goal:'기록(1RM)',steps:'두 티어 위',gm:'6개월',ans:{3:0,4:0}};
+const LF={squat:['스쿼트',['바벨','스미스','머신','맨몸·고블릿']],bench:['벤치프레스',['바벨','스미스','덤벨','머신 체스트']],deadlift:['데드리프트',['컨벤셔널','스모','트랩바','루마니안']],ohp:['오버헤드 프레스',['바벨','덤벨','스미스','머신 숄더']],bbrow:['바벨 로우',['바벨','덤벨','T-바','머신·케이블']]};
+const LS={};LK.forEach(k=>LS[k]={gear:null,rir:null,rest:null,rom:'풀',warm:'가볍게',skip:!L(k)||!(L(k).rm>0)});
+const lok=k=>LS[k].skip||(LS[k].gear&&LS[k].rir!=null);
+const HST=['① 훈련 스타일','② 종목 디테일','③ 일정','④ 회복·생활','⑤ 제약·목표'];let hst=0;
+
+/* ---------- 상태 ---------- */
+let tab='ib',step={ib:'home',rz:'home',hb:'home'},LOADED={ib:0,rz:0,hb:0},SEL={ib:1,hb:1},MK='pbf',LIFT='bench',CHG={ib:null,hb:null};const OVT={},PREV={};
+const left=k=>TOK[k].bal;
+const HRM=['한계(0)','1개 남음','2개 남음','3개 이상'];
+const OPT=(k,list,multi,cls)=>`<div class="opts">${list.map(v=>{const on=multi?H[k].includes(v):H[k]===v;return `<button class="o ${cls||''}${on?' on':''}" data-hk="${k}" data-v="${esc(v)}" data-m="${multi?1:0}">${esc(v)}</button>`}).join('')}</div>`;
+const Q=(l,b,tag)=>`<div class="q"><div class="l"><span>${l}</span>${tag?`<span class="tag auto">${tag}</span>`:''}</div>${b}</div>`;
+const LO=(k,f,list,lab)=>`<div class="opts">${list.map((v,i)=>`<button class="o${LS[k][f]===(lab?i:v)?' on':''}" data-lk="${f}" data-v="${lab?i:v}">${v}</button>`).join('')}</div>`;
+
+/* ---------- 인바디 ---------- */
+let IB=null;
+function ibBuild(){const g=k=>+SV.ib[k];const CUR={str:g('str'),car:g('car'),def:g('def'),pro:g('pro'),slp:g('slp'),alc:g('alc')};
+ const TG={w:g('gw'),s:g('gs'),f:SV.ib.gfk!=null?+SV.ib.gfk/g('gw')*100:g('gf'),m:g('gm')};
+ const S={sex:BODY.sex,age:BODY.age,exp:0,weight:BODY.w,smm:BODY.smm,fat:BODY.fat};
+ const df=TG.f/100*TG.w-S.fat,tg={str:4,car:150,def:df<-0.5?-500:0,pro:1.8,slp:7,alc:0};
+ const defs=[{id:1,name:'1안 · 가장 빠른 길',tag:'압박 큼',pr:4,sub:'계획 100% 실천 · 식단과 루틴을 크게 바꿔요',h:mix(CUR,tg,1)},{id:2,name:'2안 · 꾸준한 현실 플랜',tag:'추천',pr:2,sub:'계획의 60%만 지켜도 되는 길 · 오래 가는 방향',h:mix(CUR,tg,.6)},{id:3,name:'3안 · 지금 그대로',tag:'변화 없음',pr:0,sub:'지금 생활을 그대로 이어갈 때',h:CUR}];
+ const prog=(v,t,v0)=>{const d=t-v0;return Math.abs(d)<.01?1:Math.max(0,Math.min(1,(v-v0)/d))};
+ defs.forEach((p,i)=>{p.c=PC[i];p.sim=simulate(S,p.h,NW);const p0=p.sim[0];let wk=null;for(let j=0;j<p.sim.length;j++){const s=p.sim[j];if(Math.min(prog(s.smm,TG.s,p0.smm),prog(s.pbf,TG.f,p0.pbf))>=.9){wk=j;break}}p.wk=wk;p.m=moOf(wk)});
+ IB={defs,CUR,TG,S,tg}}
+function ibChg(p){const h=p.h,c=IB.CUR,r=[],rd=(v,s=1)=>Math.round(v/s)*s,add=(n,a,b,u)=>{if(Math.abs(a-b)>=0.05)r.push(`<li>${n} <b>${a}${u} → ${b}${u}</b></li>`)};
+ add('근력운동',c.str,rd(h.str),'회/주');add('유산소',c.car,rd(h.car,10),'분/주');
+ if(Math.abs(h.def-c.def)>=40)r.push(`<li>식단 <b>하루 약 ${Math.abs(rd(h.def-c.def,50))}kcal ${h.def<c.def?'덜':'더'} 먹기</b></li>`);
+ add('단백질',c.pro,+h.pro.toFixed(1),'g/kg');add('수면',c.slp,Math.round(h.slp*2)/2,'시간');add('음주',c.alc,rd(h.alc),'회/주');
+ return r.length?r.join(''):'<li>지금 습관 그대로예요</li>'}
+function ibWhy(){const {defs,TG,S}=IB,p1=defs[0],p2=defs[1],items=[];
+ const dS=TG.s-S.smm,bestS=p1.sim[52].smm-S.smm,needS=dS/(TG.m/12);
+ if(dS>0.2){const mo=bestS>0?(dS/bestS*12):99;
+  items.push({t:`골격근을 ${dS.toFixed(1)}kg 늘려야 해요`,b:`계산식 기준으로, 지금 같은 연령·운동 경력에서 가장 열심히 해도 1년에 늘릴 수 있는 골격근은 약 ${bestS.toFixed(1)}kg이에요(근육은 처음 몇 달이 빠르고 갈수록 느려져요). 그래서 ${dS.toFixed(1)}kg이면 빨라도 약 ${Math.ceil(mo)}개월이 필요해요. ${TG.m}개월에 맞추려면 1년 속도로 환산해 ${needS.toFixed(1)}kg/년이 필요해요. ${needS>bestS?`이건 가능한 속도의 ${(needS/bestS).toFixed(1)}배라서 통계적으로 불가능에 가까워요.`:`가능한 범위지만 1안처럼 거의 완벽하게 지켜야 해요.`}`,k:Math.min(1.5,needS/bestS),lab:`필요 속도 ${needS.toFixed(1)}kg/년 vs 가능 ${bestS.toFixed(1)}kg/년`})}
+ const goalFat=TG.f/100*TG.w,dF=S.fat-goalFat,lo=S.weight*.005*4.345,hi=S.weight*.01*4.345,need=dF/TG.m;
+ if(dF>0.3)items.push({t:`체지방을 ${dF.toFixed(1)}kg 빼야 해요`,b:`근육을 지키면서 감량하는 안전한 속도는 한 달에 체중의 2~4% 안팎, 지금 체중 기준 약 ${lo.toFixed(1)}~${hi.toFixed(1)}kg예요. 그보다 빨리 빼면 지방보다 근육이 같이 빠져요. ${TG.m}개월 안에 빼려면 월 ${need.toFixed(1)}kg이 필요해요${need>hi?' — 안전 속도를 넘어요.':' — 안전 범위 안이라 지방 쪽은 가능해요.'}`,k:Math.min(1.5,need/hi),lab:`필요 월 ${need.toFixed(1)}kg vs 안전 최대 ${hi.toFixed(1)}kg`});
+ if(dS>0.2&&dF>0.3)items.push({t:'두 가지를 동시에 하면 더 느려져요',b:'근육을 늘리려면 에너지가 충분해야 하고, 지방을 빼려면 덜 먹어야 해서 서로 발목을 잡아요. 그래서 동시에 목표로 잡으면 한 가지씩 할 때보다 각각의 속도가 낮아져요.'});
+ const r=p2.sim[26];return {items,sug:{s:+r.smm.toFixed(1),f:+r.pbf.toFixed(1),w:+r.w.toFixed(1),m:6,m1:p2.sim[4],m3:p2.sim[13]}}}
+
+/* ---------- 힘바디 ---------- */
+function hbAuto(k){const l=L(k)||{},st=l.stat||{};return {sets:st.sets4w!=null?Math.max(2,Math.min(16,st.sets4w/4)):4,freq:st.days4w!=null?Math.max(.5,Math.min(3,st.days4w/4)):1,over:st.up!=null?Math.round(st.up*100):50}}
+function hbGrow(bw,rm,h,N){const r=rm/bw,b=lerp(r,[.4,.75,1.1,1.5],[4.5,2.6,1.4,.7]),F=lerp(h.sets,[0,4,8,12,16],[0,.5,.9,1,.95])*lerp(h.freq,[0,1,2,3],[0,.6,.95,1])*lerp(h.int,[0,30,50,70],[.6,.8,1,1])*lerp(h.over,[0,40,80,100],[.3,.7,1,1.05])*lerp(h.pro,[.8,1.2,1.6],[.55,.8,1])*lerp(h.slp,[5,6,7],[.75,.85,1])*lerp(BODY.age,[30,45,60],[1,.85,.7]);
+ const o=[rm];let x=rm;for(let m=1;m<=N;m++){x=x*(1+b*F*Math.exp(-.03*m)/100);o.push(x)}return o}
+function hbDerive(){const w=[0,1,2.5];let rep=[0,0,0,0];for(const [k] of ROWS)H.mx[k].forEach((x,i)=>rep[i]+=w[x]);const rs=rep.reduce((a,b)=>a+b,0)||1,pr=rep.map(x=>Math.round(x/rs*100));return {pr,heavy:Math.round((pr[0]+pr[1])*.6)}}
+const hnum=(s,d)=>{const v=parseFloat(s);return isFinite(v)?v:d};
+let HB=null;
+function hbBuild(){const d=hbDerive(),pro=hnum(H.pro,1.2),slp=H.ans[3]?({'5시간↓':5,'6시간':6,'7시간':7,'8시간+':8})[H.slp]:7,pro2=H.ans[3]?pro:1.2;
+ const m=hnum(H.gm,6),steps=hnum(H.steps==='한 티어 위'?1:H.steps==='두 티어 위'?2:3,2);const REC={sets:8,freq:3,int:60,over:80,pro:1.6,slp:7.5},per={};
+ LK.forEach(k=>{const l=L(k);if(!l||!(l.rm>0)||LS[k].skip)return;const a=hbAuto(k),CUR={sets:a.sets,freq:a.freq,int:Math.max(20,Math.min(60,d.heavy)),over:a.over,pro:pro2,slp};
+  const rm=l.rm,ti=l.tier||0;let ti2=Math.min(ti+steps,9),tgt=(l.ladder&&l.ladder[ti2-1])||rm*(1+.12*steps);if(OVT[k]){tgt=OVT[k];ti2=ti}
+  if(!OVT[k]&&!(tgt>rm)){tgt=rm*(1+.1*steps)}
+  const defs=[{id:1,name:'1안 · 가장 빠른 길',tag:'압박 큼',pr:4,sub:'권장 훈련 100% 실천 · 세트·빈도·과부하를 크게 올려요',h:mix(CUR,REC,1)},{id:2,name:'2안 · 꾸준한 현실 플랜',tag:'추천',pr:2,sub:'권장의 60%만 지켜도 되는 길 · 오래 가는 방향',h:mix(CUR,REC,.6)},{id:3,name:'3안 · 지금 그대로',tag:'변화 없음',pr:0,sub:'지금 훈련을 그대로 이어갈 때',h:CUR}];
+  defs.forEach((p,i)=>{p.c=PC[i];p.sim=hbGrow(BODY.w,rm,p.h,36);const j=p.sim.findIndex(v=>v>=tgt);p.m=j<0?null:j});per[k]={rm,ti,ti2,tgt,defs,l}});
+ HB={per,m,steps,CUR:(per[LIFT]||per[Object.keys(per)[0]]||{defs:[{h:{}}]}).defs[2].h,REC}}
+function hbChg(p){const h=p.h,c=HB.CUR,r=[],rd=Math.round,add=(n,a,b,u)=>{if(Math.abs(a-b)>=.05)r.push(`<li>${n} <b>${+a.toFixed(1)}${u} → ${+b.toFixed(1)}${u}</b></li>`)};
+ add('주당 유효 세트',c.sets,rd(h.sets),'세트');add('주 빈도',c.freq,rd(h.freq*2)/2,'회');add('본세트 비중',c.int,rd(h.int/5)*5,'%');add('과부하(늘리는 빈도)',c.over,rd(h.over/5)*5,'%');add('단백질',c.pro,+h.pro.toFixed(1),'g/kg');add('수면',c.slp,Math.round(h.slp*2)/2,'시간');
+ return r.length?r.join(''):'<li>지금 훈련 그대로예요</li>'}
+function hbWhy(k){const P2=HB.per[k],tgt=P2.tgt,rm=P2.rm,m=HB.m,p1=P2.defs[0],p2=P2.defs[1],items=[];const best12=p1.sim[12]/rm-1,need=Math.pow(tgt/rm,12/m)-1;
+ items.push({t:`${LNAME[k]} 1RM을 ${Math.round(rm)}kg → ${Math.round(tgt)}kg (+${((tgt/rm-1)*100).toFixed(0)}%) 올려야 해요`,b:`계산식 기준으로 지금 수준에서 가장 열심히 해도 1년에 올릴 수 있는 1RM은 약 ${(best12*100).toFixed(0)}%예요. 근력은 처음엔 빨리 오르고, 수준이 높아질수록 같은 노력에 오르는 폭이 작아져요. ${m}개월로 당기면 1년 속도로 환산해 +${(need*100).toFixed(0)}%가 필요해요. ${need>best12?`가능한 속도의 ${(need/best12).toFixed(1)}배라서 통계적으로 불가능에 가까워요.`:'가능한 범위지만 1안처럼 거의 완벽하게 지켜야 해요.'}`,k:Math.min(1.5,need/best12),lab:`필요 +${(need*100).toFixed(0)}%/년 vs 가능 +${(best12*100).toFixed(0)}%/년`});
+ return {items,sug:{rm:Math.round(p2.sim[6]),m:6}}}
+
+/* ---------- 레드존 ---------- */
+function rzBuild(){const dec=Math.min(80,Math.max(20,Math.floor(BODY.age/10)*10)),am=AGEM[dec],f=BODY.sex==='f',r=[];
+ LK.forEach(k=>{const l=L(k);if(!l||!(l.rm>0))return;const c=MV[k],exp=c.m*(f?c.fr:1)*am,red=c.red*(f?c.rf:1),ratio=l.rm/BODY.w;
+  const lv=ratio<red?['위험','bad',0]:ratio<red*1.25?['경계','warn',1]:ratio<exp*.7?['주의','warn',2]:ratio<exp*1.15?['양호','ok',3]:['우수','ok',4];
+  r.push({k,n:LNAME[k],rm:Math.round(l.rm),ratio,lv,q:ratio/exp,exp})});return r}
+
+/* ---------- 화면 부품 ---------- */
+function chart6(series,sug,lab,fmt,per){const W=420,H2=240,pl=44,pr=16,pt=16,pb=28,N=Math.round(6*per);const vals=series.flatMap(s=>s.pts);vals.push(sug);let mn=Math.min(...vals),mx=Math.max(...vals);const pd=(mx-mn)*.15||1;mn-=pd;mx+=pd;
+ const X=i=>pl+(W-pl-pr)*i/N,Y=v=>pt+(H2-pt-pb)*(1-(v-mn)/(mx-mn));let g='';
+ for(let k=0;k<=4;k++){const v=mn+(mx-mn)*k/4,y=Y(v);g+=`<line x1="${pl}" x2="${W-pr}" y1="${y}" y2="${y}" stroke="var(--ln)"/><text x="${pl-6}" y="${y+4}" font-size="11" text-anchor="end" fill="var(--mu)">${fmt(v)}</text>`}
+ [[0,'지금'],[1,'1개월'],[3,'3개월'],[6,'6개월']].forEach(([m,t])=>{const x=X(Math.round(m*per));g+=`<line x1="${x}" x2="${x}" y1="${pt}" y2="${H2-pb}" stroke="var(--ln)" stroke-dasharray="2 4"/><text x="${x}" y="${H2-8}" font-size="12" font-weight="700" text-anchor="${m===6?'end':'middle'}" fill="var(--tx)">${t}</text>`});
+ g+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(sug)}" y2="${Y(sug)}" stroke="var(--gdb)" stroke-width="1.5" stroke-dasharray="6 4"/><text x="${pl+4}" y="${Y(sug)-4}" font-size="11" fill="var(--gd)" font-weight="700">${lab}</text>`;
+ series.forEach(s=>{g+=`<polyline fill="none" stroke="${s.c}" stroke-width="${s.on?3.5:2}" ${s.dash?'stroke-dasharray="5 4"':''} points="${s.pts.map((v,i)=>X(i)+','+Y(v)).join(' ')}"/>`;[1,3,6].forEach(m=>{const i=Math.round(m*per);g+=`<circle cx="${X(i)}" cy="${Y(s.pts[i])}" r="${s.on?5:3.5}" fill="${s.c}" stroke="var(--pn)" stroke-width="2"/>`})});
+ return `<svg viewBox="0 0 ${W} ${H2}" role="img" aria-label="6개월 예측 그래프">${g}</svg>`}
+function planCards(defs,sel,TGm,chg){return `<div class="plans">`+defs.map(p=>{const ok=p.m!=null&&p.m<=TGm+.05;
+ return `<button class="plan${sel===p.id?' on':''}" style="--c:${p.c}" data-plan="${p.id}"><div class="hd"><b>${p.name}</b><span class="tag">${p.tag}</span></div><div class="mu">${p.sub}</div>
+ <div class="big">${fmtM(p.m,36)}</div><div class="mu">${p.m==null?'3년 안에도 목표에 닿기 어려워요':ok?`✓ 희망 기간(${TGm}개월) 안에 도달`:`희망 기간보다 ${(p.m-TGm).toFixed(1)}개월 더 걸려요`}</div>
+ <div style="display:flex;align-items:center;gap:8px"><span class="mu">바꿔야 할 부담</span><span class="press">${[1,2,3,4].map(i=>`<i class="${i<=p.pr?'on':''}"></i>`).join('')}</span></div>${sel===p.id?`<ul class="chg">${chg(p)}</ul>`:''}</button>`}).join('')+`</div>`}
+function whyCard(W,extra){if(!W.items.length)return '';return `<section class="why"><h2>왜 이렇게 오래 걸려요?</h2>${W.items.map(i=>`<div class="it"><b>${i.t}</b><div>${i.b}</div>${i.k!=null?`<div class="ratio"><i style="width:${Math.min(100,i.k/1.5*100)}%;background:${i.k>1?'var(--bad)':'var(--ok)'}"></i><u style="left:${1/1.5*100}%"></u></div><div class="mu">${i.lab} · 세로선 = 가능한 한계</div>`:''}</div>`).join('')}
+ <div class="it" style="border-top:1px solid var(--ln);padding-top:12px"><b>현실적인 목표 제안을 통해 6개월 뒤 목표 설정해보기</b><div>${extra}</div><button class="btn sm" id="adopt">6개월 뒤 목표로 설정하기</button></div></section>`}
+function chgCard(k){const c=CHG[k];if(!c)return '';return `<section class="why" style="border-color:var(--ok)"><h2>목표를 이렇게 바꿨어요</h2>
+ <div class="it"><b>무엇이 바뀌었나</b><div>${c.what}</div></div><div class="it"><b>왜 바뀌었나</b><div>${c.why}</div></div><div class="it"><b>그래프와 기간은 이렇게 바뀌어요</b><div>${c.how}</div></div>
+ <div class="it" style="border-top:1px solid var(--ln);padding-top:12px"><b>바꾼 뒤 꼭 점검할 것</b><ul class="chg">${c.checks.map(x=>`<li>✔ ${x}</li>`).join('')}</ul></div><button class="btn ghost sm" id="undo">이전 목표로 되돌리기</button></section>`}
+function focusCard(items){return `<section class="pn"><h2>오늘 진단에서 주목할 점</h2>${items.map(([t,b])=>`<div class="focus"><b>${t}</b><div>${b}</div></div>`).join('')}</section>`}
+const inp=(k,v,st)=>`<input data-ed="${k}" type="number" inputmode="decimal" step="${st||0.1}" value="${v}" aria-label="${k}">`;
+const dd=(a,b,inv)=>{const d=+(b-a).toFixed(1);return d?`<span class="${(inv?d<0:d>0)?'tag ok':'tag'}">${d>0?'+':''}${d}</span>`:'<span class="mu">—</span>'};
+function sumIB(){const gfk=+SV.ib.gfk,gw=+SV.ib.gw,gs=+SV.ib.gs,cf=BODY.fat,cp=cf/BODY.w*100,gp=gfk/gw*100;
+ return `<section class="pn"><h2>내 기준과 목표</h2><div class="mu" style="margin-top:-8px">숫자를 바꾸면 아래 답변이 바로 달라져요 (칸을 벗어나면 반영)</div>
+ <table class="sm"><thead><tr><th></th><th>기준(지금)</th><th>목표</th><th>변화</th></tr></thead><tbody>
+ <tr><td>체중 kg</td><td>${inp('cw',BODY.w)}</td><td>${inp('gw',gw)}</td><td>${dd(BODY.w,gw,1)}</td></tr>
+ <tr><td>골격근량 kg</td><td>${inp('cs',BODY.smm)}</td><td>${inp('gs',gs)}</td><td>${dd(BODY.smm,gs,0)}</td></tr>
+ <tr><td>체지방량 kg</td><td>${inp('cf',cf)}</td><td>${inp('gf',gfk)}</td><td>${dd(cf,gfk,1)}</td></tr>
+ <tr class="ro"><td>체지방률 %</td><td>${cp.toFixed(1)}</td><td>${gp.toFixed(1)}</td><td>${dd(cp,gp,1)}</td></tr></tbody></table>
+ <div class="mu">기준은 최근 인바디 값${BODY.d?'('+BODY.d+')':''}이에요 · 다르면 직접 고치세요</div></section>`}
+function sumHB(){const P2=HB.per[LIFT],cur=Math.round(P2.rm),tg=Math.round(P2.tgt);
+ return `<section class="pn"><h2>내 기준과 목표</h2><div class="mu" style="margin-top:-8px">숫자를 바꾸면 아래 답변이 바로 달라져요 (칸을 벗어나면 반영)</div>
+ <table class="sm"><thead><tr><th></th><th>기준(지금)</th><th>목표</th><th>변화</th></tr></thead><tbody>
+ <tr><td>체중 kg</td><td>${inp('hw',BODY.w)}</td><td class="mu">그대로</td><td></td></tr>
+ <tr><td>${LNAME[LIFT]} 1RM kg</td><td>${inp('hr',cur,1)}</td><td>${inp('ht',tg,1)}</td><td>${dd(cur,tg,0)}</td></tr>
+ <tr class="ro"><td>티어</td><td>${TIERS[P2.ti]||'-'}</td><td>${OVT[LIFT]?'직접 입력':TIERS[P2.ti2]}</td><td></td></tr>
+ <tr class="ro"><td>체중 대비</td><td>${(cur/BODY.w).toFixed(2)}배</td><td>${(tg/BODY.w).toFixed(2)}배</td><td></td></tr></tbody></table></section>`}
+function tbl6(defs,f){return `<table class="t6"><thead><tr><th></th><th>1개월</th><th>3개월</th><th>6개월</th></tr></thead><tbody>${defs.map(p=>`<tr><td><i style="background:${p.c}"></i>${p.name.split(' · ')[0]}</td>${[1,3,6].map(m=>`<td>${f(p,m)}</td>`).join('')}</tr>`).join('')}</tbody></table>`}
+const reachTxt=d=>{const ok=d.filter(p=>p.m!=null&&p.m<=6.05).map(p=>p.name.split(' · ')[0]),no=d.filter(p=>!(p.m!=null&&p.m<=6.05)).map(p=>p.name.split(' · ')[0]);return (ok.length?`${ok.join('·')}은 6개월 안에 닿고`:'6개월 안에 닿는 안이 아직 없고')+(no.length?`, ${no.join('·')}은 닿지 못해요.`:'.')};
+const planMs=d=>d.map(p=>fmtM(p.m,36)).join(' / ');
+
+/* ---------- 결과 ---------- */
+function resIB(){ibBuild();const {defs,TG,S,CUR}=IB,sel=SEL.ib,W=ibWhy(),Lb={pbf:['체지방률',v=>v.toFixed(1)+'%'],smm:['골격근',v=>v.toFixed(1)],w:['체중',v=>v.toFixed(1)]}[MK];
+ const gap=defs.some(p=>p.m==null||p.m>TG.m+.05),ser=defs.map(p=>({c:p.c,pts:p.sim.slice(0,27).map(s=>s[MK]),on:sel===p.id,dash:p.id===3})),sug6=defs[1].sim[26][MK];
+ const wk=[];if(CUR.slp<7)wk.push(`수면 ${CUR.slp}시간 → 7시간`);if(CUR.pro<1.2)wk.push(`단백질 ${CUR.pro}g/kg → 1.6g/kg`);if(CUR.alc>=2)wk.push(`음주 주 ${CUR.alc}회 → 줄이기`);if(CUR.str<3)wk.push(`근력운동 주 ${CUR.str}회 → 3회 이상`);
+ const fl=(P&&P.bodyLog||[]).filter(x=>x.smm!=null);let chgTxt='인바디가 한 번뿐이라 변화는 다음 측정부터 비교해요';
+ if(fl.length>=2){const a=fl[0],b=fl[fl.length-1],d1=+(b.smm-a.smm).toFixed(1),d2=+((b.bf!=null&&a.bf!=null)?(b.bf-a.bf):0).toFixed(1);chgTxt=`${a.d} → ${b.d} 골격근 ${d1>=0?'+':''}${d1}kg, 체지방률 ${d2>0?'+':''}${d2}%p — ${d1>0&&d2<0?'근육은 늘고 지방은 줄었어요. 잘 가고 있어요 👏':'방향을 점검해 보세요'}`}
+ return sumIB()+chgCard('ib')+`<section class="pn"><h2>목표까지, 3가지 길</h2><div class="mu">체중 ${TG.w}kg · 골격근 ${TG.s}kg · 체지방률 ${TG.f.toFixed(1)}% · ${TG.m}개월 안에</div>${planCards(defs,sel,TG.m,ibChg)}</section>
+ <section class="pn"><h2>앞으로 6개월, 이렇게 달라져요</h2><div class="mu">1개월 · 3개월 · 6개월 뒤 모습을 비교해요</div><div class="pills">${[['pbf','체지방률'],['smm','골격근'],['w','체중']].map(([k,n])=>`<button class="pill${MK===k?' on':''}" data-mk="${k}">${n}</button>`).join('')}</div>${chart6(ser,sug6,'6개월 현실 목표 '+Lb[1](sug6),Lb[1],4.345)}${tbl6(defs,(p,m)=>Lb[1](p.sim[Math.round(m*4.345)][MK]))}<div class="legend">${defs.map(p=>`<span><i style="background:${p.c}"></i>${p.name.split(' · ')[0]}</span>`).join('')}</div></section>
+ ${gap?whyCard(W,`2안(60% 실천)으로 6개월 뒤 닿을 수 있는 현실적인 모습은 <b>골격근 ${W.sug.s}kg · 체지방률 ${W.sug.f}% · 체중 ${W.sug.w}kg</b>예요. 먼저 3개월 뒤 <b>골격근 ${W.sug.m3.smm.toFixed(1)}kg · 체지방률 ${W.sug.m3.pbf.toFixed(1)}%</b>를 이정표로 삼고, 6개월 뒤 다시 측정해 다음 목표를 올려 보세요.`):''}
+ ${focusCard([['지난 인바디 변화',chgTxt],['가장 먼저 바꿀 것',wk.length?wk.slice(0,3).join(' · '):'지금 생활습관이 좋아요. 강도만 조금씩 올려 보세요'],['세 길의 차이',`지금 그대로면 ${fmtM(defs[2].m,36)}, 2안은 ${fmtM(defs[1].m,36)}, 1안은 ${fmtM(defs[0].m,36)}이에요. 가장 빠른 길이 늘 최선은 아니에요 — 꾸준히 지킬 수 있는 길을 고르세요.`]])}
+ <div class="note">인바디 결과지 사진·해설 등 자세한 도구는 <a class="lk" href="analyzer.html#inbody" target="_blank">원본 분석기</a>에서 볼 수 있어요.</div>`}
+function resHB(){hbBuild();const ks=Object.keys(HB.per);if(!ks.length)return `<section class="pn"><h2>불러온 기록이 없어요</h2><div class="mu">스쿼트·벤치·데드·오버헤드 프레스·바벨 로우 중 하나 이상 기록이 있어야 해요.</div></section>`;
+ if(!HB.per[LIFT])LIFT=ks[0];const Pk=HB.per[LIFT],sel=SEL.hb,W=hbWhy(LIFT),gap=Pk.defs.some(p=>p.m==null||p.m>HB.m);
+ const ser=Pk.defs.map(p=>({c:p.c,pts:p.sim.slice(0,7),on:sel===p.id,dash:p.id===3})),sug6=Pk.defs[1].sim[6],a=hbAuto(LIFT);
+ return sumHB()+chgCard('hb')+`<section class="pn"><h2>종목 고르기</h2><div class="pills">${ks.map(l=>`<button class="pill${LIFT===l?' on':''}" data-lift="${l}">${LNAME[l]}</button>`).join('')}</div>
+ <div class="mu">${LNAME[LIFT]} 지금 ${Math.round(Pk.rm)}kg(체중의 ${(Pk.rm/BODY.w).toFixed(2)}배) · <b>${TIERS[Pk.ti]}</b> → 목표 <b>${OVT[LIFT]?'직접 입력':TIERS[Pk.ti2]}</b> (${Math.round(Pk.tgt)}kg) · ${HB.m}개월 안에</div></section>
+ <section class="pn"><h2>목표까지, 3가지 길</h2>${planCards(Pk.defs,sel,HB.m,hbChg)}</section>
+ <section class="pn"><h2>앞으로 6개월, 이렇게 달라져요</h2><div class="mu">1개월 · 3개월 · 6개월 뒤 ${LNAME[LIFT]} 1RM을 비교해요</div>${chart6(ser,sug6,'6개월 현실 목표 '+Math.round(sug6)+'kg',v=>Math.round(v)+'',1)}${tbl6(Pk.defs,(p,m)=>Math.round(p.sim[m])+'kg')}<div class="legend">${Pk.defs.map(p=>`<span><i style="background:${p.c}"></i>${p.name.split(' · ')[0]}</span>`).join('')}</div></section>
+ ${gap?whyCard(W,`2안으로 6개월 뒤 닿을 수 있는 현실적인 수준은 <b>${LNAME[LIFT]} 약 ${W.sug.rm}kg</b>이에요. 3개월 뒤 이정표는 <b>${Math.round(Pk.defs[1].sim[3])}kg</b>예요. 먼저 이 목표를 달성하고 다음 티어에 도전하는 게 가장 빨라요.`):''}
+ ${focusCard([['지금 훈련에서 가장 큰 차이',`기록 기준 주당 유효 세트 ${a.sets.toFixed(1)}세트(권장 6~10), 주 ${a.freq.toFixed(1)}회(권장 2~3회), 과부하 ${a.over}%(권장 80%↑)`],['승급 시험 연결',`${LNAME[LIFT]} ${TIERS[Pk.ti2]||'다음 티어'} 수준 세트를 해내면 승급 퀘스트가 열려요`],['세 길의 차이',`지금 그대로면 ${fmtM(Pk.defs[2].m,36)}, 2안은 ${fmtM(Pk.defs[1].m,36)}, 1안은 ${fmtM(Pk.defs[0].m,36)}이에요.`]])}
+ <div class="note">부위별 희망 티어·세부 분포표 등은 <a class="lk" href="analyzer.html#himbody" target="_blank">원본 분석기</a>에서 볼 수 있어요.</div>`}
+function resRZ(){const R=rzBuild(),sv=SV.rz,it=[];
+ if(sv.fall&&sv.fall!=='없음')it.push(['휘청임·낙상 경험',`최근 1년 ${sv.fall} — 하체 근력(스쿼트·일어서기)과 균형 훈련을 우선 챙겨요`]);
+ if(sv.chair&&sv.chair!=='문제 없음')it.push(['일어서기가 힘들다고 답하셨어요','의자 일어서기 5회 시간을 한 번 재 보세요. 15초를 넘으면 하체 근력 보강이 필요해요']);
+ if(sv.pain&&sv.pain!=='없음')it.push([`${sv.pain} 불편`,'통증이 있으면 이 판정보다 의료진 판단이 먼저예요. 해당 부위 동작은 가볍게 시작하세요']);
+ if(sv.walk==='3천 미만')it.push(['걸음 수가 적어요','하루 걸음이 적으면 심폐·하체 기능이 빨리 떨어져요. 우선 하루 6천 보를 목표로 해보세요']);
+ R.filter(r=>r.lv[2]<=2).forEach(r=>it.push([`${r.n} ${r.lv[0]}`,`체중의 ${r.ratio.toFixed(2)}배예요. 이 동작을 우선 올리면 레드존에서 가장 멀어져요`]));
+ const miss=LK.filter(k=>!R.some(r=>r.k===k)).map(k=>LNAME[k]);if(miss.length)it.push(['기록이 없는 동작',`기록이 없어 판정에서 빠진 동작: ${miss.join('·')}. 이번 달 한 번 측정해 보면 더 정확해져요`]);
+ if(!it.length)it.push(['모두 양호해요','지금 수준을 유지하면서 꾸준히 기록을 쌓아 보세요']);
+ return `<section class="pn"><h2>동작별 건강 기준</h2><div class="mu">같은 나이·성별 일반인 기준과 비교한 내 위치 (간이 판정 · 내 기록의 환산 1RM 기준)</div>${R.length?R.map(r=>`<div class="mv"><div class="l"><b>${r.n}</b><span class="tag ${r.lv[1]}">${r.lv[0]}</span></div><div class="bar" style="--c:var(--${r.lv[1]})"><i style="width:${Math.min(100,r.q/1.6*100)}%"></i></div><div class="mu">${r.rm}kg · 체중의 ${r.ratio.toFixed(2)}배</div></div>`).join(''):'<div class="mu">불러온 기록이 없어요</div>'}</section>
+ ${focusCard(it.slice(0,5))}<div class="note">연령별 분포·레드존 확률 같은 자세한 표는 <a class="lk" href="analyzer.html#redzone" target="_blank">원본 분석기</a>에서 볼 수 있어요. 레드존은 진단이 아니라 "이 수준 아래에서 위험 연관이 커진다"는 신호예요.</div>`}
+
+/* ---------- 설문 화면 ---------- */
+function field(f){const [k,l,t,o,d]=f;if(t==='num'){const v=d==='W'?+(BODY.w-3).toFixed(1):d==='S'?+(BODY.smm+1).toFixed(1):d==='F'?+Math.max(8,BODY.fat/BODY.w*100-4).toFixed(1):d;return `<label class="f"><span>${l}</span><input data-sv="${k}" type="number" inputmode="decimal" step="0.1" value="${SV[tab][k]!=null?SV[tab][k]:v}"></label>`}
+ const cur=SV[tab][k]!=null?SV[tab][k]:d;return `<label class="f"><span>${l}</span><select data-sv="${k}">${o.map(([v,tx])=>`<option value="${esc(v)}"${String(v)===String(cur)?' selected':''}>${esc(tx)}</option>`).join('')}</select></label>`}
+const HS=[
+()=>`<h2>① 훈련 스타일 <span class="tag bad">필수</span></h2><div class="mu" style="margin-top:-8px">어떤 방식으로, 몇 회씩 하는지 칸을 눌러 표시해요 (안 함 → 가끔 → 자주)</div>
+ <div class="rec"><span class="tag auto" style="align-self:flex-start">기본값</span>처음 값은 예시예요 · 내 방식에 맞게 칸을 눌러 고치세요</div>
+ <div class="mx"><div></div>${COLS.map(c=>`<div class="h">${c}</div>`).join('')}${ROWS.map(([k,n])=>`<div class="r">${n}</div>`+COLS.map((c,i)=>`<button class="cell" data-mx="${k}" data-i="${i}" data-v="${H.mx[k][i]}">${LV[H.mx[k][i]]}</button>`).join('')).join('')}</div>`,
+()=>{const k=H.lift,Lx=LS[k],cur=LF[k],a=hbAuto(k),l=L(k);
+ return `<h2>② 종목 디테일 <span class="tag bad">필수</span></h2><div class="mu" style="margin-top:-8px">종목마다 쓰는 기구와 세트 끝 여유를 알려주세요</div>
+ <div class="opts">${LK.map(x=>`<button class="o${H.lift===x?' on':''}" data-lift="${x}">${lok(x)?'✓ ':''}${LF[x][0]}</button>`).join('')}</div>
+ <div class="rec"><span class="tag auto" style="align-self:flex-start">기록에서 자동</span>${l&&l.rm>0?`${cur[0]} 최근 기록 · ${(l.sess||[]).map(s=>`${s.w}kg×${s.r}`).join(' / ')||'-'}<br>유효 세트 주 ${a.sets.toFixed(1)}세트 · 빈도 주 ${a.freq.toFixed(1)}회 · 무게 늘린 세션 ${a.over}%`:'이 종목은 기록이 없어요'}</div>
+ <button class="o${Lx.skip?' on':''}" data-lk="skip" data-v="toggle" style="align-self:flex-start">이 종목은 안 해요</button>
+ ${Lx.skip?'':`${Q('쓰는 기구 <span style="color:var(--bad)">*</span>',LO(k,'gear',cur[1]))}${Q('세트 끝에 몇 번 더 할 수 있었나요? (RIR) <span style="color:var(--bad)">*</span>',LO(k,'rir',HRM,1))}${Q('세트 사이 휴식',LO(k,'rest',['1분','2분','3분','5분'],1))}${Q('가동범위',LO(k,'rom',['풀','부분','잘 모름']))}${Q('워밍업',LO(k,'warm',['안 해요','가볍게','단계적으로']))}`}`},
+()=>`<h2>③ 일정 <span class="tag">선택</span></h2><div class="mu" style="margin-top:-8px">건너뛰어도 돼요 · 답하면 더 정확해져요</div>${Q('분할 방식',OPT('split',['전신','상하체','푸시·풀·레그','부위별']))}${Q('지난 4주, 계획 대비 실제 운동한 비율',`<div class="opts">${[50,65,80,95].map(v=>`<button class="o${H.adh===v?' on':''}" data-adh="${v}">${v}%</button>`).join('')}</div>`)}${Q('PT 외 혼자 운동',OPT('solo',['안 해요','1회','2회','3회+']))}${Q('한 번에 운동하는 시간',OPT('dur',['30분','45분','60분','75분+']))}${Q('최근 4주 중 2주 이상 쉰 적',OPT('gap',['없음','1번','여러 번']))}`,
+()=>`<h2>④ 회복·생활 <span class="tag">선택</span></h2>${Q('수면',OPT('slp',['5시간↓','6시간','7시간','8시간+']))}${Q('단백질 (체중 1kg당)',OPT('pro',['0.9g','1.2g','1.6g','2.0g']))}${Q('운동 후 회복',OPT('recv',['빨리','보통','오래 감','늘 피곤']))}${Q('평소 활동량',OPT('act',['앉아서 일함','서서 일함','많이 움직임']))}${Q('요즘 스트레스',OPT('stress',['낮음','보통','높음']))}${Q('체중 계획',OPT('wplan',['증량','유지','감량']))}`,
+()=>`<h2>⑤ 제약·목표 <span class="tag">선택</span></h2>${Q('자주 불편한 부위 (여러 개)',OPT('pain',['어깨','팔꿈치','손목','허리','무릎','발목'],1,'bad'))}${Q('피하거나 못 하는 동작 (여러 개)',OPT('avoid',['오버헤드','딥스','스쿼트 깊게','데드 바닥','풀업'],1,'bad'))}${Q('운동 환경',OPT('place',['센터(PT 장소)만','센터+홈짐','홈짐만']))}${Q('목표 유형',OPT('goal',['기록(1RM)','근비대(체형)','승급']))}${Q('올리고 싶은 티어',OPT('steps',['한 티어 위','두 티어 위','세 티어 위']))}${Q('이루고 싶은 기간',OPT('gm',['3개월','6개월','12개월']))}`];
+function hreq(){if(hst===0)return Object.values(H.mx).some(r=>r.some(v=>v>0));if(hst===1)return LK.every(lok);return true}
+function hLive(){const d=hbDerive(),flags=[];if(H.pain.length)flags.push(`${H.pain.join('·')} 불편 — 해당 부위 볼륨 보수적으로`);if(H.avoid.length)flags.push(`${H.avoid.join('·')} 제외하고 대체 동작 추천`);
+ const rs=LK.filter(k=>!LS[k].skip&&LS[k].rir!=null).map(k=>LS[k].rir);if(rs.length&&rs.every(r=>r===0))flags.push('모든 종목 세트마다 한계까지 — 회복·부상 위험 점검');if(rs.length&&rs.every(r=>r>=3))flags.push('세트 끝 여유가 커요 — 강도를 더 올릴 여지');
+ if(H.recv==='늘 피곤'||(H.stress==='높음'&&H.slp==='5시간↓'))flags.push('회복 여유가 적어요 — 볼륨을 올리기 전에 수면·휴식');if(H.gap==='여러 번'||H.adh<65)flags.push('운동이 자주 끊겨요 — 목표보다 일정 지키기가 먼저');
+ return `<section class="pn"><h2>지금까지 답으로 본 내 훈련</h2><div class="row"><span>반복 구간 분포</span><span class="mu">${COLS.map((c,i)=>c+' '+d.pr[i]+'%').join(' · ')}</span></div>${flags.length?`<div class="warnb"><b>진단에서 챙길 점</b>${flags.map(f=>`<div>• ${f}</div>`).join('')}</div>`:'<div class="mu">답할수록 여기에 챙길 점이 쌓여요</div>'}</section>`}
+function hbSurvey(){const ok=hreq();return `<section class="pn"><div class="steps">${HST.map((n,i)=>`<button class="${i===hst?'on':i<hst?'done':''}" data-hs="${i}">${i<hst?'✓ ':''}${n.slice(2)}<br><span style="font-weight:500">${i>1?'선택':'필수'}</span></button>`).join('')}</div></section><section class="pn">${HS[hst]()}</section>${hLive()}
+ <div class="nav"><button class="btn ghost" id="hprev"${hst===0?' disabled':''}>이전</button><button class="btn" id="hnext"${ok?'':' disabled'}>${!ok?(hst===0?'한 칸 이상 표시해 주세요':'모든 종목에 기구·RIR을 답해 주세요 (안 하면 "이 종목은 안 해요")'):hst===4?'설문 제출 → 트레이너에게 전달':'다음'}</button></div>
+ ${(hst>=2||(hst===1&&ok))&&hst<4?'<button class="btn ghost" id="hskip">선택 단계 건너뛰고 제출</button>':''}`}
+
+/* ---------- 설문 제출 ---------- */
+function collect(k,hbSkipFrom){
+ if(k==='hb'){const rows={};rows['훈련 스타일 표']=ROWS.map(([key,n])=>n+': '+COLS.map((c,i)=>c+' '+LV[H.mx[key][i]]).join(', ')).join(' / ');
+  LK.forEach(x=>{const s=LS[x];rows[LNAME[x]]=s.skip?'안 해요':`기구 ${s.gear} · 세트 끝 ${HRM[s.rir]} · 휴식 ${s.rest!=null?[1,2,3,5][s.rest]+'분':'-'} · ${s.rom} · 워밍업 ${s.warm}`});
+  if(hbSkipFrom<=2){Object.assign(rows,{분할:H.split,'지난 4주 준수율':H.adh+'%','PT 외 운동':H.solo,'운동 시간':H.dur,'쉰 기간':H.gap})}else rows['③ 일정']='미응답';
+  if(hbSkipFrom<=3){Object.assign(rows,{수면:H.slp,단백질:H.pro,회복:H.recv,활동량:H.act,스트레스:H.stress,'체중 계획':H.wplan})}else rows['④ 회복·생활']='미응답';
+  if(hbSkipFrom<=4){Object.assign(rows,{'불편 부위':H.pain.join(', ')||'없음','피하는 동작':H.avoid.join(', ')||'없음','운동 환경':H.place,'목표 유형':H.goal,'올릴 티어':H.steps,기간:H.gm})}else rows['⑤ 제약·목표']='미응답';
+  return rows}
+ const rows={};SVY[k].forEach(([t,fs])=>fs.forEach(f=>{const el=document.querySelector(`[data-sv="${f[0]}"]`);if(!el)return;SV[k][f[0]]=el.value;rows[f[1].replace(/\s*\(.*\)/,'')]=el.tagName==='SELECT'?el.options[el.selectedIndex].text:el.value}));return rows}
+
+/* ---------- 렌더 ---------- */
+function tokCard(){const k=tab;let h=`<div class="tok"><div><b>${NAME[k]}</b><div class="mu">${k==='rz'?'언제든 무료':k==='ib'?'운동 세션 10번마다 1개':'티어 승급시험 통과마다 1개'}</div></div>`;
+ if(k==='rz')h+=`<span class="tag ok">무제한</span></div>`;
+ else{const t=TOK[k],unit=k==='ib'?'세션':'승급시험 통과',tot=k==='ib'?(P&&P.sessLocal)||0:(P&&P.passes)||0;
+  h+=`<div style="display:flex;align-items:center;gap:8px"><span class="mu">내 토큰</span><span class="coin${t.bal>0?'':' z'}">${t.bal}</span></div></div><div class="mu">${k==='ib'?`지금까지 세션 ${tot}회`:`지금까지 승급시험 통과 ${tot}회`} → 토큰 ${t.issued}개 발행${t.bonus?` + 트레이너 지급 ${t.bonus}개`:''} · 사용 ${t.used}개</div>`+(k==='ib'?`<div><div class="bar"><i style="width:${t.progress/10*100}%"></i></div><div class="mu" style="margin-top:4px">다음 토큰까지 ${t.progress}/10</div></div>`:'')}
+ $('tokCard').innerHTML=h}
+function homeHTML(){const need=tab!=='rz'&&left(tab)<1;
+ return `<section class="pn"><b>이용 순서</b><div class="mu">1. 진단 전 설문 → 2. 수행능력·신체정보 불러오기 → 3. ${tab==='rz'?'진단 (언제든 무료)':'토큰 사용해 진단'}</div>${need?'':'<button class="btn" id="start">진단 시작하기</button>'}</section>`+
+ (need?`<section class="pn"><h2>사용 가능한 토큰이 없어요</h2><div class="new">${tab==='ib'?`운동 세션 10번을 채우면 토큰이 1개 생겨요. 지금 ${TOK.ib.progress}/10 — ${10-TOK.ib.progress}번 남았어요`:'종목 티어 승급시험을 통과하면 토큰이 1개 생겨요. 승급전 퀘스트를 수락해 도전해 보세요'}</div><div class="mu">급하면 트레이너에게 문의하세요. 토큰은 유효기간 없이 쌓여요.</div></section>`:'')}
+function loadHTML(){const ld=LOADED[tab];const chips=tab==='ib'?[`체중 ${BODY.w}kg`,`골격근 ${BODY.smm||'-'}kg`,`체지방량 ${BODY.fat||'-'}kg`,BODY.d?`측정일 ${BODY.d}`:'']:tab==='rz'?[`${BODY.sex==='f'?'여':'남'} ${BODY.age}세 · ${BODY.w}kg`,...LK.filter(k=>L(k)&&L(k).rm>0).map(k=>`${LNAME[k]} ${Math.round(L(k).rm)}kg`)]:[`체중 ${BODY.w}kg`,...LK.filter(k=>L(k)&&L(k).rm>0).map(k=>`${LNAME[k]} ${Math.round(L(k).rm)}kg · ${TIERS[L(k).tier||0]}`)];
+ const needBody=tab==='ib'&&ld&&!hasBody();
+ return `<section class="pn"><h2>② 수행능력·신체정보 불러오기</h2><div class="mu" style="margin-top:-8px">입력 없이 내 룬PT 기록으로 한 번에 채워요</div>${ld?`<div class="chips">${chips.filter(Boolean).map(c=>`<span>✓ ${esc(c)}</span>`).join('')}</div>`:''}
+ ${needBody?`<div class="new">골격근량·체지방 값이 없어요. 아래에서 입력하거나 인바디 결과지 사진을 올려 주세요.</div>`:''}
+ ${tab==='ib'?`<div class="grid2"><button class="btn ghost sm" id="qr">📷 인바디 결과지 사진 올리기</button><button class="btn ghost sm" id="manual">직접 입력해 저장</button></div>`:''}
+ <button class="btn${ld?' ghost':''}" id="load">${ld?'다시 불러오기':'수행능력·신체정보 불러오기'}</button>${ld&&!needBody?`<button class="btn" id="run">${tab==='rz'?'진단 시작':'토큰 1개 사용하고 진단 시작'}</button>`:''}</section>`}
+function paint(){tokCard();const st=step[tab];let h='';
+ if(!P){h=`<section class="pn"><h2>룬 PT 앱에서 열어 주세요</h2><div class="mu">앱의 "진단·점검" 버튼으로 들어오면 내 기록이 자동으로 연결돼요.</div><a class="btn" href="./" style="text-align:center;text-decoration:none">룬 PT로 가기</a></section>`}
+ else if(st==='home')h=homeHTML();
+ else if(st==='survey')h=tab==='hb'?hbSurvey():`<section class="pn"><h2>① 진단 전 자가 설문</h2><div class="mu" style="margin-top:-8px">제출하면 트레이너에게 바로 전달돼요. 진단할 때마다 새로 받아요.</div>${SVY[tab].map(([t,fs])=>`<b>${t}</b><div class="grid2">${fs.map(field).join('')}</div>`).join('')}<button class="btn" id="sub">설문 제출하고 다음으로</button></section>`;
+ else if(st==='load')h=loadHTML();
+ else h=(tab==='ib'?resIB():tab==='hb'?resHB():resRZ())+`<div class="note">${tab==='rz'?'':'토큰이 사용되었어요 · 남은 토큰 '+left(tab)+'개. '}</div><button class="btn ghost" id="home">처음으로</button>`;
+ $('body').innerHTML=h;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.k===tab));
+ $('foot').textContent=TOK.src==='server'?'토큰과 설문은 서버에 저장돼요':'서버 연결 전이라 이 기기에서만 계산해요 (SQL phase14 실행·로그인 후 서버로 전환)';
+ $('who').textContent=P&&P.name?P.name:''}
+
+/* ---------- 인바디 사진(QR) ---------- */
+function parseInBodyQR(raw){let t=String(raw||'').trim();const k=t.indexOf('IBData=');if(k>=0)t=t.slice(k+7).split('&')[0];try{t=decodeURIComponent(t)}catch(e){}
+ const segs=t.split('!');let si=-1,mm=null;for(let i=0;i<segs.length;i++){const r=/([MF])(20\d{12})/.exec(segs[i]);if(r){si=i;mm=r;break}}
+ if(!mm)throw new Error('인바디 결과지 QR 형식이 아니에요.');
+ const prefix=segs[si].slice(0,mm.index),body=segs[si].slice(mm.index+mm[0].length),dt=mm[2];const n=(i,d)=>{const v=parseInt(body.substr(i*4,4),10);return isNaN(v)?NaN:v/d};
+ const v={sex:mm[1]==='M'?'m':'f',date:`${dt.slice(0,4)}-${dt.slice(4,6)}-${dt.slice(6,8)}`,fat:n(6,10),ffm:n(12,10),w:n(13,10),smm:n(17,10),height:parseInt(prefix.slice(-8,-4),10)/10,bmi:n(20,10),pbf:n(21,10)};
+ const ag=parseInt(prefix.slice(-4,-1),10);v.age=(ag>5&&ag<110)?ag:null;const h=v.height/100,fails=[];
+ if(!(v.w>20&&v.w<300))fails.push('체중');if(!(h>1&&h<2.3))fails.push('키');if(!(Math.abs(v.ffm+v.fat-v.w)<0.4))fails.push('제지방+체지방≠체중');if(!(Math.abs(v.fat/v.w*100-v.pbf)<0.6))fails.push('체지방률');if(!(v.smm>v.ffm*0.35&&v.smm<v.ffm*0.72))fails.push('골격근량');
+ if(fails.length){const e=new Error(`QR은 읽었는데 숫자 검산이 맞지 않아요 (${fails.join(', ')}). 값을 직접 확인해서 저장해 주세요.`);e.partial=v;throw e}return v}
+let jsqrP=null;function loadJsQR(){if(window.jsQR)return Promise.resolve(window.jsQR);if(jsqrP)return jsqrP;const urls=['https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js','https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js','https://unpkg.com/jsqr@1.4.0/dist/jsQR.js'];
+ jsqrP=new Promise((res,rej)=>{let i=0;const next=()=>{if(i>=urls.length){jsqrP=null;rej(new Error('QR 인식 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'));return}const sc=document.createElement('script');sc.src=urls[i++];sc.onload=()=>window.jsQR?res(window.jsQR):next();sc.onerror=next;document.head.appendChild(sc)};next()});return jsqrP}
+async function decodeQR(file){if(/heic|heif/i.test(file.type)||/\.(heic|heif)$/i.test(file.name||''))throw new Error('아이폰 HEIC 사진은 열 수 없어요. 스크린샷으로 찍어 올려 주세요.');
+ const url=URL.createObjectURL(file);try{const img=await new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('사진 파일을 열 수 없어요. JPG·PNG로 올려 주세요.'));im.src=url});
+  if('BarcodeDetector' in window){try{const det=new BarcodeDetector({formats:['qr_code']});const r=await det.detect(img);if(r&&r.length)return r[0].rawValue}catch(e){}}
+  const jsQR=await loadJsQR(),c=document.createElement('canvas'),ctx=c.getContext('2d',{willReadFrequently:true}),W0=img.naturalWidth,H0=img.naturalHeight;
+  const tryR=(sx,sy,sw,sh,mx)=>{const sc=Math.min(1,mx/Math.max(sw,sh));c.width=Math.round(sw*sc);c.height=Math.round(sh*sc);ctx.drawImage(img,sx,sy,sw,sh,0,0,c.width,c.height);const d=ctx.getImageData(0,0,c.width,c.height),r=jsQR(d.data,c.width,c.height,{inversionAttempts:'attemptBoth'});return r?r.data:null};
+  for(const ms of [1400,2200,900,3200]){const r=tryR(0,0,W0,H0,ms);if(r)return r}
+  for(const g of [2,3]){const sw=W0/g*1.4,sh=H0/g*1.4;for(let gy=0;gy<g;gy++)for(let gx=0;gx<g;gx++){const sx=Math.max(0,Math.min(W0-sw,gx*W0/g-sw*.15)),sy=Math.max(0,Math.min(H0-sh,gy*H0/g-sh*.15));const r=tryR(sx,sy,Math.min(sw,W0),Math.min(sh,H0),1400);if(r)return r}}
+  throw new Error('사진에서 QR을 찾지 못했어요. 원본 화질로 QR을 가까이 찍어 다시 올려 주세요.')}finally{URL.revokeObjectURL(url)}}
+async function saveBody(d,w,smm,fat,ext){ // body_measurements에 날짜별로 저장 (같은 날은 덮어쓰기)
+ BODY.w=w;BODY.smm=smm;BODY.fat=fat;BODY.d=d;
+ if(sb&&UID){try{const bf=+(fat/w*100).toFixed(1);const r=await sb.from('body_measurements').upsert({member_id:UID,measured_on:d,body_kg:w,body_fat_pct:bf,smm_kg:smm,source:'inbody',extra:ext||null},{onConflict:'member_id,measured_on'});if(r.error)throw r.error;toast('저장했어요 · 앱 체중·체지방에도 반영돼요');return}catch(e){toast('서버에는 저장하지 못했어요 (SQL phase13·로그인 확인). 이 화면에서만 써요')}}
+ else toast('로그인 전이라 이 화면에서만 써요')}
+function openQR(){const m=$('qrm'),b=$('qrbox');m.hidden=false;
+ b.innerHTML=`<h2>인바디 결과지 사진 올리기</h2><div class="mu">결과지의 QR이 보이게 찍은 사진이나 스크린샷을 올려요</div><input type="file" accept="image/*" id="qf"><div id="qs" class="mu"></div><div id="qv"></div><button class="btn ghost" id="qx">닫기</button>`;
+ $('qx').onclick=()=>m.hidden=true;
+ $('qf').onchange=async()=>{const f=$('qf').files[0];if(!f)return;$('qs').textContent='사진에서 QR을 찾는 중...';
+  try{const v=parseInBodyQR(await decodeQR(f));showQ(v)}catch(e){if(e.partial){$('qs').innerHTML=`<span style="color:var(--bad)">${esc(e.message)}</span>`;showQ(e.partial)}else $('qs').innerHTML=`<span style="color:var(--bad)">${esc(e.message)}</span>`}}}
+function showQ(v){$('qv').innerHTML=`<div class="grid2"><label class="f"><span>측정일</span><input type="date" id="q_d" value="${v.date}"></label><label class="f"><span>체중 kg</span><input type="number" step="0.1" id="q_w" value="${v.w}"></label><label class="f"><span>골격근량 kg</span><input type="number" step="0.1" id="q_s" value="${v.smm}"></label><label class="f"><span>체지방량 kg</span><input type="number" step="0.1" id="q_f" value="${v.fat}"></label></div><button class="btn" id="q_ok">이 값으로 저장</button>`;
+ $('q_ok').onclick=async()=>{const d=$('q_d').value,w=+$('q_w').value,s=+$('q_s').value,f=+$('q_f').value;if(!d||!(w>20)||!(s>5)||!(f>1)){toast('측정일·체중·골격근·체지방량을 확인해 주세요');return}await saveBody(d,w,s,f,{ffm:v.ffm,pbf:v.pbf,bmi:v.bmi});$('qrm').hidden=true;paint()}}
+function openManual(){const m=$('qrm'),b=$('qrbox');m.hidden=false;const t=new Date(Date.now()+9*36e5).toISOString().slice(0,10);
+ b.innerHTML=`<h2>인바디 값 직접 입력</h2><div class="grid2"><label class="f"><span>측정일</span><input type="date" id="q_d" value="${t}"></label><label class="f"><span>체중 kg</span><input type="number" step="0.1" id="q_w" value="${BODY.w||''}"></label><label class="f"><span>골격근량 kg</span><input type="number" step="0.1" id="q_s" value="${BODY.smm||''}"></label><label class="f"><span>체지방량 kg</span><input type="number" step="0.1" id="q_f" value="${BODY.fat||''}"></label></div><button class="btn" id="q_ok">저장</button><button class="btn ghost" id="qx">닫기</button>`;
+ $('qx').onclick=()=>m.hidden=true;$('q_ok').onclick=async()=>{const d=$('q_d').value,w=+$('q_w').value,s=+$('q_s').value,f=+$('q_f').value;if(!d||!(w>20)||!(s>5)||!(f>1)){toast('값을 확인해 주세요');return}await saveBody(d,w,s,f,null);m.hidden=true;paint()}}
+
+/* ---------- 목표 바꿔 보기 ---------- */
+function adopt(){
+ if(tab==='ib'){const b=IB,W=ibWhy();PREV.ib={gs:SV.ib.gs,gf:SV.ib.gf,gw:SV.ib.gw,gm:SV.ib.gm,gfk:SV.ib.gfk};const before=planMs(b.defs),bt=b.TG;let Wf=W;
+  for(let it=0;it<8;it++){SV.ib.gs=Wf.sug.s;SV.ib.gf=Wf.sug.f;SV.ib.gw=Wf.sug.w;SV.ib.gfk=+(Wf.sug.f/100*Wf.sug.w).toFixed(1);SV.ib.gm=6;ibBuild();const n=ibWhy();const ch=Math.abs(n.sug.s-Wf.sug.s)+Math.abs(n.sug.f-Wf.sug.f);Wf=n;if(ch<.05)break}
+  SV.ib.gs=Wf.sug.s;SV.ib.gf=Wf.sug.f;SV.ib.gw=Wf.sug.w;SV.ib.gfk=+(Wf.sug.f/100*Wf.sug.w).toFixed(1);ibBuild();const a=IB,p2=a.defs[1];
+  CHG.ib={what:`골격근 ${bt.s}kg → <b>${Wf.sug.s}kg</b> · 체지방률 ${bt.f.toFixed(1)}% → <b>${Wf.sug.f}%</b> · 체중 ${bt.w}kg → <b>${Wf.sug.w}kg</b>${bt.m!==6?` · 기간 ${bt.m}개월 → <b>6개월</b>`:' · 기간 6개월'}`,
+   why:`처음 목표는 1년에 늘릴 수 있는 근육량과 안전한 감량 속도를 넘어서 있었어요. 그래서 2안(60% 실천)으로 6개월 안에 실제로 닿을 수 있는 수준으로 낮췄어요. 목표를 낮춘 게 아니라 '지금 단계의 목표'를 현실에 맞춘 거예요.`,
+   how:`그래프의 6개월 목표선이 이동하고, 세 안의 도달 기간이 <b>${before}</b> → <b>${planMs(a.defs)}</b>(1안 / 2안 / 3안)로 바뀌어요. ${reachTxt(a.defs)}`,
+   checks:[`<b>1개월 뒤</b> 체중 변화가 월 ${(a.S.weight*.04).toFixed(1)}kg 안쪽인지 확인 (빠르면 근손실 신호)`,`<b>3개월 뒤</b> 이정표: 골격근 ${p2.sim[13].smm.toFixed(1)}kg · 체지방률 ${p2.sim[13].pbf.toFixed(1)}% — 못 미치면 식단·수면부터 점검`,`단백질 ${Math.max(1.2,+p2.h.pro.toFixed(1))}g/kg 이상, 수면 7시간을 매주 지키는지 확인`,`<b>6개월 뒤</b> 인바디를 다시 측정하고 토큰으로 재진단 → 다음 목표 설정`]}}
+ else if(tab==='hb'){const P2=HB.per[LIFT],bs=H.steps,before=planMs(P2.defs),oldT=Math.round(P2.tgt),oldTier=OVT[LIFT]?'직접 입력':TIERS[P2.ti2];let st=0;
+  for(let s2=3;s2>=1;s2--){const t2=(P2.l.ladder&&P2.l.ladder[Math.min(P2.ti+s2,9)-1])||P2.rm*(1+.12*s2);if(P2.defs[1].sim[6]>=t2){st=s2;break}}
+  PREV.hb={steps:bs,gm:H.gm,ovt:OVT[LIFT]};delete OVT[LIFT];if(st)H.steps=['한 티어 위','두 티어 위','세 티어 위'][st-1];else OVT[LIFT]=Math.round(P2.defs[1].sim[6]);H.gm='6개월';hbBuild();const Q2=HB.per[LIFT],p2=Q2.defs[1],h=p2.h;
+  CHG.hb={what:`${LNAME[LIFT]} 목표 ${oldTier} (${oldT}kg) → <b>${TIERS[Q2.ti2]} (${Math.round(Q2.tgt)}kg)</b> · 기간 ${HB.m!==6?'→ ':''}6개월`,
+   why:`처음 목표는 6개월 동안 1RM이 올라갈 수 있는 한계를 넘었어요. 근력은 수준이 높을수록 같은 노력에 오르는 폭이 작아져서, ${st?'2안(60% 실천)으로 6개월 안에 닿는 가장 높은 티어로 맞췄어요.':'한 티어 위도 6개월 안에는 어려워서, 2안(60% 실천)으로 닿을 수 있는 무게로 맞췄어요. 이 무게를 달성하면 다음 티어가 훨씬 가까워져요.'}`,
+   how:`그래프의 6개월 목표선이 ${oldT}kg → ${Math.round(Q2.tgt)}kg로 바뀌고, 세 안의 도달 기간이 <b>${before}</b> → <b>${planMs(Q2.defs)}</b>(1안 / 2안 / 3안)로 바뀌어요. ${reachTxt(Q2.defs)} 승급시험 목표도 ${TIERS[Q2.ti2]}로 같이 맞춰져요.`,
+   checks:[`<b>1개월 뒤</b> 주당 유효 세트 ${Math.round(h.sets)}세트 · 주 ${Math.round(h.freq)}회를 지켰는지 (기록으로 자동 확인)`,`<b>3개월 뒤</b> 이정표 ${LNAME[LIFT]} ${Math.round(p2.sim[3])}kg — 못 미치면 볼륨·회복·수면부터 점검`,`무게·반복을 늘린 세션이 ${Math.round(h.over/5)*5}% 이상인지 (과부하 없이는 승급이 안 와요)`,`통증·불편이 생기면 목표는 두고 볼륨만 줄여요${H.pain.length?` (설문에서 '${H.pain.join('·')}' 부위 우선 확인)`:''}`,`<b>6개월 뒤</b> ${TIERS[Q2.ti2]} 승급전 도전 → 통과하면 토큰 1개로 다음 목표 컨설팅`]}}
+ toast('6개월 뒤 목표로 설정했어요')}
+function undo(){const p=PREV[tab];if(!p)return;if(tab==='ib')Object.assign(SV.ib,p);else{H.steps=p.steps;H.gm=p.gm;if(p.ovt)OVT[LIFT]=p.ovt}CHG[tab]=null;toast('이전 목표로 되돌렸어요')}
+
+/* ---------- 이벤트 ---------- */
+async function submitSurvey(k,from){const rows=collect(k,from),ok=await sendSurvey(k,rows,{tool:k,at:new Date().toISOString(),body:{w:BODY.w,smm:BODY.smm,fat:BODY.fat}});toast(ok?'설문이 트레이너에게 전달됐어요':'설문을 저장했어요 (로그인·서버 연결 시 전달돼요)');step[k]='load';paint()}
+document.addEventListener('change',e=>{const el=e.target.closest('[data-ed]');if(!el)return;const k=el.dataset.ed,v=+el.value;if(!(v>0))return paint();
+ ({cw:()=>BODY.w=v,cs:()=>BODY.smm=v,cf:()=>BODY.fat=v,gw:()=>SV.ib.gw=v,gs:()=>SV.ib.gs=v,gf:()=>SV.ib.gfk=v,hw:()=>BODY.w=v,hr:()=>{if(L(LIFT))L(LIFT).rm=v},ht:()=>OVT[LIFT]=v})[k]();CHG[tab]=null;paint()});
+document.addEventListener('click',async e=>{const t=e.target,c=s=>t.closest(s);let x;
+ if(x=c('#tabs button')){tab=x.dataset.k;history.replaceState(null,'','#'+Object.keys(HASH).find(h=>HASH[h]===tab));paint();return}
+ if(t.id==='start'){if(tab==='ib'&&!SV.ib.gm){}step[tab]='survey';if(tab==='hb')hst=0;paint();return}
+ if(t.id==='sub'){await submitSurvey(tab,9);if(tab==='ib'){SV.ib.gfk=+(SV.ib.gf/100*SV.ib.gw).toFixed(1)}return}
+ if(t.id==='load'){if(tab==='ib'){await reloadBody()}LOADED[tab]=1;paint();return}
+ if(t.id==='qr'){openQR();return}if(t.id==='manual'){openManual();return}
+ if(t.id==='run'){if(tab!=='rz'){try{await useToken(tab)}catch(err){toast(err.message||'토큰을 쓰지 못했어요');return}}
+   if(tab==='ib'&&SV.ib.gfk==null)SV.ib.gfk=+(SV.ib.gf/100*SV.ib.gw).toFixed(1);step[tab]='done';paint();window.scrollTo(0,0);return}
+ if(t.id==='home'){step[tab]='home';LOADED[tab]=0;CHG[tab]=null;paint();return}
+ if(x=c('[data-plan]')){SEL[tab]=+x.dataset.plan;paint();return}
+ if(x=c('[data-mk]')){MK=x.dataset.mk;paint();return}
+ if(x=c('[data-lift]')){if(tab==='hb'&&step.hb==='survey')H.lift=x.dataset.lift;else{LIFT=x.dataset.lift;CHG[tab]=null}paint();return}
+ if(t.id==='adopt'){adopt();paint();return}if(t.id==='undo'){undo();paint();return}
+ /* 힘바디 설문 */
+ if(x=c('[data-hs]')){hst=+x.dataset.hs;paint();return}
+ if(x=c('[data-mx]')){const k=x.dataset.mx,i=+x.dataset.i;H.mx[k][i]=(H.mx[k][i]+1)%3;paint();return}
+ if(x=c('[data-adh]')){H.adh=+x.dataset.adh;paint();return}
+ if(x=c('[data-lk]')){const f=x.dataset.lk,Lx=LS[H.lift];if(f==='skip')Lx.skip=!Lx.skip;else Lx[f]=(f==='rir'||f==='rest')?+x.dataset.v:x.dataset.v;paint();return}
+ if(x=c('[data-hk]')){const k=x.dataset.hk,v=x.dataset.v;if(x.dataset.m==='1'){const a=H[k],i=a.indexOf(v);i<0?a.push(v):a.splice(i,1)}else{H[k]=(typeof H[k]==='number')?+v:v;if(hst>=3)H.ans[hst]=1}if(hst===3)H.ans[3]=1;paint();return}
+ if(t.id==='hprev'){hst=Math.max(0,hst-1);paint();return}
+ if(t.id==='hskip'){await submitSurvey('hb',hst+1);return}
+ if(t.id==='hnext'){if(hst===3)H.ans[3]=1;if(hst<4){hst++;paint()}else await submitSurvey('hb',5);return}
+});
+async function init(){
+ const h=(location.hash||'').slice(1);if(HASH[h])tab=HASH[h];
+ SVY.ib.forEach(([t,fs])=>fs.forEach(f=>{if(f[2]==='num'){}}));
+ SV.ib.gw=+(BODY.w-3).toFixed(1)||'';SV.ib.gs=+(BODY.smm+1).toFixed(1)||'';SV.ib.gf=+Math.max(8,(BODY.w?BODY.fat/BODY.w*100:25)-4).toFixed(1);
+ paint();await loadTokens();paint()}
+window.addEventListener('hashchange',()=>{const h=(location.hash||'').slice(1);if(HASH[h]){tab=HASH[h];paint()}});
+init();
+</script>
+</body>
+</html>
