@@ -920,8 +920,8 @@ code{font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
   ];
 
   /* ---- 도구(장비) 구분: barbell 바벨 · dumbbell 덤벨 · cable 케이블 · machine 머신(미구분) · plate 머신(플레이트 로드) · pin 머신(핀 로드) · smith 스미스 · body 맨몸 ---- */
-  const EQ_LABEL = { barbell: '바벨', dumbbell: '덤벨', cable: '케이블', machine: '머신', plate: '머신·플레이트', pin: '머신·핀', smith: '스미스', body: '맨몸' };
-  const EQ_ORDER = ['barbell', 'dumbbell', 'cable', 'plate', 'pin', 'machine', 'smith', 'body'];
+  const EQ_LABEL = { barbell: '바벨', dumbbell: '덤벨', cable: '케이블', machine: '머신', plate: '머신·플레이트', pin: '머신·핀', smith: '스미스', kettlebell: '케틀벨', clubbell: '클럽벨', bulgarian: '불가리안백', body: '맨몸' };
+  const EQ_ORDER = ['barbell', 'dumbbell', 'cable', 'plate', 'pin', 'machine', 'smith', 'kettlebell', 'clubbell', 'bulgarian', 'body'];
   const EQ_MACH = ['cable', 'machine', 'plate', 'pin', 'smith'];
   const EQN = { B: 'barbell', D: 'dumbbell', C: 'cable', M: 'machine', P: 'plate', N: 'pin', S: 'smith', W: 'body' };
   const EQ0 = {"chest0":"barbell","chest1":"dumbbell","chest2":"dumbbell","chest3":"body","chest4":"cable","chest5":"body","chest6":"machine","chest7":"machine","chest8":"pin","chest9":"smith","chest10":"machine","back0":"barbell","back1":"cable","back2":"barbell","back3":"cable","back4":"body","back5":"dumbbell","back6":"pin","back7":"machine","back8":"plate","back9":"machine","back10":"machine","leg0":"barbell","leg1":"plate","leg2":"barbell","leg3":"dumbbell","leg4":"pin","leg5":"pin","leg6":"barbell","leg7":"body","leg8":"plate","leg9":"pin","leg10":"pin","leg11":"smith","leg12":"machine","leg100":"pin","shoulder0":"barbell","shoulder1":"dumbbell","shoulder2":"dumbbell","shoulder3":"dumbbell","shoulder4":"cable","shoulder5":"machine","shoulder6":"pin","shoulder7":"machine","shoulder8":"smith","shoulder9":"machine","shoulder10":"cable","arm0":"barbell","arm1":"dumbbell","arm2":"barbell","arm3":"cable","arm4":"barbell","arm5":"dumbbell","arm6":"machine","arm7":"machine","arm8":"machine","arm9":"machine","arm10":"cable","core0":"body","core1":"body","core2":"body","core3":"body","core4":"cable","core5":"body","core6":"machine","core7":"machine","core8":"machine","core9":"cable","core10":"machine"};
@@ -2177,10 +2177,10 @@ const PZ_SYN=[[/어시스트|어시스티트|어씨스트/g,'어시스티드'],[
 const PZ_MOVE=['플라이','프레스','로우','컬','레이즈','익스텐션','풀다운','풀업','스쿼트','런지','데드리프트','크런치','플랭크','풀오버','딥스','쓰러스트','킥백','슈러그','익스텐션','푸시업','풀스루','트위스트'];
 function pzNorm(s){s=String(s||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,'');PZ_SYN.forEach(([a,b])=>{s=s.replace(a,b)});return s}
 function pzDice(a,b){if(a===b)return 1;if(a.length<2||b.length<2)return 0;const g=x=>{const m={};for(let i=0;i<x.length-1;i++){const k=x.slice(i,i+2);m[k]=(m[k]||0)+1}return m},A=g(a),B=g(b);let n=0;for(const k in A)if(B[k])n+=Math.min(A[k],B[k]);return 2*n/((a.length-1)+(b.length-1))}
-const PZ_TOOLS=['스미스','케이블','덤벨','바벨','이지바','ez바','플레이트','핀로드','핀','머신','맨몸'];
+const PZ_TOOLS=['케틀벨','클럽벨','불가리안백','불가리안','스미스','케이블','덤벨','바벨','이지바','ez바','플레이트','핀로드','핀','머신','맨몸'];
 const pzStrip=s=>s.replace(/스미스|케이블|덤벨|바벨|이지바|ez바|플레이트로드|플레이트|핀로드|핀|머신|맨몸|로드/g,'');
 const pzHasTool=a=>PZ_TOOLS.some(w=>a.includes(w));
-const PZ_EQK={barbell:['바벨'],dumbbell:['덤벨'],cable:['케이블'],machine:['머신'],plate:['플레이트','머신'],pin:['핀','머신'],smith:['스미스','스미스머신'],body:['맨몸']};
+const PZ_EQK={barbell:['바벨'],dumbbell:['덤벨'],cable:['케이블'],machine:['머신'],plate:['플레이트','머신'],pin:['핀','머신'],smith:['스미스','스미스머신'],kettlebell:['케틀벨'],clubbell:['클럽벨'],bulgarian:['불가리안백','불가리안'],body:['맨몸']};
 function pzKeys(e){const ks=[];const add=t=>{const k=pzNorm(t);if(k&&ks.indexOf(k)<0)ks.push(k)};add(e.name);String(e.al||'').split('/').forEach(add);
   const b=pzStrip(pzNorm(e.name));if(b.length>=2)add(b);(PZ_EQK[e.eq]||[]).forEach(L=>{add(L+b);add(b+L)});return ks}
 function pzScore(a,e){let best=0;for(const k of pzKeys(e)){let s;if(a===k)s=1;else if(Math.min(a.length,k.length)>=3&&(a.includes(k)||k.includes(a))){s=Math.min(.95,.8+.15*Math.min(a.length,k.length)/Math.max(a.length,k.length))}else{s=pzDice(a,k)*.9;const mv=PZ_MOVE.find(m=>a.includes(m)&&k.includes(m));if(mv)s=Math.max(s,.35+s*.5)}if(s>best)best=s}return best}
@@ -3256,8 +3256,8 @@ const closeM=()=>{LUM=null;$('#md').classList.remove('on');$('#md').innerHTML=''
 
 const eqTag=e=>(e.eq&&RuneCatalog.EQ_LABEL[e.eq])||(e.m?'머신':'');
 const eqRank=e=>{const i=RuneCatalog.EQ_ORDER.indexOf(e.eq);return i<0?99:i};
-const PK_EQ=[['','전체'],['barbell','바벨'],['dumbbell','덤벨'],['cable','케이블'],['machine','머신'],['smith','스미스'],['body','맨몸']];
-const PK_EQN=[['barbell','바벨'],['dumbbell','덤벨'],['cable','케이블'],['machine','머신'],['smith','스미스'],['body','맨몸']];
+const PK_EQ=[['','전체'],['barbell','바벨'],['dumbbell','덤벨'],['cable','케이블'],['machine','머신'],['smith','스미스'],['kettlebell','케틀벨'],['clubbell','클럽벨'],['bulgarian','불가리안백'],['body','맨몸']];
+const PK_EQN=[['barbell','바벨'],['dumbbell','덤벨'],['cable','케이블'],['machine','머신'],['smith','스미스'],['kettlebell','케틀벨'],['clubbell','클럽벨'],['bulgarian','불가리안백'],['body','맨몸']];
 const pkEqOk=(e,k)=>!k||(k==='machine'?['machine','plate','pin'].indexOf(e.eq)>=0:e.eq===k);
 function pickItems(){
   const q=PK.q.trim(),sn=s=>String(s||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,''),toks=q?q.split(/\s+/).map(sn).filter(Boolean):[];
