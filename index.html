@@ -1557,6 +1557,7 @@ function mkSets0(id){
   return [{t:'W',w:rnd(w/2),r,done:false,tmp:1},{t:'M',w,r,done:false,tmp:1},{t:'M',w,r,done:false,tmp:1}];
 }
 function modePanel(){
+  return '';/* 운동 방식 메뉴판(추천·볼륨형·퍼포먼스형·회복형) 삭제 */
   const rec=recMode(),cur=curMode(),sel=cur||rec.mode;
   return `<div class="pn"><div class="h2">오늘의 운동 방식</div>
   <button class="btn" style="margin:8px 0;background:#ffb62e;color:#2a1b00" data-act="wmrec">★ 오늘의 추천 · ${WM[rec.mode].t}<br><small style="font-weight:500">${esc(rec.why)}</small></button>
