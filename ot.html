@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OT 위치 판정 인터뷰 · 3축판</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{color-scheme:light;--bg:#f4f3f0;--s1:#fcfcfb;--s2:#efede8;--b:#dedcd6;--t:#14161a;--t2:#55575d;--t3:#8a8c91;--a:#1f6f5c;--a2:#0f5c6e;--warn:#b4232c;
+--z-anx:#f3d9d9;--z-aro:#f6e7cf;--z-flow:#d8ece4;--z-wor:#f6ece0;--z-mid:#ffffff;--z-ctl:#dfe7f6;--z-apa:#ececec;--z-bor:#f2f0ea;--z-rel:#e7f1ee}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#121314;--s1:#1b1c1e;--s2:#25272a;--b:#36383c;--t:#eeeeec;--t2:#c0c1c4;--t3:#8f9196;--a:#3fae8f;--a2:#3aa7bd;--warn:#f07a6e;
+--z-anx:#4a2b2b;--z-aro:#4a3d26;--z-flow:#21413a;--z-wor:#40362a;--z-mid:#25272a;--z-ctl:#283553;--z-apa:#333436;--z-bor:#38362f;--z-rel:#24382f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t);font-family:"Noto Sans KR",system-ui,sans-serif;font-size:16px;line-height:1.6}
+.w{max-width:1180px;margin:0 auto;padding:16px 12px 120px}
+.secbar{display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap}
+.secbar div{flex:1;min-width:150px;border-radius:12px;padding:8px 10px;background:var(--s1);border:1.5px solid var(--b);font-size:13px;color:var(--t3);line-height:1.35}
+.secbar div b{display:block;font-size:14px}
+.secbar div.on{border-color:var(--a);color:var(--a);background:color-mix(in srgb,var(--a) 8%,var(--s1))}
+.secbar div.done{color:var(--t2)}
+.runwrap{display:block}
+.memo{background:var(--s1);border:1.5px solid var(--a2);border-radius:16px;padding:14px}
+.memo .mhead{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.memo .mhead b{font-size:16px}.memo .mhead span{font-size:12px;color:var(--t3);flex:1}
+.memo label.ml{display:block;font-size:13px;font-weight:800;color:var(--a2);margin:10px 0 4px}
+.memo textarea{width:100%;min-height:70px;font:inherit;font-size:15px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--b);background:var(--s1);color:var(--t);resize:vertical}
+.memo .mchips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
+.memo .mchips button{font:inherit;font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--b);background:var(--s2);color:var(--t2);cursor:pointer}
+.mclose{font:inherit;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--b);background:var(--s2);color:var(--t);cursor:pointer}
+#memoBtn{display:none}
+@media (min-width:960px){.runwrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}.runwrap.nomemo{grid-template-columns:minmax(0,1fr)}.memo{position:sticky;top:12px;max-height:calc(100vh - 110px);overflow:auto}.mclose{display:none}}
+@media (max-width:959px){.memo{position:fixed;left:8px;right:8px;bottom:84px;max-height:62vh;overflow:auto;z-index:30;display:none;box-shadow:0 10px 30px rgba(0,0,0,.25)}.memo.open{display:block}#memoBtn{display:inline-block}}
+.memo.off{display:none!important}
+.c8cap{font-size:13px;color:var(--t3);text-align:center;margin:6px 0 8px}
+.c8h{font-size:14px;font-weight:800;color:var(--t2);margin:10px 0 6px}
+.c8g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.c8{background:var(--s2);border:1.5px solid var(--b);border-radius:12px;padding:10px 10px 10px 12px;color:var(--t2)}
+.c8.on{background:var(--a);border-color:var(--a);color:#fff}.c8.on.risk{background:var(--warn);border-color:var(--warn)}
+.c8n{display:flex;align-items:center;justify-content:space-between;gap:6px;font-weight:800;font-size:16px}
+.qm{flex:none;width:28px;height:28px;border-radius:50%;border:1.5px solid currentColor;background:transparent;color:inherit;font:inherit;font-size:14px;font-weight:800;cursor:pointer;line-height:1}
+.tipline{display:none;font-size:13px;font-weight:500;line-height:1.5;margin-top:6px}
+.tipline.show{display:block}
+.w6{border:2px solid var(--a);border-radius:14px;padding:12px 14px;background:color-mix(in srgb,var(--a) 5%,var(--s1))}
+.w6h{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}.w6h b{font-size:17px;color:var(--a)}.w6h span{font-size:13px;color:var(--t3)}
+.w6row{font-size:15px;margin:8px 0;line-height:1.55}.w6row b{display:block;font-size:12px;color:var(--a2);font-weight:800}
+.w6no b{color:var(--warn)}
+.w6t{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}.w6t th{width:40px;text-align:left;color:var(--a);padding:6px 0;vertical-align:top}.w6t td{padding:6px 0;border-bottom:1px solid var(--b)}
+.memosum div{background:var(--s2);border-radius:10px;padding:8px 12px;margin:6px 0;font-size:15px;white-space:pre-wrap}
+.memosum b{display:block;font-size:12px;color:var(--a2)}
+header h1{font-size:22px;margin:4px 0 4px;letter-spacing:-.4px}
+header p{margin:0 0 12px;color:var(--t2);font-size:14px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs button{flex:1;font:inherit;font-weight:700;padding:12px;border-radius:12px;border:1.5px solid var(--b);background:var(--s1);color:var(--t2);cursor:pointer}
+.tabs button[aria-selected="true"]{border-color:var(--a);color:var(--a)}
+.prog{display:flex;gap:4px;margin:0 0 12px}
+.prog i{flex:1;height:6px;border-radius:99px;background:var(--b)}
+.prog i.on{background:var(--a)}
+.card{background:var(--s1);border:1px solid var(--b);border-radius:16px;padding:16px;margin-bottom:12px}
+.step-no{font-size:12px;font-weight:800;color:var(--a);letter-spacing:.4px}
+h2{font-size:20px;margin:4px 0 8px;letter-spacing:-.3px}
+h3{font-size:16px;margin:16px 0 6px}
+.say{background:var(--s2);border-radius:12px;padding:12px 14px;font-weight:700;margin:8px 0}
+.say small{display:block;font-size:12px;color:var(--a2);font-weight:800;margin-bottom:2px}
+.hint{font-size:14px;color:var(--t2);margin:6px 0}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.opt{font:inherit;font-size:15px;padding:10px 14px;border-radius:999px;border:1.5px solid var(--b);background:var(--s1);color:var(--t);cursor:pointer;text-align:left}
+.opt[aria-pressed="true"]{border-color:var(--a);background:color-mix(in srgb,var(--a) 14%,var(--s1));font-weight:700}
+.scale{display:grid;grid-template-columns:repeat(11,1fr);gap:4px;margin:6px 0 2px}
+.scale button{font:inherit;font-size:15px;padding:10px 0;border-radius:8px;border:1.5px solid var(--b);background:var(--s1);color:var(--t);cursor:pointer}
+.scale button[aria-pressed="true"]{background:var(--a);border-color:var(--a);color:#fff;font-weight:800}
+.lb{display:flex;justify-content:space-between;font-size:12px;color:var(--t3)}
+.q{margin:14px 0 4px;font-weight:700}
+.follow{font-size:14px;color:var(--a2);margin:6px 0 0;display:none}
+.follow.show{display:block}
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--s1);border-top:1px solid var(--b);padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+.nav .in{max-width:1180px;margin:0 auto;display:flex;gap:8px;align-items:center}
+.btn{font:inherit;font-weight:800;padding:12px 18px;border-radius:12px;border:1.5px solid var(--b);background:var(--s1);color:var(--t);cursor:pointer}
+.btn.pri{background:var(--a);border-color:var(--a);color:#fff;flex:1}
+.btn:disabled{opacity:.4;cursor:default}
+.talk{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--t2)}
+.talk button{font:inherit;font-size:13px;font-weight:700;padding:8px 10px;border-radius:10px;border:1.5px solid var(--b);background:var(--s2);color:var(--t);cursor:pointer}
+.talk .ct{color:var(--a)}.talk .st{color:var(--warn)}
+.chk{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.chk label{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1.5px solid var(--b);border-radius:12px;cursor:pointer;font-size:15px}
+.chk input{margin-top:5px;width:18px;height:18px;flex:none}
+.chk label:has(input:checked){border-color:var(--a);background:color-mix(in srgb,var(--a) 10%,var(--s1))}
+.chk em{font-style:normal;font-size:12px;color:var(--t3);display:block}
+.res-top{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+.pill{border-radius:12px;padding:10px 12px;background:var(--s2);flex:1;min-width:140px}
+.pill b{display:block;font-size:12px;color:var(--t3)}
+.pill span{font-size:20px;font-weight:800}
+.alert{border-left:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--s1));padding:10px 12px;border-radius:8px;margin:8px 0;font-size:15px}
+.note{border-left:4px solid var(--a2);background:color-mix(in srgb,var(--a2) 8%,var(--s1));padding:10px 12px;border-radius:8px;margin:8px 0;font-size:15px}
+table.rx{width:100%;border-collapse:collapse;font-size:15px}
+table.rx th{text-align:left;color:var(--t3);font-size:12px;font-weight:800;padding:8px 6px 8px 0;vertical-align:top;width:92px}
+table.rx td{padding:8px 0;border-bottom:1px solid var(--b);vertical-align:top}
+.flow ol{padding-left:20px;margin:6px 0}
+.flow li{margin:6px 0}
+.flow .tree{background:var(--s2);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.75}
+.flow code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--s2);padding:1px 5px;border-radius:5px}
+.mapwrap svg{width:100%;height:auto;display:block}
+.hidden{display:none}
+input[type=text]{font:inherit;font-size:16px;width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--b);background:var(--s1);color:var(--t)}
+.copyok{font-size:13px;color:var(--a);margin-left:6px}
+.authbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--t2);margin:0 0 10px}
+.authbar a{color:var(--a2)}
+.inv{border:2px solid var(--a);border-radius:16px;padding:14px;background:var(--s1);margin:12px 0}
+.inv .stg{display:flex;gap:6px;margin:8px 0}
+.inv .stg button{flex:1;font:inherit;font-weight:800;padding:10px 0;border-radius:10px;border:1.5px solid var(--b);background:var(--s1);color:var(--t);cursor:pointer}
+.inv .stg button[aria-pressed="true"]{background:#b45309;border-color:#b45309;color:#fff}
+.inv .code{font-size:28px;font-weight:800;letter-spacing:.06em;color:var(--a)}
+.inv .qr{background:#fff;padding:8px;border-radius:10px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="w">
+<header>
+  <h1>OT 위치 판정 인터뷰 <span style="font-size:14px;color:var(--a)">3축판</span></h1>
+  <p>범이론적 모델 × 몰입 이론 × 동기면담 · 도전 · 기술에 투자 의지 축을 더해 회원을 8유형 중 하나로 판정합니다</p>
+</header>
+<div class="authbar" id="authbar">로그인 상태 확인 중…</div>
+<div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" id="tabRun">인터뷰 진행</button>
+  <button role="tab" aria-selected="false" id="tabAlgo">알고리즘 한눈에</button>
+</div>
+
+<div id="viewRun">
+  <div class="secbar" id="secbar"></div>
+  <div class="prog" id="prog"></div>
+  <div class="runwrap" id="runwrap">
+    <div id="steps"></div>
+    <aside class="memo" id="memo" aria-label="상담 메모">
+      <div class="mhead"><b>상담 메모</b><span>질문하는 내내 유지돼요</span><button class="mclose" id="memoClose" type="button">닫기</button></div>
+      <label class="ml" for="mMed">의학적 특이사항</label>
+      <div class="mchips" data-for="mMed"><button type="button">고혈압</button><button type="button">당뇨</button><button type="button">관절 통증</button><button type="button">허리 통증</button><button type="button">수술 이력</button><button type="button">복용 약</button><button type="button">임신·출산</button><button type="button">의사 지시 있음</button></div>
+      <textarea id="mMed" placeholder="질환, 통증 부위, 수술, 약, 의사 지시"></textarea>
+      <label class="ml" for="mBody">체성분적 특이사항</label>
+      <div class="mchips" data-for="mBody"><button type="button">체지방 높음</button><button type="button">근육량 낮음</button><button type="button">복부지방 높음</button><button type="button">저체중</button><button type="button">좌우 불균형</button><button type="button">부종·체수분</button></div>
+      <textarea id="mBody" placeholder="인바디 수치, 눈에 띄는 체형·자세"></textarea>
+      <label class="ml" for="mNeed">니즈 메모</label>
+      <div class="mchips" data-for="mNeed"><button type="button">통증 줄이기</button><button type="button">체중·체지방</button><button type="button">근력</button><button type="button">자세·체형</button><button type="button">체력</button><button type="button">스트레스</button><button type="button">특정 행사</button></div>
+      <textarea id="mNeed" placeholder="회원이 쓴 단어 그대로, 원하는 장면, 날짜"></textarea>
+    </aside>
+  </div>
+</div>
+
+<div id="viewAlgo" class="hidden flow">
+  <div class="card">
+    <h2>판정 알고리즘</h2>
+    <p class="hint">회원 한 사람을 두 축(도전 체감 · 기술 체감)과 한 단계(변화 단계)로 읽습니다. 말로 묻는 것과 몸으로 보는 것을 함께 써서, 말과 몸이 다를 때를 잡아냅니다.</p>
+    <h3>1. 순서 (약 17분) · I. 인터뷰와 니즈 파악 → II. 운동 소통 &amp; 방향성 설정 → III. 유형 파악 및 향후 방향성</h3>
+    <p class="hint">I 단계 내내 오른쪽(휴대폰은 아래 ‘메모’ 버튼)에 의학적 · 체성분적 특이사항과 니즈 메모가 떠 있어, 질문하면서 바로 적을 수 있습니다.</p>
+    <ol>
+      <li><b>관계 열기 (2분)</b> · 등록 이야기를 오늘 하지 않는다고 먼저 말한다</li>
+      <li><b>계기 듣기 (3분)</b> · 자발/권유, 회원이 말한 이유 표시. 변화 대화·유지 대화를 들릴 때마다 센다</li>
+      <li><b>변화 단계 판정 (2분)</b> · 질문 2~3개 분기</li>
+      <li><b>척도 두 개 (2분)</b> · 중요도, 자신감. 점수 뒤에 ‘왜 더 낮지 않은지’</li>
+      <li><b>부담감과 경험 (2분)</b> · 운동을 떠올릴 때의 부담, 운동 경험 수준</li>
+      <li><b>우선순위와 투자 의지 (2분)</b> · 운동이 몇 번째인지, 주당 낼 수 있는 시간. 비용은 회원이 꺼낼 때만</li>
+      <li><b>미니 체험 (4분)</b> · 쉬운 동작 1~2개 → 회원 체감 두 점수 + 트레이너 관찰 체크</li>
+      <li><b>방향성 설정 (2분)</b> · 회원이 먼저 다듬고 싶은 것을 고르고, 트레이너는 허락을 구해 관찰 하나를 덧붙인다. 다음 약속</li>
+      <li><b>유형 파악 및 향후 방향성</b> · 8유형, 지도 위 위치, 여정 구간, 세션 처방, 상담 메모</li>
+    </ol>
+    <h3>2. 변화 단계 분기</h3>
+    <div class="tree">
+      Q1. 지난 6개월, 주 2~3회 이상 · 회당 20~30분 이상 꾸준히 운동?<br>
+      &nbsp;&nbsp;├ 예 → Q1-1. 그 상태가 6개월 넘게? → 예: <b>유지 ⑤</b> / 아니오: <b>실행 ④</b><br>
+      &nbsp;&nbsp;└ 아니오 → Q2. 6개월 안에 시작할 생각?<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├ 아니오 → <b>전숙고 ①</b><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└ 예 → Q3. 한 달 안에 시작할 계획이 있거나 이미 조금씩 해 보는 중? → 예: <b>준비 ③</b> / 아니오: <b>숙고 ②</b>
+    </div>
+    <h3>3. 두 축 계산 (0~10)</h3>
+    <p><b>도전 체감 C</b> = 부담감 × 0.4 + 체험 어려움 × 0.6 + 불안 신호 수 × 0.8 − 지루함 신호 × 0.8</p>
+    <p><b>기술 체감 S</b> = 자신감 × 0.35 + 체험 ‘해낼 느낌’ × 0.4 + 경험 수준 × 0.25 + 여유 신호 × 0.8 − 불안 신호 수 × 0.5</p>
+    <p>각 축을 낮음(3.7 미만) · 중간 · 높음(6.3 이상)으로 나눠 아홉 칸 중 하나를 고릅니다. 관찰한 몰입 신호가 있고 두 축이 모두 중간 이상이면 몰입으로 올려 봅니다.</p>
+    <table class="rx">
+      <tr><th>도전 높음</th><td>기술 낮음 <b>불안</b> · 중간 <b>각성</b> · 높음 <b>몰입</b></td></tr>
+      <tr><th>도전 중간</th><td>기술 낮음 <b>걱정</b> · 중간 <b>전환 지대</b> · 높음 <b>통제</b></td></tr>
+      <tr><th>도전 낮음</th><td>기술 낮음 <b>무관심</b> · 중간 <b>지루함</b> · 높음 <b>이완</b></td></tr>
+    </table>
+    <h3>3-1. 세 번째 축: 투자 의지 I (0~10)</h3>
+    <p><b>I</b> = 우선순위 × 0.35 + 주당 낼 수 있는 시간 × 0.3 + 중요도 × 0.2 (+ 회원이 먼저 꺼낸 비용 의향 × 0.15, 언급 없으면 제외하고 나머지로 다시 나눔) + (변화 대화 − 유지 대화) × 0.3 (±1.5 이내)</p>
+    <p>세 축을 각각 5 기준으로 높음·낮음으로 나눠 8유형 중 하나로 판정합니다. 어느 축이든 5 근처(±0.7)면 경계선으로 표시하고 OT 2차에서 다시 봅니다.</p>
+    <table class="rx">
+      <tr><th>투자 높음</th><td>도전↑기술↓ <b>분투형</b> · 도전↑기술↑ <b>열정 엔진</b> · 도전↓기술↓ <b>출발선형</b> · 도전↓기술↑ <b>정체된 성실파</b></td></tr>
+      <tr><th>투자 낮음</th><td>도전↑기술↓ <b>회피형</b> · 도전↑기술↑ <b>간헐형</b> · 도전↓기술↓ <b>관망형</b> · 도전↓기술↑ <b>휴면 경험자</b></td></tr>
+    </table>
+    <p class="hint">투자 의지는 성격이 아니라 상태입니다. 바쁜 달, 월급날, 계절, 그리고 대화 하나에도 움직입니다. 겁주기나 마감으로 투자 의지만 끌어올리면 기술 체감이 따라오지 못해 분투형 칸에 떨어지고, 대개 이탈로 끝납니다.</p>
+    <h3>4. 여정 구간 정하기</h3>
+    <ol>
+      <li>기본 구간 = 변화 단계 (전숙고 ① · 숙고 ② · 준비 ③ · 실행 ④ · 유지 ⑤)</li>
+      <li>첫 2주 시작 구간 조정: 지도 위치가 <b>불안 · 걱정</b>이면 최대 ②, <b>무관심</b>이면서 중요도 3 이하이면 ①</li>
+      <li>유지 대화가 변화 대화의 두 배 이상이면 한 구간 낮춰 시작하고, 결심을 묻지 않는다</li>
+      <li>전숙고인데 기술 체감이 높으면(운동 경험자): 구간은 ①로 두되, 강도보다 의미 연결에 집중</li>
+      <li>분투형이면 시작 구간을 ③ 이하로 두고 강도를 한 단계 낮춘다</li>
+    </ol>
+    <h3>5. 주의</h3>
+    <p class="hint">가중치와 경계값은 현장 판단을 돕기 위한 제안이며, 검증된 심리 척도가 아닙니다. 결과는 진단이 아니라 첫 세션 설계를 위한 가설이고, OT 2차와 4주마다 같은 질문으로 다시 판정합니다. 통증·질환이 있으면 의료진 지시가 우선입니다.</p>
+  </div>
+</div>
+</div>
+
+<div class="nav"><div class="in">
+  <button class="btn" id="back">이전</button>
+  <button class="btn" id="memoBtn" type="button">메모</button>
+  <div class="talk" id="talkBar">
+    <button id="ctPlus" title="변화 대화를 들으면 누르기">변화 <span class="ct" id="ctN">0</span></button>
+    <button id="stPlus" title="유지 대화를 들으면 누르기">유지 <span class="st" id="stN">0</span></button>
+  </div>
+  <button class="btn pri" id="next">다음</button>
+</div></div>
+
+<script>
+const S = {name:"", origin:null, reasons:[], q1:null, q11:null, q2:null, q3:null, imp:null, conf:null, burden:null, exp:null, diff:null, can:null, obs:[], ct:0, st:0, pri:null, time:null, cost:"none", dir:[], focus:"", next:"none"};
+let cur = 0;
+const EXP = [["거의 없음",0],["조금 해 봤음",3],["꾸준히 해 본 적 있음",6],["지금도 능숙함",9]];
+const REASONS = [["건강·검진·의사 권유","무관심형"],["지인·가족 권유","무관심형"],["예전에 못해서 창피했거나 다친 경험","상처형"],["해 봤는데 계속 실패","실패 누적형"],["운동이 지루함","지루함형"],["시키는 대로 하는 게 싫음","통제 거부형"],["몸의 불편·통증","불편 해결형"],["되고 싶은 모습이 분명함","목표형"]];
+const OBS = [
+ ["anx","숨을 참거나 호흡이 급해진다","불안 신호"],["anx","자세가 무너지거나 동작을 멈춘다","불안 신호"],["anx","표정이 굳고 말수가 확 줄어든다","불안 신호"],
+ ["ctl","여유 있게 하며 대화도 가능하다","여유 신호"],
+ ["bor","시계를 보거나 딴생각, 대화가 길어진다","지루함·무관심 신호"],
+ ["flow","말이 사라지고 동작에 빠져든다, ‘벌써 끝났어요?’","몰입 신호"]];
+
+function h(tag, attrs={}, html=""){const e=document.createElement(tag);for(const k in attrs)e.setAttribute(k,attrs[k]);e.innerHTML=html;return e}
+function scale(key, lo, hi, follow){
+  const wrap=h("div");const g=h("div",{class:"scale"});
+  for(let i=0;i<=10;i++){const b=h("button",{type:"button","aria-pressed":S[key]===i},String(i));b.onclick=()=>{S[key]=i;render()};g.appendChild(b)}
+  wrap.appendChild(g);wrap.appendChild(h("div",{class:"lb"},`<span>${lo}</span><span>${hi}</span>`));
+  if(follow){wrap.appendChild(h("div",{class:"follow"+(S[key]!==null?" show":"")},follow(S[key])))}
+  return wrap;
+}
+function opts(key, list, multi){
+  const d=h("div",{class:"opts"});
+  list.forEach(([label,val])=>{
+    const on = multi ? S[key].includes(val) : S[key]===val;
+    const b=h("button",{type:"button",class:"opt","aria-pressed":on},label);
+    b.onclick=()=>{ if(multi){const i=S[key].indexOf(val); i<0?S[key].push(val):S[key].splice(i,1)} else S[key]=val; render(); };
+    d.appendChild(b)});
+  return d;
+}
+
+const STEPS = [
+ {t:"관계 열기", ok:()=>true, body:()=>{
+   const c=h("div");
+   c.appendChild(h("div",{class:"say"},"<small>첫 문장</small>“오늘은 몸이 지금 어떤지 같이 보는 시간이에요. 등록 얘기는 오늘 안 하셔도 돼요. 싫은 건 언제든 말씀해 주세요.”"));
+   c.appendChild(h("p",{class:"hint"},"이 인터뷰는 상담지를 채우는 시간이 아니라 회원이 자기 이야기를 하게 만드는 시간입니다. 질문 하나에 반영 둘. 아래 바의 <b>변화</b>·<b>유지</b> 버튼은 회원이 변화 쪽 말(하고 싶다, 할 수 있다, 이유, 필요)이나 현 상태 쪽 말(굳이, 시간 없어요, 안 맞아요)을 할 때마다 눌러 세어 둡니다."));
+   const i=h("input",{type:"text",placeholder:"회원 이름 (선택)",value:S.name});i.oninput=e=>S.name=e.target.value;
+   c.appendChild(i);return c}},
+ {t:"계기 듣기", ok:()=>S.origin!==null, body:()=>{
+   const c=h("div");
+   c.appendChild(h("div",{class:"say"},"<small>열린 질문</small>“여기 오시기까지 어떤 일이 있었는지 들려주실래요?”"));
+   c.appendChild(h("p",{class:"hint"},"답을 듣고 반영으로 돌려줍니다. 예: “하라고 해서 오셨지, 원해서 온 건 아니라는 거죠.”"));
+   c.appendChild(h("div",{class:"q"},"이번 방문은"));
+   c.appendChild(opts("origin",[["스스로 결심","self"],["권유·검진·지인 때문","push"],["둘 다","both"]]));
+   c.appendChild(h("div",{class:"q"},"회원이 직접 말한 이유 (해당하는 것 모두)"));
+   c.appendChild(opts("reasons",REASONS.map(r=>[r[0],r[0]]),true));
+   return c}},
+ {t:"변화 단계 판정", ok:()=>stage()!==null, body:()=>{
+   const c=h("div");
+   c.appendChild(h("div",{class:"say"},"<small>Q1</small>“지난 6개월 동안 일주일에 2~3번 이상, 한 번에 20~30분 넘게 꾸준히 운동해 오셨어요?”"));
+   c.appendChild(opts("q1",[["예",true],["아니오",false]]));
+   if(S.q1===true){c.appendChild(h("div",{class:"say"},"<small>Q1-1</small>“그렇게 해 온 지 6개월이 넘었어요?”"));c.appendChild(opts("q11",[["예, 6개월 넘음",true],["아니오, 그보다 짧음",false]]))}
+   if(S.q1===false){c.appendChild(h("div",{class:"say"},"<small>Q2</small>“앞으로 6개월 안에 운동을 시작해 볼 생각이 있으세요?”"));c.appendChild(opts("q2",[["예",true],["아니오",false]]));
+     if(S.q2===true){c.appendChild(h("div",{class:"say"},"<small>Q3</small>“한 달 안에 시작하려는 계획이 있거나, 이미 조금씩 해 보고 계세요?”"));c.appendChild(opts("q3",[["예",true],["아니오",false]]))}}
+   const st=stage(); if(st) c.appendChild(h("div",{class:"note"},`판정: <b>${st.name}</b> (여정 기본 구간 ${st.no})`));
+   return c}},
+ {t:"척도 두 개", ok:()=>S.imp!==null&&S.conf!==null, body:()=>{
+   const c=h("div");
+   c.appendChild(h("div",{class:"say"},"<small>중요도 척도</small>“운동이 지금 ○○님한테 얼마나 중요한지, 0에서 10이면 몇 점이에요?”"));
+   c.appendChild(scale("imp","전혀 중요하지 않음","매우 중요함",v=>`이어서: “${v<=0?'1점만 올라간다면 무엇이 달라져야 할까요?':`0이 아니라 ${v}점인 이유가 있을 것 같아요.`}” → 나온 이유는 변화 대화로 세기`));
+   c.appendChild(h("div",{class:"say"},"<small>자신감 척도</small>“마음먹으면 꾸준히 해낼 수 있을 것 같은 자신감은 0에서 10이면요?”"));
+   c.appendChild(scale("conf","전혀 자신 없음","매우 자신 있음",v=>`이어서: “${v<=0?'아주 조금이라도 될 것 같은 순간은 언제였어요?':`${v}점만큼은 할 수 있겠다고 느끼게 하는 건 뭐예요?`}” → “1점 올리려면 뭐가 있으면 될까요?”`));
+   return c}},
+ {t:"부담감과 경험", ok:()=>S.burden!==null&&S.exp!==null, body:()=>{
+   const c=h("div");
+   c.appendChild(h("div",{class:"say"},"<small>부담감</small>“운동하는 장면을 떠올리면, 부담되거나 긴장되는 정도가 0에서 10 중 어디쯤이에요?”"));
+   c.appendChild(scale("burden","전혀 부담 없음","매우 부담됨",v=>v>=7?"반영: “생각만 해도 꽤 부담이 되시는군요.” — 이유는 캐묻지 않고, 회원이 말하면 듣기":"반영 한 문장 후 다음으로"));
+   c.appendChild(h("div",{class:"q"},"운동 경험 수준 (회원의 말 + 트레이너 판단)"));
+   c.appendChild(opts("exp",EXP));
+   return c}},
+ {t:"우선순위와 투자 의지", ok:()=>S.pri!==null&&S.time!==null, body:()=>{
+   const c=h("div");
+   c.appendChild(h("p",{class:"hint"},"세 번째 축입니다. ‘좋아지면 좋겠다’를 넘어 시간·노력·비용을 실제로 낼 마음이 있는지 봅니다. 압박하지 않고 사실을 묻는 말투로."));
+   c.appendChild(h("div",{class:"say"},"<small>우선순위</small>“요즘 해야 할 일들 중에 운동은 몇 번째쯤이에요?”"));
+   c.appendChild(opts("pri",[["맨 앞 1~2번째",9],["중간쯤",6],["한참 뒤",3],["지금은 들어갈 자리가 없음",0]]));
+   c.appendChild(h("div",{class:"say"},"<small>시간</small>“좋아진다면, 그걸 위해 일주일에 시간은 어느 정도까지 낼 마음이 있으세요?”"));
+   c.appendChild(opts("time",[["거의 못 냄",0],["1시간 안쪽",3],["1~2시간",6],["3시간 이상",9]]));
+   c.appendChild(h("div",{class:"q"},"비용 (회원이 먼저 꺼냈을 때만 표시)"));
+   c.appendChild(opts("cost",[["언급 없음","none"],["부담이 크다고 함",2],["감당할 만하다고 함",6],["투자할 생각이 분명함",9]]));
+   c.appendChild(h("p",{class:"hint"},"돈은 트레이너가 먼저 캐묻지 않습니다. 회원이 꺼내면 반영으로 받습니다: “비용도 신경 쓰이시는군요.”"));
+   return c}},
+ {t:"미니 운동", ok:()=>S.diff!==null&&S.can!==null, body:()=>{
+   const c=h("div");
+   c.appendChild(h("p",{class:"hint"},"성공할 수 있는 쉬운 동작 1~2개 (예: 의자 스쿼트 8회, 벽 푸시업 8회, 10초 한 발 서기). 통증이 있으면 바로 멈춥니다. 끝나고 두 가지를 묻습니다."));
+   c.appendChild(h("div",{class:"say"},"<small>체감 어려움</small>“방금 거, 얼마나 어려웠어요? 0에서 10이면요?”"));
+   c.appendChild(scale("diff","아주 쉬움","너무 어려움"));
+   c.appendChild(h("div",{class:"say"},"<small>해낼 수 있다는 느낌</small>“이 정도면 할 수 있겠다는 느낌은 몇 점이에요?”"));
+   c.appendChild(scale("can","전혀","확실히"));
+   c.appendChild(h("div",{class:"q"},"트레이너 관찰 (체험 중 보인 것 모두)"));
+   const k=h("div",{class:"chk"});
+   OBS.forEach((o,i)=>{const id="o"+i;const l=h("label",{for:id});const inp=h("input",{type:"checkbox",id});inp.checked=S.obs.includes(i);inp.onchange=()=>{const j=S.obs.indexOf(i);j<0?S.obs.push(i):S.obs.splice(j,1)};l.appendChild(inp);l.appendChild(h("span",{},`${o[1]}<em>${o[2]}</em>`));k.appendChild(l)});
+   c.appendChild(k);return c}},
+ {t:"방향성 설정", ok:()=>S.dir.length>0, body:()=>{
+   const c=h("div");
+   c.appendChild(h("p",{class:"hint"},"방금 몸을 움직여 본 경험을 회원의 말로 정리하고, 앞으로의 방향을 함께 정합니다. 결정은 회원이 먼저, 트레이너는 허락을 구하고 덧붙입니다."));
+   c.appendChild(h("div",{class:"say"},"<small>회원이 먼저</small>“방금 해 보시니까, 앞으로 가장 먼저 다듬고 싶은 게 뭐예요?”"));
+   c.appendChild(h("div",{class:"q"},"회원이 고른 방향 (최대 2개)"));
+   const d=h("div",{class:"opts"});
+   ["통증·불편 줄이기","자세·움직임","근력","체지방·체중","체력·숨참","운동 습관 만들기","스트레스 해소"].forEach(o=>{const on=S.dir.includes(o);const b=h("button",{type:"button",class:"opt","aria-pressed":on},o);b.onclick=()=>{const i=S.dir.indexOf(o);if(i>=0)S.dir.splice(i,1);else if(S.dir.length<2)S.dir.push(o);render()};d.appendChild(b)});
+   c.appendChild(d);
+   c.appendChild(h("div",{class:"say"},"<small>트레이너가 덧붙이기 (묻고-주고-묻기)</small>“오늘 보면서 제가 느낀 게 하나 있는데 말씀드려도 될까요? … (관찰 한 가지) … 어떻게 들리세요?”"));
+   c.appendChild(h("div",{class:"q"},"함께 정한 첫 초점 한 문장 (회원의 말 그대로)"));
+   const i=h("input",{type:"text",placeholder:"예: 계단 내려갈 때 무릎 편하게",value:S.focus});i.oninput=e=>S.focus=e.target.value;c.appendChild(i);
+   c.appendChild(h("div",{class:"q"},"다음 약속"));
+   c.appendChild(opts("next",[["OT 2차 날짜를 잡음","ot2"],["생각해 보고 연락하기로","think"],["회원이 먼저 등록 의사를 밝힘","reg"],["아직 정하지 않음","none"]]));
+   return c}},
+ {t:"유형 파악 및 향후 방향성", ok:()=>true, body:()=>result()}
+];
+
+function stage(){
+  if(S.q1===true){ if(S.q11===null) return null; return S.q11?{n:5,no:"⑤",name:"유지"}:{n:4,no:"④",name:"실행"} }
+  if(S.q1===false){ if(S.q2===false) return {n:1,no:"①",name:"전숙고"}; if(S.q2===true){ if(S.q3===null) return null; return S.q3?{n:3,no:"③",name:"준비"}:{n:2,no:"②",name:"숙고"} } }
+  return null;
+}
+const clamp=v=>Math.max(0,Math.min(10,v));
+function axes(){
+  const cnt=t=>S.obs.filter(i=>OBS[i][0]===t).length;
+  const anx=cnt("anx"),ctl=cnt("ctl"),bor=cnt("bor"),flow=cnt("flow");
+  const expV=(EXP.find(e=>e[1]===S.exp)||[0,0])[1];
+  const C=clamp(S.burden*0.4+S.diff*0.6+anx*0.8-bor*0.8);
+  const Sk=clamp(S.conf*0.35+S.can*0.4+expV*0.25+ctl*0.8-anx*0.5);
+  const parts=[[S.pri,.35],[S.time,.3],[S.imp,.2]]; if(S.cost!=="none") parts.push([S.cost,.15]);
+  const wsum=parts.reduce((a,p)=>a+p[1],0); let I=parts.reduce((a,p)=>a+p[0]*p[1],0)/wsum;
+  I=clamp(I+Math.max(-1.5,Math.min(1.5,(S.ct-S.st)*0.3)));
+  return {C,Sk,I,anx,ctl,bor,flow};
+}
+const ZONES={"2,0":"불안","2,1":"각성","2,2":"몰입","1,0":"걱정","1,1":"전환 지대","1,2":"통제","0,0":"무관심","0,1":"지루함","0,2":"이완"};
+const lvl=v=>v<3.7?0:v>=6.3?2:1;
+const ZRX={
+ "불안":"강도를 즉시 낮춘다. 동작을 쪼개고 시범을 먼저. 실패 없는 경험이 최우선",
+ "걱정":"동작을 쉬운 단계로 쪼개고 시범을 보인다. ‘할 수 있었다’는 증거를 하나 남긴다",
+ "무관심":"도전을 아주 조금, 의미 연결 질문과 놀이 요소. 회원이 고르게 한다",
+ "각성":"유지. 큐 하나로 기술을 도와 몰입 쪽으로 민다",
+ "전환 지대":"선택지 두 개를 주고 회원이 고르게. 미세 몰입(1~2분 도전) 한 번 시도",
+ "지루함":"새 변수(템포, 범위, 균형, 놀이 도구)로 도전을 올린다",
+ "몰입":"방해하지 않는다. 끝난 뒤 회원이 먼저 경험을 말하게 한다",
+ "통제":"다음 세트나 세션에서 도전 손잡이 하나를 올릴 준비",
+ "이완":"편안함을 확인한 뒤 새 변수 하나를 더한다"};
+const JRX={
+ 1:{name:"① 거부",goal:"‘생각보다 괜찮네’ 경험 하나 남기기",session:"20~30분 · 동작 2~3개 모두 성공 가능 · 몰입 노리지 않기 · 사람 적은 자리",avoid:"필요성 설득, 인바디로 위협, 숨찰 강도, 결정 묻기",line:"“오늘은 힘든 건 안 할 거예요. 싫으신 건 빼고 할게요.”",next:"‘생각보다 괜찮네요’ · 다음 약속을 거부하지 않음"},
+ 2:{name:"② 호기심",goal:"운동 안의 재미있는 순간을 회원이 스스로 발견",session:"30~40분 · 1~2분짜리 미세 몰입 2회 · 예측 게임 · 회원 선택지",avoid:"같은 루틴 반복, 비교 기록, 하기 싫은 이유 캐묻기",line:"“10초 버티기, 몇 초까지 하실 수 있을 것 같아요?”",next:"‘아까 그거 또 해요?’ · 혼자 한 번 해 봤다는 말"},
+ 3:{name:"③ 첫 몰입",goal:"한 세션 안에 5~15분 몰입 구간 경험",session:"40~50분 · 몰입 블록 · 세트마다 목표 하나 · 몰입 중 침묵",avoid:"세트 중 교정 여러 개, 의욕 높다고 강도 급상승, 의미를 트레이너가 먼저 정하기",line:"(몰입 후) “방금 그 세트, 어땠어요?”",next:"‘시간 가는 줄 몰랐어요’ · 4주 연속 출석"},
+ 4:{name:"④ 일상",goal:"몰입이 매주 반복되도록 도전을 계속 조정",session:"주 2~3회 · 4주마다 새 기술 · 혼자 하는 날 메뉴 · 15분 최소 루틴",avoid:"같은 루틴 몇 달, 결석 탓하기, 트레이너만 도전 정하기",line:"“이건 이제 쉬워 보이시네요. 다음 4주는 뭘로 올려 볼까요?”",next:"회원이 다음 도전을 먼저 제안"},
+ 5:{name:"⑤ 열정의 동력",goal:"조화로운 열정 지키기, 스스로 도전을 설계하는 사람",session:"회원 주도 분기 목표 · 휴식 주 계획 · 새 무대 탐색",avoid:"아파도 오는 것 칭찬, 통증 참기 방치, 트레이너가 다음 목표 정하기",line:"“이번엔 어떤 걸 해 보고 싶으세요?”",next:"쉬어도 불안해하지 않고 돌아옴"}};
+
+const T8={
+ "111":{n:"열정 엔진",risk:false,d:"도전·기술·투자 의지가 모두 높음. 몰입이 이미 가능한 사람",rx:"회원이 도전을 설계하게 하고, 트레이너는 안전과 회복만 조정. 휴식 주를 계획에 넣는다",warn:"투자가 지나치면 강박적 열정으로 넘어간다. 통증 참기·쉬는 날 불안을 살핀다",line:"“이번엔 어떤 걸 해 보고 싶으세요?”",reg:"장기 플랜도 회원이 먼저 말할 가능성이 높다. 조건만 정직하게"},
+ "101":{n:"분투형",risk:true,d:"하겠다는 마음과 부담은 큰데 기술 체감이 낮음",rx:"강도를 기준보다 한 단계 낮추고 성공 경험부터. 몰입 블록은 짧게. 계획은 작게 쪼갠다",warn:"가장 위험한 칸. 혼자 무리하다 다치거나 3~6주 차에 이탈하기 쉽다. 의욕을 칭찬하지 말고 속도를 칭찬",line:"“의욕이 대단하세요. 그래서 처음 4주는 일부러 천천히 갈 거예요.”",reg:"등록은 빠르게 일어날 수 있다. 낙관적 숫자를 주지 말고 정체기를 먼저 말한다"},
+ "011":{n:"정체된 성실파",risk:false,d:"꾸준히 낼 마음과 실력은 있는데 도전이 낮아 지루함",rx:"도전 손잡이(템포·범위·균형·새 기술)를 회원이 고르게. 4주 단위 새 기술 하나",warn:"같은 루틴이 계속되면 출석이 조용히 빠진다",line:"“이건 이제 쉬워 보이시네요. 다음 4주는 뭘로 올려 볼까요?”",reg:"‘새로 배울 것’이 재등록의 이유가 된다"},
+ "001":{n:"출발선형",risk:false,d:"하고 싶고 낼 마음도 있지만 아직 해 본 게 거의 없음",rx:"첫 경험을 정교하게. 미세 몰입 → 몰입 블록으로 빠르게 올리되, 계획은 회원이 말하게",warn:"계획을 크게 세우기 쉽다(계획 오류). 첫 계획은 작게",line:"“처음 2주는 이 세 동작만 내 것으로 만들어 볼게요.”",reg:"등록 의향이 높다. 과장 없이 단계와 재측정 날짜를 보여 주면 충분"},
+ "100":{n:"회피형",risk:true,d:"부담은 크고 실력 체감과 투자 의지는 낮음",rx:"관계 맺기부터. 실패 없는 쉬운 경험, 사람 적은 자리, 결정 묻지 않기",warn:"필요성 설득이나 위협은 회피를 굳힌다",line:"“오늘은 힘든 건 안 할 거예요. 싫으신 건 빼고 할게요.”",reg:"오늘은 등록 대화를 하지 않는다. 다음 약속(OT 2차)만"},
+ "110":{n:"간헐형",risk:false,d:"오면 잘하고 도전도 즐기지만 생활 우선순위에서 밀림",rx:"강도보다 빈도 설계. 15분 최소 루틴, 고정 요일, 바쁜 주 대안",warn:"‘오면 잘하니까’ 방치하면 한 달씩 비는 패턴",line:"“오시면 정말 잘하세요. 문제는 오시는 날을 지키는 거네요. 어떤 요일이 제일 덜 깨질까요?”",reg:"월 단위·소회차부터. 빈도가 붙으면 확장"},
+ "000":{n:"관망형",risk:false,d:"관심도 부담도 실력 체감도 낮음",rx:"운동 이야기보다 회원이 아끼는 것(가치) 듣기. 놀이 요소, 회원 선택지",warn:"정보를 쏟아붓는 순간 대화가 끝난다",line:"“운동 얘기는 잠깐 두고, 요즘 제일 아끼는 시간이 언제예요?”",reg:"등록 대화를 하지 않는다. 다시 만날 이유 하나만 남긴다"},
+ "010":{n:"휴면 경험자",risk:false,d:"할 줄 알지만 지금은 쉬고 있고 투자 의지가 낮음",rx:"강도 걱정은 적다. 왜 그만뒀는지, 다시 하면 무엇이 좋을지 의미 대화가 핵심",warn:"예전 기준으로 강도를 올리면 실망한다(현재 몸과 기억의 차이)",line:"“예전에 운동하실 때 제일 좋았던 게 뭐였어요?”",reg:"‘다시 시작’ 프레임. 소회차로 감을 되찾게"}};
+const W6={
+ "111":{plan:"주 4회 이상도 가능. 대신 쉬는 날 1일을 계획에 넣는다",start:"“6주 동안 몇 번이 좋을지보다, 어느 날 쉴지부터 정해 볼까요?”",tip:"과열 신호(통증 참기, 쉬는 날 불안)가 보이면 빈도를 줄인다"},
+ "101":{plan:"처음 2주는 PT 2 + 혼자 1회(15분). 2주 지켜지면 혼자 2회로",start:"“의욕이 크셔서 오히려 처음 2주는 일부러 세 번만 할 거예요. 몸이 따라오면 그때 늘려요.”",tip:"강도보다 빈도로 성공을 쌓는다. 혼자 하는 날은 PT 복습 70% 강도"},
+ "011":{plan:"주 4회 유지 + 그중 1회를 새 기술 배우는 날로",start:"“이미 꾸준하세요. 6주 동안은 네 번 중 한 번을 새로 배우는 날로 바꿔 볼까요?”",tip:"같은 루틴 반복이 가장 큰 적. 2주마다 도전 손잡이 하나"},
+ "001":{plan:"PT 2 + 혼자 2회(사진 한 장짜리 3동작)",start:"“연구를 보면 주 4회를 6주 하면 습관이 붙는대요. 6주만 실험해 보실래요?”",tip:"계획을 크게 잡기 쉽다. 혼자 하는 날은 15분이면 1회로 인정"},
+ "100":{plan:"4회 이야기를 꺼내지 않는다. 목표는 다음 약속 1회",start:"“오늘처럼 편한 강도로 한 번 더 만나 볼까요?”",tip:"빈도 압박은 회피를 굳힌다. 실패 없는 경험이 먼저"},
+ "110":{plan:"고정 요일 2회부터. 2주 지켜지면 15분 버전 2회 추가",start:"“오시면 정말 잘하세요. 6주 동안은 오시는 요일을 지키는 실험을 해 볼까요?”",tip:"강도가 아니라 요일 고정과 바쁜 주 대안이 핵심"},
+ "000":{plan:"4회 이야기를 꺼내지 않는다. 다시 만날 이유 하나를 남긴다",start:"“운동 얘기는 잠깐 두고, 요즘 제일 아끼는 시간이 언제예요?”",tip:"정보와 숫자를 쏟아붓는 순간 대화가 끝난다"},
+ "010":{plan:"예전에 하던 리듬을 묻고 그 기준으로 다시 시작",start:"“예전에 운동하실 때 일주일에 몇 번 하셨어요? 그 리듬으로 다시 6주 해 볼까요?”",tip:"예전 기준의 강도로 시작하면 실망한다. 빈도는 예전처럼, 강도는 지금 몸에 맞게"}};
+function w6card(tp){
+  const w=W6[tp.k];const off=(tp.k==="100"||tp.k==="000");
+  let r=`<div class="w6"><div class="w6h"><b>6주 실험</b><span>${tp.n} 맞춤</span></div>`;
+  r+=`<div class="w6row"><b>구성</b>${w.plan}</div><div class="w6row"><b>시작 대화</b>${w.start}</div><div class="w6row"><b>이 유형의 핵심</b>${w.tip}</div>`;
+  if(!off){
+   r+=`<div class="w6row"><b>원칙</b>4회는 전부 PT가 아님(PT 2 + 혼자 2). 숫자는 회원이 정한다. 3을 고르면 3이 정답, 2주 지켜지면 다시 묻기</div>`;
+   r+=`<table class="w6t"><tr><th>1주</th><td>4회를 해내는 경험 · “제일 쉬웠던 날은?”</td></tr><tr><th>2주</th><td>빠진 회차 다시 잇기 · “그날엔 다음에 어떻게 할까요?”</td></tr><tr><th>3주</th><td>몸의 첫 신호 · “생활에서 달라진 거 있어요?”</td></tr><tr><th>4주</th><td>처음 동작 다시 측정 · “처음이랑 비교해 보니?”</td></tr><tr><th>5주</th><td>흔들림 대비 · “쉬워진 것과 어려워진 것은?”</td></tr><tr><th>6주</th><td>회원의 결정 · “앞으로는 어떻게 하고 싶으세요?”</td></tr></table>`;
+   r+=`<div class="w6row"><b>환경</b>고정 요일·시간 · 만약-그러면 계획(야근 → 집 15분) · 15분 최소 버전 · 전날 가방 · 6주×4칸 기록표(회원이 채움) · 주초 가안·주말 확정</div>`;
+   r+=`<div class="w6row"><b>빠진 주에</b>“바쁜 주에도 두 번 하셨네요. 그 두 번은 어떻게 지키셨어요?” → “다음 주에 한 칸만 더 채운다면 어느 날이 가능할까요?”</div>`;
+  }
+  r+=`<div class="w6row w6no"><b>넘지 않을 선</b>거짓 근거 · 지어낸 성공률 · 노쇼 규정을 압박용으로 · 원점 위협 · 매일 독촉 · 통증 있는 주엔 빈도 줄이기</div></div>`;
+  return r;
+}
+function type8(A){const k=(A.C>=5?"1":"0")+(A.Sk>=5?"1":"0")+(A.I>=5?"1":"0");return {k,...T8[k]}}
+const ONE={"111":"도전·실력·투자 의지가 모두 높아, 스스로 몰입을 만들어 가는 사람이에요.",
+"101":"하겠다는 마음은 큰데 실력 체감이 따라오지 못해, 혼자 무리하기 쉬운 사람이에요.",
+"011":"꾸준히 오고 실력도 붙었지만 도전이 낮아, 슬슬 지루해지는 사람이에요.",
+"001":"하고 싶고 시간도 낼 수 있지만, 아직 해 본 게 거의 없는 초심자예요.",
+"100":"운동이 부담스럽고 자신도 없어서, 굳이 시작하고 싶지 않은 사람이에요.",
+"110":"오면 잘하고 도전도 즐기지만, 생활 우선순위에서 자꾸 밀리는 사람이에요.",
+"000":"운동에 관심도 부담도 없어서, 아직 남의 이야기로 여기는 사람이에요.",
+"010":"운동할 줄은 알지만 지금은 쉬고 있고, 다시 할 이유가 약한 사람이에요."};
+window.tip=el=>{const t=el.closest(".c8").querySelector(".tipline");const open=t.classList.toggle("show");el.setAttribute("aria-expanded",open)};
+function cube(A,tp){
+  const lay=top=>{let r=`<div class="c8h">투자 의지 ${top?"높음":"낮음"} 층</div><div class="c8g">`;
+    [["1",0],["1",1],["0",0],["0",1]].forEach(([c,sk])=>{const k=c+String(sk)+(top?"1":"0");const on=k===tp.k;
+      r+=`<div class="c8${on?(T8[k].risk?" on risk":" on"):""}"><div class="c8n"><span>${T8[k].n}</span><button type="button" class="qm" onclick="tip(this)" aria-label="${T8[k].n} 뜻 보기" aria-expanded="false">?</button></div><div class="tipline">${ONE[k]}</div></div>`});
+    return r+"</div>"};
+  return `<div class="c8cap">각 층: 위 줄 = 도전 높음 · 오른쪽 = 기술 높음 · <b>?</b>를 누르면 뜻이 보여요</div>${lay(true)}${lay(false)}`;
+}
+function result(){
+  const c=h("div"); const st=stage(); const A=axes();
+  let zone=ZONES[lvl(A.C)+","+lvl(A.Sk)];
+  if(A.flow>0 && A.C>=5 && A.Sk>=5) zone="몰입";
+  let start=st.n; const notes=[];
+  const MM={med:document.getElementById("mMed").value.trim(),body:document.getElementById("mBody").value.trim(),need:document.getElementById("mNeed").value.trim()};
+  if(MM.med) notes.push("의학적 특이사항이 있습니다. 강도와 동작은 의료진 지시 범위 안에서 정하고, 첫 세션에 통증 신호 약속을 먼저 합니다.");
+  if((zone==="불안"||zone==="걱정") && start>2){start=2;notes.push(`지도 위치가 ${zone}이라 첫 2주는 ② 호기심 구간으로 낮춰 시작합니다. 의욕(변화 단계)보다 몸의 경험이 먼저입니다.`)}
+  if(zone==="무관심" && S.imp<=3 && start>1){start=1;notes.push("무관심 영역이고 중요도가 3 이하라 첫 2주는 ① 거부 구간처럼 관계 맺기에 집중합니다.")}
+  if(S.st>=2 && S.st>=S.ct*2 && start>1){start=start-1;notes.push(`유지 대화(${S.st})가 변화 대화(${S.ct})의 두 배 이상입니다. 한 구간 낮춰 시작하고, 오늘은 결심을 묻지 않습니다.`)}
+  if(st.n===1 && A.Sk>=6.3) notes.push("전숙고인데 기술 체감이 높습니다(운동 경험자). 구간은 ①로 두되 강도는 보통으로, 운동을 그만둔 이유와 의미 연결에 집중합니다.");
+  if(st.n>=3 && (A.C>=6.3 && A.Sk<3.7)) notes.push("말로는 준비됐지만 몸은 불안 영역입니다. 말보다 체험 반응을 우선해서 강도를 정합니다.");
+  if(S.ct>S.st && S.ct>=3) notes.push(`변화 대화(${S.ct})가 충분히 들렸습니다. 회원이 먼저 계획을 말하면 받아 적고, 트레이너는 안전 범위만 얹습니다.`);
+  const tp=type8(A);
+  if(tp.k==="101" && start>3){start=3;notes.push("분투형입니다. 의욕(투자 의지)이 실력 체감보다 앞서 있어 ③ 이상으로 올리지 않고, 강도는 한 단계 낮춰 시작합니다.")}
+  const edge=[["도전",A.C],["기술",A.Sk],["투자 의지",A.I]].filter(x=>Math.abs(x[1]-5)<0.7).map(x=>x[0]);
+  if(edge.length) notes.push(`${edge.join(" · ")} 축이 경계선(5 근처)입니다. 유형은 가설로 두고 OT 2차에서 다시 판정하세요.`);
+  const faces=[...new Set(S.reasons.map(r=>(REASONS.find(x=>x[0]===r)||[])[1]).filter(Boolean))];
+  const J=JRX[start];
+  c.appendChild(h("h3",{},"유형 파악"));
+  c.appendChild(h("div",{class:"res-top"},`<div class="pill"><b>지금 마음 상태</b><span>${zone}</span></div><div class="pill"><b>변화 단계</b><span>${st.name}</span></div><div class="pill"><b>첫 2주 시작 구간</b><span>${J.name}</span></div><div class="pill" style="${tp.risk?'border:2px solid var(--warn)':''}"><b>3축 유형</b><span>${tp.n}</span></div>`));
+  c.appendChild(h("div",{class:"mapwrap"},cube(A,tp)));
+  c.appendChild(h("p",{class:"hint"},`${tp.n}: ${tp.d}`));
+  c.appendChild(h("div",{class:"mapwrap"},map(A.C,A.Sk,start)));
+  c.appendChild(h("p",{class:"hint"},`도전 체감 ${A.C.toFixed(1)} · 기술 체감 ${A.Sk.toFixed(1)} · 투자 의지 ${A.I.toFixed(1)} · 중요도 ${S.imp} · 자신감 ${S.conf} · 변화 대화 ${S.ct} / 유지 대화 ${S.st}`));
+  notes.forEach(n=>c.appendChild(h("div",{class:"alert"},n)));
+  if(faces.length) c.appendChild(h("div",{class:"note"},`회원이 말한 이유로 본 얼굴: <b>${faces.join(" · ")}</b> (트레이너 메모용 · 회원 앞에서 꼬리표로 쓰지 않기)`));
+  const t=h("table",{class:"rx"});
+  t.innerHTML=`<tr><th>유형 처방</th><td>${tp.rx}</td></tr><tr><th>유형 주의</th><td>${tp.warn}</td></tr><tr><th>유형 첫 대사</th><td>${tp.line}</td></tr><tr><th>등록 대화</th><td>${tp.reg}</td></tr><tr><th>이번 세트 조정</th><td>${ZRX[zone]}</td></tr><tr><th>구간 목표</th><td>${J.goal}</td></tr><tr><th>첫 세션 처방</th><td>${J.session}</td></tr><tr><th>피할 것</th><td>${J.avoid}</td></tr><tr><th>첫 대사</th><td>${J.line}</td></tr><tr><th>넘어가는 신호</th><td>${J.next}</td></tr><tr><th>재판정</th><td>OT 2차와 4주마다 같은 질문으로 다시 판정</td></tr>`;
+  const NX={ot2:"OT 2차 날짜를 잡음",think:"생각해 보고 연락하기로",reg:"회원이 먼저 등록 의사를 밝힘",none:"아직 정하지 않음"};
+  c.appendChild(h("h3",{},"향후 방향성"));
+  c.appendChild(h("div",{class:"memosum"},`<div><b>회원이 고른 방향</b>${S.dir.join(" · ")||"-"}</div><div><b>함께 정한 첫 초점</b>${S.focus?esc(S.focus):"-"}</div><div><b>다음 약속</b>${NX[S.next]}</div>`));
+  if(S.next==="reg" && tp.risk) c.appendChild(h("div",{class:"alert"},"등록 의사가 있지만 위험 유형입니다. 낙관적 숫자 없이 정체기와 첫 4주를 천천히 가는 이유를 먼저 설명하세요."));
+  if(S.next==="think") c.appendChild(h("div",{class:"note"},"보류는 정당한 선택입니다. 다시 연락할 날짜와 방법을 회원이 정하게 하고, 태도는 똑같이."));
+  c.appendChild(inviteCard(start,tp,A,zone,st,MM,notes));
+  c.appendChild(h("h3",{},"6주 실험"));c.appendChild(h("div",{},w6card(tp)));
+  c.appendChild(h("h3",{},"세션 처방"));c.appendChild(t);
+  c.appendChild(h("h3",{},"상담 메모"));
+  c.appendChild(h("div",{class:"memosum"},`<div><b>의학적 특이사항</b>${esc(MM.med)||"-"}</div><div><b>체성분적 특이사항</b>${esc(MM.body)||"-"}</div><div><b>니즈 메모</b>${esc(MM.need)||"-"}</div>`));
+  const row=h("div",{style:"margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"});
+  const cp=h("button",{class:"btn",type:"button"},"결과 요약 복사");const ok=h("span",{class:"copyok"},"");
+  cp.onclick=async()=>{const txt=`[OT 위치 판정] ${S.name||"회원"}\n3축 유형: ${tp.n} (도전 ${A.C.toFixed(1)} / 기술 ${A.Sk.toFixed(1)} / 투자 의지 ${A.I.toFixed(1)})\n마음 상태: ${zone}\n변화 단계: ${st.name} → 시작 구간: ${J.name}\n중요도 ${S.imp} · 자신감 ${S.conf} · 변화 대화 ${S.ct} / 유지 대화 ${S.st}\n${notes.join("\n")}\n유형 처방: ${tp.rx}\n주의: ${tp.warn}\n등록 대화: ${tp.reg}\n6주 실험: ${W6[tp.k].plan}\n세트 조정: ${ZRX[zone]}\n회원이 고른 방향: ${S.dir.join(", ")}\n첫 초점: ${S.focus||"-"}\n다음 약속: ${NX[S.next]}\n[의학] ${MM.med||"-"}\n[체성분] ${MM.body||"-"}\n[니즈] ${MM.need||"-"}\n첫 세션: ${J.session}\n피할 것: ${J.avoid}`;try{await navigator.clipboard.writeText(txt);ok.textContent="복사했어요"}catch(e){ok.textContent="복사가 막혀 있어요. 화면을 길게 눌러 복사해 주세요"}};
+  const rs=h("button",{class:"btn",type:"button"},"새 회원 시작");rs.onclick=()=>{Object.assign(S,{name:"",origin:null,reasons:[],q1:null,q11:null,q2:null,q3:null,imp:null,conf:null,burden:null,exp:null,diff:null,can:null,obs:[],ct:0,st:0,pri:null,time:null,cost:"none",dir:[],focus:"",next:"none"});INV={stage:null,code:null,exp:null,err:"",busy:false,link:""};["mMed","mBody","mNeed"].forEach(id=>document.getElementById(id).value="");cur=0;render();window.scrollTo(0,0)};
+  row.appendChild(cp);row.appendChild(rs);row.appendChild(ok);c.appendChild(row);
+  return c;
+}
+function map(C,Sk,start){
+  const css=getComputedStyle(document.documentElement);const v=n=>css.getPropertyValue(n).trim();
+  const cells=[["불안","--z-anx"],["각성","--z-aro"],["몰입","--z-flow"],["걱정","--z-wor"],["","--z-mid"],["통제","--z-ctl"],["무관심","--z-apa"],["지루함","--z-bor"],["이완","--z-rel"]];
+  let r="";const x0=40,y0=10,W=540,H=360,cw=W/3,ch=H/3;
+  cells.forEach((c,i)=>{const cx=x0+(i%3)*cw,cy=y0+Math.floor(i/3)*ch;r+=`<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" fill="${v(c[1])}" stroke="${v('--bg')}" stroke-width="3"/>`;if(c[0])r+=`<text x="${cx+cw/2}" y="${cy+26}" text-anchor="middle" font-size="16" font-weight="700" fill="${v('--t2')}">${c[0]}</text>`});
+  r+=`<line x1="${x0}" y1="${y0+H}" x2="${x0+W}" y2="${y0}" stroke="${v('--a')}" stroke-width="2" stroke-dasharray="6 5" opacity=".55"/>`;
+  const px=x0+Sk/10*W, py=y0+H-C/10*H;
+  const col=["#59606a","#9a5b0f","#1f6f5c","#2f4f9e","#3d2a5c"][start-1];
+  r+=`<circle cx="${px}" cy="${py}" r="16" fill="${col}" opacity=".18"/><circle cx="${px}" cy="${py}" r="9" fill="${col}" stroke="#fff" stroke-width="2.5"/>`;
+  r+=`<text x="${Math.min(px+14,x0+W-70)}" y="${py+5}" font-size="15" font-weight="800" fill="${col}">${S.name||"회원"}</text>`;
+  r+=`<text x="${x0+W/2}" y="${y0+H+30}" text-anchor="middle" font-size="13" fill="${v('--t3')}">기술 체감 (해낼 수 있다는 느낌) →</text>`;
+  r+=`<text x="16" y="${y0+H/2}" font-size="13" fill="${v('--t3')}" transform="rotate(-90 16 ${y0+H/2})" text-anchor="middle">도전 체감 (어려움·부담) →</text>`;
+  return `<svg viewBox="0 0 590 410" role="img" aria-label="도전-기술 지도 위 회원 위치">${r}</svg>`;
+}
+const SEC=[{n:"I",t:"인터뷰와 니즈 파악",d:"질문 1~6",a:0,b:5},{n:"II",t:"운동 소통 & 방향성 설정",d:"미니 운동 · 방향 합의",a:6,b:7},{n:"III",t:"유형 파악 및 향후 방향성",d:"8유형 · 처방 · 메모",a:8,b:8}];
+const esc=x=>String(x).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function secOf(i){return SEC.find(x=>i>=x.a&&i<=x.b)}
+function render(){
+  const sc=secOf(cur);const sb=document.getElementById("secbar");sb.innerHTML="";
+  SEC.forEach(x=>sb.appendChild(h("div",{class:x===sc?"on":(cur>x.b?"done":"")},`<b>${x.n}. ${x.t}</b>${x.d}`)));
+  const memo=document.getElementById("memo");const showMemo=sc.n!=="III";memo.classList.toggle("off",!showMemo);document.getElementById("runwrap").classList.toggle("nomemo",!showMemo);document.getElementById("memoBtn").style.visibility=showMemo?"":"hidden";
+  const p=document.getElementById("prog");p.innerHTML="";STEPS.forEach((s,i)=>p.appendChild(h("i",{class:i<=cur?"on":""})));
+  const box=document.getElementById("steps");box.innerHTML="";
+  const s=STEPS[cur];const card=h("div",{class:"card"});
+  card.appendChild(h("div",{class:"step-no"},sc.n==="III"?`III. ${sc.t}`:`${sc.n}. ${sc.t} · ${cur-sc.a+1} / ${sc.b-sc.a+1}`));card.appendChild(h("h2",{},s.t));card.appendChild(s.body());box.appendChild(card);
+  document.getElementById("back").disabled=cur===0;
+  const nx=document.getElementById("next");nx.disabled=!s.ok();nx.style.display=cur===STEPS.length-1?"none":"";nx.textContent=cur===STEPS.length-2?"유형 파악 보기":(cur===sc.b&&secOf(cur+1)?`다음: ${secOf(cur+1).n}. ${secOf(cur+1).t}`:"다음");
+  document.getElementById("ctN").textContent=S.ct;document.getElementById("stN").textContent=S.st;
+}
+document.getElementById("next").onclick=()=>{if(cur<STEPS.length-1&&STEPS[cur].ok()){cur++;render();window.scrollTo(0,0)}};
+document.getElementById("back").onclick=()=>{if(cur>0){cur--;render();window.scrollTo(0,0)}};
+document.querySelectorAll(".mchips").forEach(g=>g.querySelectorAll("button").forEach(b=>b.onclick=()=>{const ta=document.getElementById(g.dataset.for);ta.value=(ta.value.trim()?ta.value.trim()+" · ":"")+b.textContent}));
+document.getElementById("memoBtn").onclick=()=>document.getElementById("memo").classList.toggle("open");
+document.getElementById("memoClose").onclick=()=>document.getElementById("memo").classList.remove("open");
+document.getElementById("ctPlus").onclick=()=>{S.ct++;render()};
+document.getElementById("stPlus").onclick=()=>{S.st++;render()};
+const tabs=[["tabRun","viewRun"],["tabAlgo","viewAlgo"]];
+tabs.forEach(([t,vw])=>document.getElementById(t).onclick=()=>{tabs.forEach(([t2,v2])=>{document.getElementById(t2).setAttribute("aria-selected",t2===t);document.getElementById(v2).classList.toggle("hidden",t2!==t)});document.querySelector(".nav").style.display=t==="tabRun"?"":"none"});
+render();
+
+/* ===== 룬PT 여정: 트레이너 로그인 + 가입 코드 발급 ===== */
+const SB_URL='https://vpdemapnpunsuxqdffgn.supabase.co',SB_KEY='sb_publishable_fonyE5eloRwvXb7hacPTow_d6JR0zMv';
+const BASE=location.origin+location.pathname.replace(/[^/]*$/,'');
+const JN=[null,'몸 풀기','재미 찾기','첫 몰입','일상','나만의 무대'];
+let sb=null,ME={uid:null,role:null};
+let INV={stage:null,code:null,exp:null,err:"",busy:false,link:""};
+async function authInit(){
+  const bar=document.getElementById("authbar");
+  if(!/github\.io$/.test(location.hostname)){bar.innerHTML='시험 모드: 서버 연결 없이 인터뷰만 진행돼요(코드 발급은 upvible.github.io 주소에서). <a href="./journey.html">여정 화면</a>';return}
+  try{sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){bar.textContent='서버 연결 실패';return}
+  const {data}=await sb.auth.getSession();
+  if(!data||!data.session){bar.innerHTML='로그인 안 됨 · 코드 발급은 트레이너 로그인 후 가능해요 <button class="mclose" data-login="kakao" type="button">카카오 로그인</button> <button class="mclose" data-login="google" type="button">구글 로그인</button>';
+    bar.querySelectorAll("[data-login]").forEach(b=>b.onclick=()=>sb.auth.signInWithOAuth({provider:b.dataset.login,options:{redirectTo:BASE+"ot.html"}}));return}
+  ME.uid=data.session.user.id;
+  try{const a=await sb.from("profiles").select("role").eq("id",ME.uid).maybeSingle();ME.role=(a.data&&a.data.role)||"member"}catch(e){ME.role="member"}
+  bar.innerHTML=ME.role==="trainer"?'트레이너 로그인됨 · <a href="./journey.html">여정 관리(M)</a> · <a href="./index.html">기존 관리자 화면</a>':'트레이너 계정이 아니라서 코드를 발급할 수 없어요 · <a href="./journey.html">여정 화면</a>';
+}
+function inviteCard(start,tp,A,zone,st,MM,notes){
+  if(INV.stage===null)INV.stage=start;
+  const box=h("div",{class:"inv"});
+  box.appendChild(h("h3",{style:"margin:0 0 4px"},"가입 코드 발급"));
+  box.appendChild(h("p",{class:"hint",style:"margin:0"},`판정 시작 구간은 여정 ${start}(${JN[start]})이에요. 트레이너가 바꿀 수 있고, 바꾸면 사유가 판정 기록에 남아요. 회원에게는 여정 이름만 보이고 유형·마음 상태·메모는 보이지 않아요.`));
+  const sg=h("div",{class:"stg"});
+  [1,2,3,4,5].forEach(n=>{const b=h("button",{type:"button","aria-pressed":INV.stage===n},String(n));b.onclick=()=>{if(INV.code)return;INV.stage=n;render()};sg.appendChild(b)});
+  box.appendChild(sg);
+  box.appendChild(h("p",{class:"hint",style:"margin:0 0 8px"},`이 코드로 가입하면: 담당 트레이너 연결 · 여정 ${INV.stage} “${JN[INV.stage]}”만 열림`));
+  if(INV.code){
+    const row=h("div",{style:"display:flex;gap:14px;align-items:center;flex-wrap:wrap"});
+    const qr=h("div",{class:"qr",id:"qrbox"});row.appendChild(qr);
+    row.appendChild(h("div",{},`<div class="hint" style="margin:0">가입 코드</div><div class="code">${INV.code}</div><div class="hint" style="margin:0">1회용 · ${new Date(INV.exp).toLocaleDateString("ko-KR")}까지</div>`));
+    box.appendChild(row);
+    const r2=h("div",{style:"display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"});
+    const cp=h("button",{class:"btn",type:"button"},"카톡 링크 복사");const ok=h("span",{class:"copyok"},"");
+    cp.onclick=async()=>{const txt=`[룬 PT] ${S.name||"회원"}님, 오늘 OT 수고 많으셨어요.\n아래 링크로 들어와 카카오로 로그인하면 첫 여정이 열려요.\n${INV.link}\n(가입 코드: ${INV.code} · ${new Date(INV.exp).toLocaleDateString("ko-KR")}까지)`;try{await navigator.clipboard.writeText(txt);ok.textContent="복사했어요"}catch(e){ok.textContent="복사가 막혀 있어요. 길게 눌러 복사해 주세요"}};
+    const cx=h("button",{class:"btn",type:"button"},"코드 취소");
+    cx.onclick=async()=>{if(!confirmCancel())return;if(sb){const r=await sb.rpc("journey_cancel_invite",{p_code:INV.code});if(r.error){INV.err=errMsg(r.error);render();return}}INV.code=null;INV.err="";render()};
+    r2.appendChild(cp);r2.appendChild(cx);r2.appendChild(ok);box.appendChild(r2);
+    box.appendChild(h("p",{class:"hint",style:"word-break:break-all"},INV.link));
+    setTimeout(()=>{const el=document.getElementById("qrbox");if(el&&window.QRCode&&!el.childNodes.length){try{new QRCode(el,{text:INV.link,width:128,height:128})}catch(e){}}},0);
+  }else{
+    const b=h("button",{class:"btn pri",type:"button",style:"width:100%"},INV.busy?"발급 중…":"가입 코드 발급");
+    if(INV.busy)b.disabled=true;
+    b.onclick=async()=>{
+      if(!sb||ME.role!=="trainer"){INV.err=sb?"트레이너 계정으로 로그인해야 발급할 수 있어요 (맨 위 로그인 줄)":"시험 모드에서는 발급할 수 없어요. upvible.github.io/Rune-PT/ot.html 에서 열어 주세요";render();return}
+      INV.busy=true;INV.err="";render();
+      const payload={zone,stageName:st.name,stageNo:st.n,start,chosen:INV.stage,changed:INV.stage!==start,axes:{C:+A.C.toFixed(2),S:+A.Sk.toFixed(2),I:+A.I.toFixed(2)},
+        imp:S.imp,conf:S.conf,ct:S.ct,st:S.st,reasons:S.reasons,dir:S.dir,focus:S.focus,next:S.next,notes,memo:MM,at:new Date().toISOString()};
+      const r=await sb.rpc("journey_issue_invite",{p_stage:INV.stage,p_name:S.name||"회원",p_result:payload,p_type_key:tp.k,p_type_name:tp.n});
+      INV.busy=false;
+      if(r.error){INV.err=errMsg(r.error);render();return}
+      INV.code=r.data.code;INV.exp=r.data.expires_at;INV.link=BASE+"journey.html?code="+encodeURIComponent(INV.code);render();
+    };
+    box.appendChild(b);
+    box.appendChild(h("p",{class:"hint"},"코드에는 정보가 들어가지 않아요. 어느 여정이 열리는지는 서버에만 저장돼요. 7일 뒤 만료, 한 번만 쓸 수 있어요."));
+  }
+  if(INV.err)box.appendChild(h("div",{class:"alert"},esc(INV.err)));
+  return box;
+}
+function confirmCancel(){return true}
+const errMsg=e=>/function|does not exist|schema cache|relation/i.test((e&&e.message)||"")?"서버에 여정 SQL(supabase-journey-1.sql)을 먼저 실행해 주세요":((e&&e.message)||"서버 오류");
+authInit();
+</script>
+</body>
+</html>
