@@ -581,8 +581,8 @@ document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v,val=id=>(document.getElementById(id)||{}).value||'';
   const A={
     reload:()=>location.reload(),
-    login:()=>{if(!sb){toast('로그인은 upvible.github.io 주소에서만 동작해요');return}sb.auth.signInWithOAuth({provider:v,options:{redirectTo:BASE+'journey.html'+(S.code?'?code='+encodeURIComponent(S.code):'')}}).then(r=>{if(r.error)toast('로그인을 시작하지 못했어요: '+r.error.message)})},
-    logout:async()=>{if(DEMO){S.scr='code';render();return}await sb.auth.signOut();location.href=BASE+'journey.html'},
+    login:()=>{if(!sb){toast('로그인은 upvible.github.io 주소에서만 동작해요');return}sb.auth.signInWithOAuth({provider:v,options:{redirectTo:BASE+'index.html'+(S.code?'?code='+encodeURIComponent(S.code):'')}}).then(r=>{if(r.error)toast('로그인을 시작하지 못했어요: '+r.error.message)})},
+    logout:async()=>{if(DEMO){S.scr='code';render();return}await sb.auth.signOut();location.href=BASE+'index.html'},
     redeem,
     closeJoined:()=>{S.scr='launch';render()},
     openStage:()=>{S.view=+v;S.ui={pex:recentExNames()[0]||''};S.scr='home';render();window.scrollTo(0,0)},
