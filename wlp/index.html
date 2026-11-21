@@ -210,10 +210,10 @@ async function boot(){
 async function loadMe(){
   const r=await sb.rpc('wlp_me');
   if(r.error){S.scr='err';S.err=sbErr(r.error);render();return}
-  S.role=(r.data&&r.data.role)||'member';S.staffName=r.data&&r.data.staff_name;S.centerExists=r.data&&r.data.center_exists;
+  S.role=(r.data&&r.data.role)||'member';S.staffName=r.data&&r.data.staff_name;S.title=r.data&&r.data.title;S.isOwner=r.data&&r.data.is_owner;S.centerExists=r.data&&r.data.center_exists;S.req=r.data&&r.data.request;
   S.stage=r.data&&r.data.stage||null;S.approved=(r.data&&r.data.approved)||[];
   if(isStaff())loadCasesBadge();
-  if(!S.stage){S.scr=isStaff()?'launch':'code';render();if(S.code&&!isStaff())redeem();return}
+  if(!S.stage){S.scr=isStaff()?'launch':(S.req&&S.req.status==='대기'?'pending':'code');render();if(S.code&&!isStaff()&&S.scr==='code')redeem();return}
   try{localStorage.removeItem('wlp-code')}catch(e){}
   S.scr='launch';render();loadMemberData();
 }
@@ -273,11 +273,11 @@ function activeDates(){const s=new Set();S.sessions.forEach(x=>s.add(x.session_d
 /* ===== 화면: 공통 ===== */
 function demoBar(){
   if(!DEMO)return '';
-  return `<div class="demo">시험 모드(서버 저장 안 함) · 내 여정 ${[1,2,3,4,5].map(n=>`<button data-a="demoStage" data-v="${n}" class="${S.stage===n?'on':''}">${n}</button>`).join('')} <button data-a="demoCode">코드 입력 화면</button> <button data-a="goTrainer">M</button></div>`;
+  return `<div class="demo">시험 모드(서버 저장 안 함) · 내 여정 ${[1,2,3,4,5].map(n=>`<button data-a="demoStage" data-v="${n}" class="${S.stage===n?'on':''}">${n}</button>`).join('')} <button data-a="demoCode">코드 입력 화면</button> <button data-a="toStaffReq">직원 요청 화면</button> <button data-a="goTrainer">M</button></div>`;
 }
 function render(){
   const a=document.getElementById('app');
-  const f={boot:vBoot,login:vLogin,code:vCode,joined:vLaunch,launch:vLaunch,home:vHome,trainer:vTrainer,err:vErr}[S.scr]||vBoot;
+  const f={boot:vBoot,login:vLogin,code:vCode,staffReq:vStaffReq,pending:vPending,joined:vLaunch,launch:vLaunch,home:vHome,trainer:vTrainer,err:vErr}[S.scr]||vBoot;
   a.innerHTML=demoBar()+f();
 }
 const vBoot=()=>`<div class="dark" style="display:flex;align-items:center;justify-content:center"><span style="color:var(--dm)">불러오는 중…</span></div>`;
@@ -299,7 +299,27 @@ function vCode(){
   <input id="code" type="text" autocomplete="off" autocapitalize="characters" value="${esc(S.code)}" style="margin-top:6px;min-height:56px;border-radius:14px;border:1.5px solid ${S.codeMsg?'#F4A79B':'#4A3F34'};background:#25201A;color:#F5EFE6;font-size:22px;font-weight:800;letter-spacing:.08em;text-align:center">
   <button class="btn" style="margin-top:12px;min-height:52px;background:#F0B85C;color:#1C1712;font-size:16px" data-a="redeem" ${S.busy?'disabled':''}>${S.busy?'확인 중…':'확인'}</button>
   ${S.codeMsg?`<p style="margin:12px 0 0;font-size:13px;color:#F4A79B;text-align:center;line-height:1.5">${esc(S.codeMsg)}</p>`:''}
-  <p style="margin:16px 0 0;font-size:12px;color:var(--dm2);text-align:center">트레이너·센터 직원도 받은 직원 코드를 여기에 입력해요.</p><div style="flex:1"></div><div class="row" style="justify-content:space-between;margin-top:40px"><button class="link" style="color:var(--dm2)" data-a="logout">로그아웃</button>${S.centerExists===false?'<a href="./center.html" style="color:var(--dm2);font-size:12px">센터 관리자 첫 등록</a>':''}</div></div>`;
+  <button class="btn ghost" style="margin-top:20px;background:transparent;color:#F5EFE6;border-color:#4A3F34" data-a="toStaffReq">센터 직원이에요 (점장·부점장·트레이너) → 직원 승인 요청</button>${S.req&&S.req.status==='거절'?`<p style="margin:8px 0 0;font-size:12px;color:#F4A79B;text-align:center">지난 직원 요청이 거절됐어요${S.req.note?': '+esc(S.req.note):''}. 다시 요청할 수 있어요.</p>`:''}<div style="flex:1"></div><div class="row" style="justify-content:space-between;margin-top:40px"><button class="link" style="color:var(--dm2)" data-a="logout">로그아웃</button>${S.centerExists===false?'<a href="./center.html" style="color:var(--dm2);font-size:12px">센터 관리자 첫 등록</a>':''}</div></div>`;
+}
+function vStaffReq(){
+  const u=S.ui;
+  return `<div class="dark" style="padding:0 24px 30px;display:flex;flex-direction:column;gap:10px">
+  <div style="margin-top:48px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">${logo('#F0B85C',48)}
+  <p style="margin:8px 0 0;font-size:20px;font-weight:900">직원 승인 요청</p><p style="margin:0;font-size:12px;color:var(--dm);line-height:1.6">요청을 보내면 센터 화면에서 승인해요.<br>점장·부점장은 총관리자가 승인하고, 승인되면 총관리자 권한도 함께 받아요.</p></div>
+  <label for="sname" style="font-size:12px;color:var(--dm);margin-top:16px">이름</label><input id="sname" type="text" placeholder="예: 김민수" value="${esc(u.sname||'')}">
+  <label for="sphone" style="font-size:12px;color:var(--dm)">휴대폰 번호</label><input id="sphone" type="text" inputmode="tel" placeholder="010-0000-0000" value="${esc(u.sphone||'')}">
+  <span style="font-size:12px;color:var(--dm)">직책</span><div class="row">${['점장','부점장','트레이너'].map(x=>`<button class="chip${u.stitle===x?' on':''}" style="flex:1" data-a="ui" data-k="stitle" data-v="${x}">${x}</button>`).join('')}</div>
+  ${S.centerExists===false?`<p style="margin:0;font-size:12px;color:#F0B85C">아직 첫 총관리자 등록 전이에요. 총관리자는 <a href="./center.html" style="color:#F0B85C">센터 화면</a>에서 '첫 총관리자 등록'을 먼저 해 주세요.</p>`:''}
+  <button class="btn" style="margin-top:8px;min-height:52px;background:#F0B85C;color:#1C1712" data-a="sendStaffReq" ${u.stitle?'':'disabled'}>승인 요청 보내기</button>
+  <button class="link" style="color:var(--dm2)" data-a="toCode">◀ 회원 코드 입력으로</button></div>`;
+}
+function vPending(){
+  const r=S.req||{};
+  return `<div class="dark" style="padding:0 24px 30px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+  <div style="margin-top:72px">${logo('#F0B85C',52)}</div><p style="margin:8px 0 0;font-size:20px;font-weight:900">승인 대기 중이에요</p>
+  <p style="margin:0;font-size:13px;color:var(--dm);line-height:1.6">${esc(r.name||'')} · ${esc(r.title||'')}<br>${r.title==='트레이너'?'점장·부점장':'총관리자'}이 센터 화면에서 승인하면 바로 쓸 수 있어요.</p>
+  <button class="btn" style="margin-top:16px;min-width:220px;background:#F0B85C;color:#1C1712" data-a="reload">승인됐는지 확인</button>
+  <button class="link" style="color:var(--dm2)" data-a="logout">로그아웃</button></div>`;
 }
 function vLaunch(){
   const st=S.stage;
@@ -315,7 +335,7 @@ function vLaunch(){
       <span style="display:flex;flex-direction:column;gap:2px;${right?'align-items:flex-end':''}"><span style="font-size:${isCur?16:14}px;font-weight:${isCur?900:700};color:${open?'#F5EFE6':'#8F8476'}">여정 ${n} · ${J[n].name}</span>
       <span style="font-size:11px;color:${open?'#B9AE9F':'#8F8476'}">${open?J[n].sub:'트레이너·센터 승인 시 열려요'}</span>${badge}</span></button>`}).join('');
   const toastJoined=S.scr==='joined'?`<div style="margin:0 16px;border-radius:16px;background:#F0B85C;color:#1C1712;padding:14px 16px;display:flex;align-items:center;gap:12px"><div style="flex:1"><b style="font-size:15px">첫 여정이 열렸어요</b><div style="font-size:12px">“${J[st].name}”를 눌러 시작해 보세요. 다음 여정은 트레이너와 함께 열려요.</div></div><button data-a="closeJoined" aria-label="닫기" style="width:44px;height:44px;border-radius:12px;border:0;background:rgba(28,23,18,.12);font-size:18px;font-weight:900">×</button></div>`:'';
-  const noStage=!st?`<p style="text-align:center;color:var(--dm);font-size:13px;margin:0 24px">${esc(S.staffName||'')} · 직원 계정이에요. 회원 여정과 OT 배정은 M에서 관리해요.</p>`:'';
+  const noStage=!st?`<p style="text-align:center;color:var(--dm);font-size:13px;margin:0 24px">${esc(S.staffName||'')} ${esc(S.title||'')} · 직원 계정이에요. 회원 여정과 OT 배정은 M에서 관리해요.</p>`:'';
   const otBadge=isStaff()&&S.newCases?`<button data-a="goTrainerOt" style="margin:12px 16px 0;border:0;border-radius:16px;background:#F0B85C;color:#1C1712;padding:14px 16px;font-weight:800;font-size:14px;text-align:left">새 OT 배정 ${S.newCases}건 · 회원 정보 확인 후 스케줄을 조율해 주세요 ▸</button>`:'';
   return `<div class="dark" style="display:flex;flex-direction:column">
   <div style="padding:30px 24px 0;display:flex;flex-direction:column;align-items:center;gap:6px">${logo()}<span style="font-size:22px;font-weight:900;letter-spacing:.06em">WLP</span><span style="font-size:13px;color:var(--dm)">${isStaff()&&!st?'직원 계정':'회원님의 여정'}</span></div>
@@ -437,7 +457,7 @@ async function loadDetail(id){
 }
 function vTrainer(){
   const t=S.tr;
-  const head=`<div class="tbar"><div class="row" style="justify-content:space-between"><b style="font-size:15px">WLP 관리 · ${esc(S.staffName||'')}</b><button class="link" style="color:#E8E1D6" data-a="toMap">여정 지도 ▸</button></div>
+  const head=`<div class="tbar"><div class="row" style="justify-content:space-between"><b style="font-size:15px">WLP 관리 · ${esc(S.staffName||'')} ${esc(S.title||'')}</b><button class="link" style="color:#E8E1D6" data-a="toMap">여정 지도 ▸</button></div>
   <div class="tabs"><button class="tab${t.tab==='ot'?' on':''}" data-a="trTab" data-v="ot">OT 배정${S.newCases?' '+S.newCases:''}</button><button class="tab${t.tab==='members'?' on':''}" data-a="trTab" data-v="members">회원</button><button class="tab${t.tab==='codes'?' on':''}" data-a="trTab" data-v="codes">가입 코드</button></div></div>`;
   const links=`<div class="row"><a class="btn" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--ok)" href="./ot.html">OT 판정 · 코드 발급</a><a class="btn ghost" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="${S.role==='center'?'./center.html':(LEGACY?RUNE:'./center.html')}">${S.role==='center'?'센터 화면':(LEGACY?'룬 PT 기록 앱':'센터 화면')}</a></div>`;
   if(t.err)return head+`<div class="wrap"><div class="card"><p class="sub">${esc(t.err)}</p></div>${links}</div>`;
@@ -556,6 +576,7 @@ async function trAddFb(row){
 /* ===== 이벤트 ===== */
 document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.in;if(k==='trq'){S.tr.q=e.target.value;const p=e.target.selectionStart;render();const el=document.getElementById('trq');if(el){el.focus();el.setSelectionRange(p,p)}}if(k==='tex')S.tr.ui.ex=e.target.value;if(k==='otAt'){S.tr.ropt=e.target.value;const b=document.querySelector('[data-a=sendReply]');if(b)b.disabled=!e.target.value.trim()}});
 document.addEventListener('change',e=>{if(e.target.id==='pex')S.ui.pex=e.target.value});
+document.addEventListener('input',e=>{if(e.target.id==='sname'||e.target.id==='sphone')S.ui[e.target.id]=e.target.value});
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v,val=id=>(document.getElementById(id)||{}).value||'';
   const A={
@@ -603,6 +624,13 @@ document.addEventListener('click',async e=>{
         S.newCases=t.cases.filter(x=>x.status==='응답 대기').length;t.openCase=t.rk==='done'?t.openCase:null;t.rk=null;render();toast('시험 모드: 화면에만 반영했어요');return}
       const r=await sb.rpc('wlp_respond',{p_case:t.openCase,p_kind:t.rk,p_note:note||null});if(r.error){toast(sbErr(r.error));return}
       toast('센터로 보냈어요');const keep=t.rk==='done';t.rk=null;t.ropt=null;if(!keep)t.openCase=null;await loadTrainer()},
+    toStaffReq:()=>{S.scr='staffReq';render()},
+    toCode:()=>{S.scr='code';render()},
+    sendStaffReq:async()=>{const n=val('sname').trim(),ph=val('sphone').trim(),ti=S.ui.stitle;if(!n){toast('이름을 적어 주세요');return}
+      if(DEMO){S.req={status:'대기',name:n,title:ti};S.scr='pending';render();return}
+      const r=await sb.rpc('wlp_request_staff',{p_name:n,p_phone:ph,p_title:ti});if(r.error){toast(sbErr(r.error));return}
+      const d=r.data||{};if(!d.ok){toast({already:'이미 직원으로 등록된 계정이에요',name:'이름을 적어 주세요',login:'먼저 로그인해 주세요'}[d.reason]||'보내지 못했어요');if(d.reason==='already')location.reload();return}
+      S.req={status:'대기',name:n,title:ti};S.scr='pending';render()},
     noop:()=>{}
   };
   if(A[a]){e.preventDefault();await A[a]()}

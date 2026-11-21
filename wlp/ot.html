@@ -446,7 +446,7 @@ function result(){
   const row=h("div",{style:"margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"});
   const cp=h("button",{class:"btn",type:"button"},"결과 요약 복사");const ok=h("span",{class:"copyok"},"");
   cp.onclick=async()=>{const txt=`[OT 위치 판정] ${S.name||"회원"}\n3축 유형: ${tp.n} (도전 ${A.C.toFixed(1)} / 기술 ${A.Sk.toFixed(1)} / 투자 의지 ${A.I.toFixed(1)})\n마음 상태: ${zone}\n변화 단계: ${st.name} → 시작 구간: ${J.name}\n중요도 ${S.imp} · 자신감 ${S.conf} · 변화 대화 ${S.ct} / 유지 대화 ${S.st}\n${notes.join("\n")}\n유형 처방: ${tp.rx}\n주의: ${tp.warn}\n등록 대화: ${tp.reg}\n6주 실험: ${W6[tp.k].plan}\n세트 조정: ${ZRX[zone]}\n회원이 고른 방향: ${S.dir.join(", ")}\n첫 초점: ${S.focus||"-"}\n다음 약속: ${NX[S.next]}\n[의학] ${MM.med||"-"}\n[체성분] ${MM.body||"-"}\n[니즈] ${MM.need||"-"}\n첫 세션: ${J.session}\n피할 것: ${J.avoid}`;try{await navigator.clipboard.writeText(txt);ok.textContent="복사했어요"}catch(e){ok.textContent="복사가 막혀 있어요. 화면을 길게 눌러 복사해 주세요"}};
-  const rs=h("button",{class:"btn",type:"button"},"새 회원 시작");rs.onclick=()=>{Object.assign(S,{name:"",origin:null,reasons:[],q1:null,q11:null,q2:null,q3:null,imp:null,conf:null,burden:null,exp:null,diff:null,can:null,obs:[],ct:0,st:0,pri:null,time:null,cost:"none",dir:[],focus:"",next:"none"});INV={stage:null,code:null,exp:null,err:"",busy:false,link:""};["mMed","mBody","mNeed"].forEach(id=>document.getElementById(id).value="");cur=0;render();window.scrollTo(0,0)};
+  const rs=h("button",{class:"btn",type:"button"},"새 회원 시작");rs.onclick=()=>{Object.assign(S,{name:"",origin:null,reasons:[],q1:null,q11:null,q2:null,q3:null,imp:null,conf:null,burden:null,exp:null,diff:null,can:null,obs:[],ct:0,st:0,pri:null,time:null,cost:"none",dir:[],focus:"",next:"none"});INV={stage:null,code:null,exp:null,err:"",busy:false,link:"",otId:null,saved:"",savedAt:""};["mMed","mBody","mNeed"].forEach(id=>document.getElementById(id).value="");cur=0;render();window.scrollTo(0,0)};
   row.appendChild(cp);row.appendChild(rs);row.appendChild(ok);c.appendChild(row);
   return c;
 }
@@ -496,7 +496,7 @@ const BASE=location.origin+location.pathname.replace(/[^/]*$/,'');
 const OQ=new URLSearchParams(location.search),CASE_ID=OQ.get('case')?+OQ.get('case'):null;
 const JN=[null,'몸 풀기','재미 찾기','첫 몰입','일상','나만의 무대'];
 let sb=null,ME={uid:null,role:null};
-let INV={stage:null,code:null,exp:null,err:"",busy:false,link:""};
+let INV={stage:null,code:null,exp:null,err:"",busy:false,link:"",otId:null,saved:"",savedAt:""};
 async function authInit(){
   const bar=document.getElementById("authbar");
   if(OQ.get('name')&&!S.name){S.name=OQ.get('name');render()}
@@ -510,10 +510,22 @@ async function authInit(){
   const staff=ME.role==="trainer"||ME.role==="center";
   bar.innerHTML=staff?`WLP 직원 로그인됨 · ${ME.name||""}${CASE_ID?' · OT 접수 건 #'+CASE_ID+' 과 연결해 발급':''} · <a href="./index.html">WLP 앱(M)</a>`:'직원 계정이 아니라서 코드를 발급할 수 없어요 · <a href="./index.html">WLP 앱</a>';
 }
+function otPayload(start,tp,A,zone,st,MM,notes){return {zone,stageName:st.name,stageNo:st.n,start,chosen:INV.stage,changed:INV.stage!==start,axes:{C:+A.C.toFixed(2),S:+A.Sk.toFixed(2),I:+A.I.toFixed(2)},
+  imp:S.imp,conf:S.conf,ct:S.ct,st:S.st,reasons:S.reasons,dir:S.dir,focus:S.focus,next:S.next,notes,memo:MM}}
+async function autoSave(pl,tp){
+  if(!sb||!(ME.role==="trainer"||ME.role==="center")||INV.code)return;
+  const key=JSON.stringify([S.name,INV.stage,pl]);if(key===INV.saved)return;INV.saved=key;
+  const r=await sb.rpc("wlp_save_ot",{p_id:INV.otId,p_case:CASE_ID,p_name:S.name||"회원",p_stage:INV.stage,p_type_key:tp.k,p_type_name:tp.n,p_result:pl});
+  const el=document.getElementById("otsave");
+  if(r.error){INV.saved="";if(el)el.textContent="서버 저장 실패: "+errMsg(r.error);return}
+  INV.otId=r.data;INV.savedAt=new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});if(el)el.textContent=`판정 결과 서버 저장됨 · #${INV.otId} · ${INV.savedAt}`;
+}
 function inviteCard(start,tp,A,zone,st,MM,notes){
   if(INV.stage===null)INV.stage=start;
+  const pl0=otPayload(start,tp,A,zone,st,MM,notes);setTimeout(()=>autoSave(pl0,tp),0);
   const box=h("div",{class:"inv"});
   box.appendChild(h("h3",{style:"margin:0 0 4px"},"가입 코드 발급"));
+  box.appendChild(h("p",{class:"hint",id:"otsave",style:"margin:0 0 6px;font-weight:700"},!sb?"시험 모드: 서버에 저장되지 않아요":(ME.role==="trainer"||ME.role==="center")?(INV.otId?`판정 결과 서버 저장됨 · #${INV.otId} · ${INV.savedAt}`:"판정 결과 서버에 저장하는 중…"):"직원 로그인 전이라 판정 결과가 서버에 저장되지 않아요 (맨 위 로그인)"));
   box.appendChild(h("p",{class:"hint",style:"margin:0"},`판정 시작 구간은 여정 ${start}(${JN[start]})이에요. 트레이너가 바꿀 수 있고, 바꾸면 사유가 판정 기록에 남아요. 회원에게는 여정 이름만 보이고 유형·마음 상태·메모는 보이지 않아요.`));
   const sg=h("div",{class:"stg"});
   [1,2,3,4,5].forEach(n=>{const b=h("button",{type:"button","aria-pressed":INV.stage===n},String(n));b.onclick=()=>{if(INV.code)return;INV.stage=n;render()};sg.appendChild(b)});
@@ -538,9 +550,8 @@ function inviteCard(start,tp,A,zone,st,MM,notes){
     b.onclick=async()=>{
       if(!sb||!(ME.role==="trainer"||ME.role==="center")){INV.err=sb?"WLP 직원 계정으로 로그인해야 발급할 수 있어요 (맨 위 로그인 줄)":"시험 모드에서는 발급할 수 없어요. 배포 주소에서 열어 주세요";render();return}
       INV.busy=true;INV.err="";render();
-      const payload={zone,stageName:st.name,stageNo:st.n,start,chosen:INV.stage,changed:INV.stage!==start,axes:{C:+A.C.toFixed(2),S:+A.Sk.toFixed(2),I:+A.I.toFixed(2)},
-        imp:S.imp,conf:S.conf,ct:S.ct,st:S.st,reasons:S.reasons,dir:S.dir,focus:S.focus,next:S.next,notes,memo:MM,at:new Date().toISOString()};
-      const r=await sb.rpc("wlp_issue_member_code",{p_stage:INV.stage,p_name:S.name||"회원",p_result:payload,p_type_key:tp.k,p_type_name:tp.n,p_case:CASE_ID});
+      const payload=Object.assign(otPayload(start,tp,A,zone,st,MM,notes),{at:new Date().toISOString()});
+      const r=await sb.rpc("wlp_issue_member_code",{p_stage:INV.stage,p_name:S.name||"회원",p_result:payload,p_type_key:tp.k,p_type_name:tp.n,p_case:CASE_ID,p_ot:INV.otId});
       INV.busy=false;
       if(r.error){INV.err=errMsg(r.error);render();return}
       INV.code=r.data.code;INV.exp=r.data.expires_at;INV.link=BASE+"index.html?code="+encodeURIComponent(INV.code);render();

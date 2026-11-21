@@ -214,7 +214,7 @@ document.addEventListener('click',async e=>{
   else if(act==='next'){if(!answered(q,a))return;if(i===L.length-1)submit();else{S.i=i+1;render();window.scrollTo(0,0)}}
   else if(act==='back'){S.i=Math.max(0,i-1);render()}
   else if(act==='consult'){S.consult=!S.consult;render();if(sb&&S.token&&S.token!=='demo')sb.rpc('wlp_set_consult',{p_token:S.token,p_on:S.consult})}
-  else if(act==='unlock'){if(S.pin===STAFF_PIN){S.open=true;S.err='';await checkRole()}else S.err='번호가 맞지 않아요';render()}
+  else if(act==='unlock'){let ok=false;if(DEMO)ok=S.pin===STAFF_PIN;else{const r=await sb.rpc('wlp_check_pin',{p_pin:S.pin});ok=!r.error&&r.data===true}if(ok){S.open=true;S.err='';await checkRole()}else S.err='번호가 맞지 않아요';render()}
   else if(act==='lock'){S.open=false;render()}
   else if(act==='register'){if(DEMO){S.regDone=true;render();return}const r=await sb.rpc('wlp_lead_register',{p_id:S.leadId,p_med:null});if(r.error)alertMsg(r.error.message);else{S.regDone=true;render()}}
   else if(act==='restart'){Object.assign(S,{i:0,a:blank(),done:false,r:null,token:null,leadId:null,err:'',open:false,pin:'',consult:false,regDone:false});render();window.scrollTo(0,0)}

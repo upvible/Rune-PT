@@ -111,7 +111,7 @@ const MSG={'100':'[WLP] {n}님, 지난번 설문 감사했어요. 힘든 건 빼
  '110':'[WLP] {n}님, 오시기 편한 요일 하나만 알려 주시면 그 요일 기준으로 첫 플랜을 짜 드려요.',
  '011':'[WLP] {n}님, 지금 꾸준함 위에 새로 배울 기술 하나를 보여 드리고 싶어요.',
  '111':'[WLP] {n}님, 직접 목표를 설계하실 수 있게 분기 플랜 틀을 보내 드릴게요.'};
-const S={scr:'boot',tab:'leads',me:null,leads:[],ev:{},cases:[],staff:[],codes:[],selL:null,selC:null,pickT:null,lf:'전체',err:''};
+const S={scr:'boot',tab:'leads',me:null,leads:[],ev:{},cases:[],staff:[],codes:[],reqs:[],selL:null,selC:null,pickT:null,lf:'전체',err:''};
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
 const errText=e=>/function|does not exist|schema cache|relation/i.test((e&&e.message)||'')?'서버에 wlp-schema-1.sql 을 먼저 실행해 주세요':((e&&e.message)||'서버 오류');
 const kst=d=>new Date(new Date(d).getTime()+9*3600e3).toISOString();
@@ -123,11 +123,12 @@ const staffName=id=>(S.staff.find(x=>x.user_id===id)||{}).name||'-';
 
 /* ===== 시험 모드 데이터 ===== */
 function demo(){
-  S.me={role:'center',staff_name:'센터 관리자'};
+  S.me={role:'center',staff_name:'개발 담당',title:'총괄 관리자',is_owner:true,uid:'c0'};
   const P=[['김OO','100','연락함',false,true],['이OO','101','상담 예약',true,true],['박OO','010','신규',false,false],['최OO','001','등록',true,true],['정OO','000','보류',false,false],['강OO','110','신규',false,true],['조OO','011','연락함',false,true],['윤OO','100','수신 거부',false,false],['장OO','001','등록',true,true],['임OO','111','신규',false,true]];
   S.leads=P.map((p,i)=>({id:i+1,token:'demo'+i,name:p[0],phone:'0102000'+(1000+i),source:i%2?'tablet':'qr',status:p[2],consult:p[3],consent_marketing:p[4],consent_contact:true,created_at:new Date(Date.now()-(20-i*2)*864e5).toISOString(),
     result:{k:p[1],start:[1,2,2,3,1,2,3,1,3,4][i]},answers:{days:['월','수'],slots:['저녁'],hard:['시간이 없어요'],dir:['근력'],want:['체력을 키우고 싶어요']}}));
-  S.staff=[{user_id:'t1',role:'trainer',name:'김T',active:true},{user_id:'t2',role:'trainer',name:'이T',active:true},{user_id:'t3',role:'trainer',name:'박T',active:true},{user_id:'c1',role:'center',name:'센터 관리자',active:true}];
+  S.staff=[{user_id:'c0',role:'center',name:'개발 담당',title:'총괄 관리자',is_owner:true,active:true},{user_id:'c1',role:'center',name:'홍길동',title:'점장',is_owner:true,active:true},{user_id:'t1',role:'trainer',name:'김T',title:'트레이너',active:true},{user_id:'t2',role:'trainer',name:'이T',title:'트레이너',active:true},{user_id:'t3',role:'trainer',name:'박T',title:'트레이너',active:true}];
+  S.reqs=[{id:1,user_id:'c2',name:'최OO',phone:'01011112222',want_role:'center',title:'부점장',status:'대기',created_at:new Date().toISOString()},{id:2,user_id:'t4',name:'정T',phone:'01033334444',want_role:'trainer',title:'트레이너',status:'대기',created_at:new Date().toISOString()},{id:3,user_id:'t5',name:'한T',phone:'01055556666',want_role:'trainer',title:'트레이너',status:'대기',created_at:new Date().toISOString()}];
   S.cases=[{id:1,lead_id:4,name:'최OO',phone:'01020001003',status:'미배정',trainer_id:null,returned_by:[],result:{k:'001',start:3},answers:{days:['월','목'],slots:['저녁'],dir:['체지방·체중']},med_memo:'',events:[{action:'OT 접수',at:new Date().toISOString()}]},
     {id:2,lead_id:9,name:'장OO',phone:'01020001008',status:'응답 대기',trainer_id:'t2',assigned_at:new Date(Date.now()-30*3600e3).toISOString(),returned_by:[],result:{k:'001',start:3},answers:{days:['화','금'],slots:['점심'],dir:['운동 습관 만들기']},med_memo:'허리 디스크 진단(2023)',events:[]},
     {id:3,lead_id:null,name:'문OO',phone:'01099990000',status:'재배정 요청',trainer_id:null,returned_by:['t3'],reply:'재배정 요청 · 시간이 안 맞음',result:{k:'100',start:1},answers:{days:['토'],slots:['오후']},med_memo:'',events:[]}];
@@ -140,15 +141,15 @@ async function boot(){
   const {data}=await sb.auth.getSession();
   if(!data||!data.session){S.scr='login';render();return}
   const r=await sb.rpc('wlp_me');if(r.error){S.scr='err';S.err=errText(r.error);render();return}
-  S.me=r.data;
+  S.me=r.data;S.me.uid=data.session.user.id;
   if(S.me.role!=='center'){S.scr=S.me.center_exists?'deny':'bootstrap';render();return}
   S.scr='app';render();loadAll();
 }
 async function loadAll(){
   if(DEMO){render();return}
-  const [l,c,s,k]=await Promise.all([sb.from('wlp_leads').select('*').order('created_at',{ascending:false}).limit(500),sb.rpc('wlp_cases'),sb.rpc('wlp_staff_list'),sb.rpc('wlp_my_codes')]);
+  const [l,c,s,k,q]=await Promise.all([sb.from('wlp_leads').select('*').order('created_at',{ascending:false}).limit(500),sb.rpc('wlp_cases'),sb.rpc('wlp_staff_list'),sb.rpc('wlp_my_codes'),sb.rpc('wlp_staff_requests_list')]);
   if(l.error){toast(errText(l.error));return}
-  S.leads=l.data||[];S.cases=c.data||[];S.staff=s.data||[];S.codes=k.data||[];render();
+  S.leads=l.data||[];S.cases=c.data||[];S.staff=s.data||[];S.codes=k.data||[];S.reqs=q.error?[]:(q.data||[]);render();
 }
 async function loadEvents(id){if(DEMO){S.ev[id]=S.ev[id]||[{action:'설문 제출',created_at:new Date().toISOString()}];render();return}
   const r=await sb.from('wlp_lead_events').select('*').eq('lead_id',id).order('created_at');S.ev[id]=r.data||[];render()}
@@ -165,10 +166,10 @@ function render(){
   if(S.scr==='boot'){app.innerHTML='<p class="center sub">불러오는 중…</p>';return}
   if(S.scr==='login'){app.innerHTML=`<div class="center"><b style="font-size:24px;color:#B45309;letter-spacing:.06em">WLP</b><p class="sub">센터 관리자 로그인</p><button class="btn" style="background:#FEE500;color:#191600" data-a="login" data-v="kakao">카카오로 로그인</button><button class="btn g" data-a="login" data-v="google">구글로 로그인</button></div>`;return}
   if(S.scr==='err'){app.innerHTML=`<div class="center"><p class="h">연결 문제</p><p class="sub">${esc(S.err)}</p></div>`;return}
-  if(S.scr==='deny'){app.innerHTML=`<div class="center"><p class="h">센터 관리자 계정이 아니에요</p><p class="sub">센터 관리자에게 직원 코드를 받아 <a href="./index.html">WLP 첫 화면</a>에서 입력하거나, 관리자 권한을 요청해 주세요.</p><button class="btn g" data-a="logout">로그아웃</button></div>`;return}
-  if(S.scr==='bootstrap'){app.innerHTML=`<div class="center"><p class="h">첫 센터 관리자 등록</p><p class="sub">아직 센터 관리자가 없어요. 지금 로그인한 계정을 첫 센터 관리자로 등록해요. (한 번만 가능)</p><input id="bn" type="text" placeholder="표시할 이름 (예: 센터장 홍길동)"><button class="btn" data-a="bootstrap">이 계정을 센터 관리자로</button></div>`;return}
-  const tabs=`<div class="tabs">${[['leads','잠재회원'],['cases','OT 배정'],['staff','직원·코드']].map(([k,l])=>`<button class="tab${S.tab===k?' on':''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
-  app.innerHTML=d+`<div class="top"><b>WLP</b><span style="font-size:12px;color:#B9AE9F">센터 관리자 · ${esc(S.me&&S.me.staff_name)}</span><span class="sp"></span>${tabs}<a href="./survey.html?mode=tablet" style="color:#F0B85C;font-size:12px">태블릿 설문</a><a href="./index.html" style="color:#F0B85C;font-size:12px">WLP 앱</a></div><div class="wrap">${S.tab==='leads'?vLeads():S.tab==='cases'?vCases():vStaff()}</div>`;
+  if(S.scr==='deny'){app.innerHTML=`<div class="center"><p class="h">센터 관리자(점장·부점장) 계정이 아니에요</p><p class="sub"><a href="./index.html">WLP 앱</a>에서 '직원 승인 요청'을 보내고 총관리자 승인을 기다려 주세요. 트레이너는 WLP 앱의 M에서 일해요.</p><button class="btn g" data-a="logout">로그아웃</button></div>`;return}
+  if(S.scr==='bootstrap'){app.innerHTML=`<div class="center"><p class="h">첫 총관리자 등록</p><p class="sub">아직 총관리자가 없어요. 지금 로그인한 계정을 첫 총관리자로 등록해요(한 번만). 점장님·부점장님은 그다음에 WLP 앱에서 직원 승인 요청을 보내면, 승인할 때 총관리자 권한이 함께 붙어요.</p><input id="bn" type="text" placeholder="이름"><input id="bt" type="text" placeholder="직책 (예: 총괄 관리자)" value="총괄 관리자"><button class="btn" data-a="bootstrap">이 계정을 총관리자로 등록</button></div>`;return}
+  const tabs=`<div class="tabs">${[['leads','잠재회원'],['cases','OT 배정'],['staff','직원 승인'+(S.reqs.filter(r=>r.status==='대기').length?' '+S.reqs.filter(r=>r.status==='대기').length:'')]].map(([k,l])=>`<button class="tab${S.tab===k?' on':''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  app.innerHTML=d+`<div class="top"><b>WLP</b><span style="font-size:12px;color:#B9AE9F">${esc(S.me&&S.me.title||'센터 관리자')} · ${esc(S.me&&S.me.staff_name)}${S.me&&S.me.is_owner?' · 총관리자':''}</span><span class="sp"></span>${tabs}<a href="./survey.html?mode=tablet" style="color:#F0B85C;font-size:12px">태블릿 설문</a><a href="./index.html" style="color:#F0B85C;font-size:12px">WLP 앱</a></div><div class="wrap">${S.tab==='leads'?vLeads():S.tab==='cases'?vCases():vStaff()}</div>`;
 }
 function vLeads(){
   const now=kst(Date.now()).slice(0,7),m=S.leads.filter(l=>kst(l.created_at).slice(0,7)===now),reg=m.filter(l=>l.status==='등록').length;
@@ -214,13 +215,32 @@ function vCases(){
   return `<div class="board">${board}</div><div class="two"><div class="main"><div class="card"><p class="h">트레이너별 진행</p><table><tr><th>트레이너</th><th>응답 대기</th><th>연락 중</th><th>조율 완료</th><th>가입 완료</th><th>반송</th></tr>${stats}</table><p class="sub">가입 완료(코드로 가입까지 끝난 회원) ${joined}명은 현황판에서 빠져요.</p></div></div><div class="side">${side}</div></div>`;
 }
 function vStaff(){
-  return `<div class="two"><div class="main"><div class="card"><p class="h">직원</p><table><tr><th>이름</th><th>역할</th><th>상태</th></tr>${S.staff.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.role==='center'?'센터 관리자':'트레이너'}</td><td>${s.active?'사용 중':'중지'}</td></tr>`).join('')}</table></div>
+  const own=!!(S.me&&S.me.is_owner),pend=S.reqs.filter(r=>r.status==='대기'),done=S.reqs.filter(r=>r.status!=='대기').slice(0,10);
+  const reqRow=r=>{const can=r.want_role!=='center'||own;const adm=r.want_role==='center';return `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.title)}</td><td>${esc(r.phone||'')}</td><td>${md(r.created_at)}</td><td>${can?`<button class="btn" style="min-height:34px" data-a="approve" data-v="${r.id}">승인</button> <button class="btn g" style="min-height:34px" data-a="reject" data-v="${r.id}">거절</button>`:'<span class="sub">총관리자만 승인</span>'}${adm&&can?'<br><span class="sub">승인하면 총관리자 권한도 함께</span>':''}</td></tr>`};
+  const staffRow=s=>{const me=S.me&&S.me.uid===s.user_id,lock=(s.role==='center'||s.is_owner)&&!own;
+    return `<tr style="${s.active?'':'opacity:.5'}"><td><b>${esc(s.name)}</b>${s.is_owner?' <span class="st" style="background:#2B241D;color:#F0B85C">총관리자</span>':''}</td>
+    <td>${lock||me||s.title==='총괄 관리자'?esc(s.title||''):`<select data-ch="title" data-v="${s.user_id}" style="min-height:34px;padding:2px 8px">${['트레이너'].concat(own?['부점장','점장']:[]).map(x=>`<option${x===s.title?' selected':''}>${x}</option>`).join('')}</select>`}</td><td>${esc(s.phone||'')}</td><td>${s.active?'사용 중':'중지'}</td>
+    <td>${lock||me?(me?'<span class="sub">내 계정</span>':''):`<button class="btn g" style="min-height:34px" data-a="toggleStaff" data-v="${s.user_id}">${s.active?'사용 중지':'다시 사용'}</button>`}${own&&!me&&s.role==='center'&&s.active?` <button class="btn g" style="min-height:34px" data-a="toggleAdmin" data-v="${s.user_id}">${s.is_owner?'총관리자 빼기':'총관리자 주기'}</button>`:''}</td></tr>`};
+  return `<div class="two"><div class="main">
+  <div class="card" style="border:1.5px solid #B45309"><p class="h">승인 대기 ${pend.length}명</p><p class="sub">직원이 WLP 앱에서 카카오 로그인 → '직원 승인 요청'을 보내면 여기에 떠요. 트레이너는 센터 관리자 누구나, 점장·부점장은 총관리자만 승인해요.</p>
+  ${pend.length?`<table><tr><th>이름</th><th>직책</th><th>연락처</th><th>요청일</th><th></th></tr>${pend.map(reqRow).join('')}</table>`:'<p class="sub">대기 중인 요청이 없어요.</p>'}</div>
+  <div class="card"><p class="h">직원 ${S.staff.filter(s=>s.active).length}명</p><table><tr><th>이름</th><th>직책</th><th>연락처</th><th>상태</th><th></th></tr>${S.staff.map(staffRow).join('')}</table>
+  <p class="sub">사용 중지하면 그 계정은 바로 직원 기능을 못 써요(기록은 남아요). 총관리자는 여러 명 둘 수 있고, 마지막 한 명은 빼거나 중지할 수 없어요. 내 계정은 스스로 중지할 수 없어요.</p></div>
+  ${done.length?`<div class="card"><p class="h">처리한 요청</p>${done.map(r=>`<p class="sub">${md(r.decided_at||r.created_at)} · ${esc(r.name)} ${esc(r.title)} · ${r.status}${r.note?' · '+esc(r.note):''}</p>`).join('')}</div>`:''}
   <div class="card"><p class="h">발급한 코드</p><table><tr><th>코드</th><th>종류</th><th>이름</th><th>상태</th><th></th></tr>${S.codes.map(c=>{const st=c.canceled_at?'취소됨':c.used_at?'사용됨 '+md(c.used_at):new Date(c.expires_at)<new Date()?'만료됨':'대기 · '+md(c.expires_at)+'까지';
     return `<tr><td><b>${esc(c.code)}</b></td><td>${c.kind==='staff'?'직원 ('+(c.staff_role==='center'?'센터':'트레이너')+')':'회원 · 여정 '+c.start_stage}</td><td>${esc(c.name||'')}</td><td>${st}</td><td>${!c.used_at&&!c.canceled_at?`<button class="btn g" style="min-height:32px" data-a="cancelCode" data-v="${esc(c.code)}">취소</button>`:''}</td></tr>`}).join('')}</table></div></div>
-  <div class="side"><div class="card"><p class="h">직원 코드 발급</p><p class="sub">트레이너가 WLP 앱(${BASE}index.html)에 카카오로 로그인한 뒤 이 코드를 입력하면 직원으로 등록돼요. 3일 뒤 만료, 한 번만 쓸 수 있어요.</p>
-  <input id="sn" type="text" placeholder="이름 (예: 김민수 T)"><div class="chips"><button class="ch${(S.srole||'trainer')==='trainer'?' ac':''}" data-a="srole" data-v="trainer">트레이너</button><button class="ch${S.srole==='center'?' ac':''}" data-a="srole" data-v="center">센터 관리자</button></div>
-  <button class="btn" data-a="staffCode">직원 코드 발급</button>${S.lastStaffCode?`<div class="msg">${esc(S.lastStaffCode)}</div>`:''}</div>
-  <div class="card"><p class="h">설문 QR 안내</p><p class="sub">데스크 QR: ${BASE}survey.html<br>센터 태블릿: ${BASE}survey.html?mode=tablet</p><p class="sub">QR을 인쇄할 때는 나중에 서버를 옮겨도 바뀌지 않는 주소(센터 도메인)를 쓰는 걸 권해요.</p></div>
+  <div class="side">
+  <div class="card"><p class="h">직원 접속 안내 (카톡으로 보내기)</p><div class="msg">[WLP] 센터 직원 앱 안내
+1) ${BASE}index.html 접속 (홈 화면에 추가 권장)
+2) 카카오로 로그인
+3) '센터 직원이에요 → 직원 승인 요청' 누르고 이름·직책 입력
+4) 승인되면 오른쪽 아래 M 버튼으로 OT 배정·회원 관리
+${own?'(점장·부점장은 '+BASE+'center.html 에서 센터 관리)':''}</div><button class="btn g" data-a="copyGuide">안내문 복사</button></div>
+  <div class="card"><p class="h">태블릿 직원 화면 번호</p><p class="sub">센터 태블릿 설문 결과에서 직원 화면을 열 때 쓰는 번호예요. 서버에 저장돼요(처음 값 0000).</p><div style="display:flex;gap:6px"><input id="pin" type="text" inputmode="numeric" placeholder="숫자 4~8자리"><button class="btn" data-a="setPin">바꾸기</button></div></div>
+  <div class="card"><p class="h">코드로 바로 등록 (보조)</p><p class="sub">승인 요청 대신 코드를 주고 싶을 때. 받은 사람이 WLP 앱 코드 입력 화면에 넣으면 바로 직원이 돼요. 3일 뒤 만료.</p>
+  <input id="sn" type="text" placeholder="이름"><div class="chips"><button class="ch${(S.srole||'trainer')==='trainer'?' ac':''}" data-a="srole" data-v="trainer">트레이너</button>${own?`<button class="ch${S.srole==='center'?' ac':''}" data-a="srole" data-v="center">센터 관리자</button>`:''}</div>
+  <button class="btn g" data-a="staffCode">직원 코드 발급</button>${S.lastStaffCode?`<div class="msg">${esc(S.lastStaffCode)}</div>`:''}</div>
+  <div class="card"><p class="h">설문 QR 주소</p><p class="sub">데스크 QR: ${BASE}survey.html<br>센터 태블릿: ${BASE}survey.html?mode=tablet</p></div>
   <div class="card"><p class="h">보관 기간 정리</p><p class="sub">미등록 잠재회원 중 1년 지난 기록을 지워요. 월 1회 권장.</p><button class="btn g" data-a="purge">지금 정리</button></div></div></div>`;
 }
 document.addEventListener('click',async e=>{
@@ -229,7 +249,7 @@ document.addEventListener('click',async e=>{
   switch(a){
    case 'login':sb.auth.signInWithOAuth({provider:v,options:{redirectTo:BASE+'center.html'}});break;
    case 'logout':await sb.auth.signOut();location.reload();break;
-   case 'bootstrap':{const r=await sb.rpc('wlp_bootstrap_center',{p_name:val('bn')});if(r.error)toast(errText(r.error));else if(r.data==='ok')location.reload();else toast('이미 센터 관리자가 있어요');break}
+   case 'bootstrap':{const r=await sb.rpc('wlp_bootstrap_center',{p_name:val('bn'),p_title:val('bt')||'총괄 관리자'});if(r.error)toast(errText(r.error));else if(r.data==='ok')location.reload();else toast('이미 센터 관리자가 있어요');break}
    case 'tab':S.tab=v;render();break;
    case 'lf':S.lf=v;render();break;
    case 'selL':S.selL=+v;if(!S.ev[+v])loadEvents(+v);render();break;
@@ -246,9 +266,17 @@ document.addEventListener('click',async e=>{
      const r=await sb.rpc('wlp_issue_staff_code',{p_role:S.srole||'trainer',p_name:val('sn').trim()});if(r.error){toast(errText(r.error));break}
      S.lastStaffCode=`[WLP] ${val('sn').trim()}님 직원 코드: ${r.data.code}\n${BASE}index.html 에서 카카오 로그인 → 코드 입력 (3일 안)`;await loadAll();break}
    case 'cancelCode':await call('wlp_cancel_code',{p_code:v},()=>{const c=S.codes.find(x=>x.code===v);if(c)c.canceled_at=new Date().toISOString()});break;
+   case 'approve':case 'reject':{const id=+v,ok=a==='approve',note=ok?null:(prompt('거절 사유 (선택)')||null);
+     await call('wlp_decide_staff',{p_req:id,p_approve:ok,p_note:note},()=>{const r=S.reqs.find(x=>x.id===id);r.status=ok?'승인':'거절';r.decided_at=new Date().toISOString();if(ok)S.staff.push({user_id:r.user_id,role:r.want_role,name:r.name,title:r.title,phone:r.phone,is_owner:r.want_role==='center',active:true})});break}
+   case 'toggleStaff':{const s=S.staff.find(x=>x.user_id===v);await call('wlp_set_staff',{p_user:v,p_active:!s.active,p_title:null},()=>{s.active=!s.active});break}
+   case 'toggleAdmin':{const s=S.staff.find(x=>x.user_id===v);if(!confirm(s.is_owner?s.name+'님의 총관리자 권한을 뺄까요?':s.name+'님에게 총관리자 권한을 줄까요? (직원 승인·권한 변경을 모두 할 수 있게 돼요)'))break;
+     await call('wlp_set_admin',{p_user:v,p_on:!s.is_owner},()=>{s.is_owner=!s.is_owner});break}
+   case 'setPin':{const p=val('pin').trim();if(!/^[0-9]{4,8}$/.test(p)){toast('숫자 4~8자리로 정해 주세요');break}await call('wlp_set_pin',{p_pin:p},()=>{});toast('바꿨어요');break}
+   case 'copyGuide':await copy(document.querySelector('.side .msg').textContent);toast('복사했어요');break;
    case 'purge':{if(DEMO){toast('시험 모드');break}const r=await sb.rpc('wlp_purge_leads');if(r.error)toast(errText(r.error));else{toast(r.data+'건 정리했어요');loadAll()}break}
   }
 });
+document.addEventListener('change',async e=>{if(e.target.dataset.ch==='title'){const id=e.target.dataset.v,s=S.staff.find(x=>x.user_id===id);await call('wlp_set_staff',{p_user:id,p_active:s.active,p_title:e.target.value},()=>{s.title=e.target.value;s.role=e.target.value==='트레이너'?'trainer':'center';if(s.role==='trainer')s.is_owner=false})}});
 render();boot();
 </script>
 </body>

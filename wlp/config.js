@@ -4,7 +4,8 @@ window.WLP_CFG = {
   SB_KEY: 'sb_publishable_fonyE5eloRwvXb7hacPTow_d6JR0zMv',     // 공개용(publishable) 키만. secret/service 키는 절대 넣지 않기
   LEGACY_RUNE: true,            // 시범 기간에만 룬 PT 의 수업 루틴·운동 기록을 '읽기만' 해요. 분리 후 false
   RUNE_APP_URL: '../index.html',// 룬 PT 기록 앱 주소 (LEGACY_RUNE 가 true 일 때만 링크 표시)
-  STAFF_PIN: '0000',            // 태블릿 직원 화면 가림 번호 (보안 장치 아님)
+  // 태블릿 직원 화면 번호는 서버에 저장돼요 (center.html → 직원 승인 탭에서 변경). 아래 값은 시험 모드 전용
+  STAFF_PIN: '0000',
   // 시험 모드: 파일로 열었거나 localhost 이거나 주소 뒤에 ?demo
   DEMO: location.protocol === 'file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('demo')
 };
