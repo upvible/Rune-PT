@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WLP · 나의 운동 시작 리포트</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="./config.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:'Noto Sans KR',system-ui,sans-serif;background:#FBF8F3;color:#1F1A14}
+#app{max-width:560px;margin:0 auto;padding:18px 18px 40px;display:flex;flex-direction:column;gap:12px}
+.brand{font-weight:900;color:#B45309;letter-spacing:.06em}
+.hero{background:#1C1712;color:#F5EFE6;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:10px}
+.hero b{font-size:28px;color:#F0B85C;line-height:1.3}
+.card{background:#fff;border:1px solid #EDE6DA;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.h{font-size:16px;font-weight:800;margin:0}.sub{font-size:13px;color:#6B6155;margin:0;line-height:1.6}
+.dots{display:flex;gap:6px}.dots div{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:#8A8074}
+.dots span{width:34px;height:34px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-weight:900;background:#EDE6DA}
+.dots .on span{background:#B45309;color:#fff}.dots .on{color:#7C3D06;font-weight:900}
+table{border-collapse:collapse;width:100%;font-size:14px}th{width:52px;text-align:left;color:#7C3D06;padding:7px 0;vertical-align:top}td{padding:7px 0;border-bottom:1px solid #F3EEE6;line-height:1.55}
+.btn{min-height:50px;border-radius:14px;border:1.5px solid #E3D9CA;background:#fff;font:inherit;font-size:15px;cursor:pointer}
+.btn.on{border-color:#B45309;background:#FDECC8;color:#7C3D06;font-weight:800}
+a{color:#6B6155}
+</style>
+</head>
+<body>
+<div id="app"><p class="sub">리포트를 불러오는 중…</p></div>
+<script>
+const OTA = (function(){
+  const T8={
+   "111":{n:"열정 엔진",risk:false,start:"스스로 설계하는 시작",one:"이미 운동을 즐길 준비가 되어 있어요. 목표는 회원님이 정하고, 센터는 안전과 회복을 맡아요.",rx:"회원이 도전을 설계, 트레이너는 안전·회복만. 휴식 주 계획",warn:"강박적 열정(통증 참기·쉬는 날 불안) 살피기",reg:"장기 플랜도 회원이 먼저 말할 가능성 높음. 조건만 정직하게",call:"새 무대(대회·러닝)·장기 플랜 안내"},
+   "101":{n:"분투형",risk:true,start:"속도를 조절하며 쌓는 시작",one:"의욕이 커서 오히려 처음 4주는 일부러 천천히 가요. 그래야 오래 가요.",rx:"강도 한 단계 낮춰 성공 경험부터. 계획은 작게 쪼개기",warn:"가장 위험한 칸. 혼자 무리·3~6주 차 이탈. 의욕 말고 속도를 칭찬",reg:"등록이 빠를 수 있음. 낙관적 숫자 금지, 정체기 먼저 말하기",call:"‘천천히 가는 첫 4주’와 정체기를 미리 설명"},
+   "011":{n:"정체된 성실파",risk:false,start:"새 기술로 다시 불붙는 시작",one:"꾸준함은 이미 충분해요. 4주마다 새로 배울 것 하나로 지루함을 깨요.",rx:"도전 손잡이(템포·범위·균형·새 기술)를 회원이 고르게",warn:"같은 루틴이 계속되면 출석이 조용히 빠짐",reg:"‘새로 배울 것’이 등록 이유가 됨",call:"새로 배울 기술 하나를 미리 보여 주기"},
+   "001":{n:"출발선형",risk:false,start:"작고 정교한 첫걸음",one:"하고 싶은 마음이 준비돼 있어요. 처음 2주는 세 동작만 내 것으로 만들어요.",rx:"첫 경험을 정교하게. 미세 몰입 → 몰입 블록. 계획은 회원이 말하게",warn:"계획을 크게 세우기 쉬움(계획 오류)",reg:"등록 의향 높음. 단계와 재측정 날짜만 보여 주면 충분",call:"첫 2주 3동작 플랜 + 재측정 날짜 안내"},
+   "100":{n:"회피형",risk:true,start:"편안함부터 시작",one:"힘든 건 하지 않아요. 싫은 동작은 빼고, 몸 상태만 같이 봐요.",rx:"관계 맺기부터. 실패 없는 쉬운 경험, 사람 적은 자리",warn:"필요성 설득·위협은 회피를 굳힘",reg:"오늘은 등록 대화 금지. 다음 약속만",call:"등록 권유 금지. ‘편한 강도로 한 번 더’ 체험 초대만"},
+   "110":{n:"간헐형",risk:false,start:"요일부터 고정하는 시작",one:"오시면 잘하실 분이에요. 강도보다 ‘오는 요일’을 지키는 게 먼저예요.",rx:"강도보다 빈도 설계. 15분 최소 루틴, 고정 요일",warn:"‘오면 잘하니까’ 방치하면 한 달씩 빔",reg:"월 단위·소회차부터",call:"가능한 고정 요일 묻기 + 15분 버전 소개"},
+   "000":{n:"관망형",risk:false,start:"내가 아끼는 것에서 출발",one:"운동 얘기는 잠깐 두고, 회원님이 아끼는 시간과 연결되는 움직임부터 찾아요.",rx:"가치 듣기, 놀이 요소, 회원 선택지",warn:"정보를 쏟아붓는 순간 대화가 끝남",reg:"등록 대화 금지. 다시 만날 이유 하나만",call:"운동 정보 대신 ‘아끼는 시간’ 질문. 소식은 1회만"},
+   "010":{n:"휴면 경험자",risk:false,start:"예전 감각을 되찾는 시작",one:"해 본 경험이 있으세요. 예전 리듬으로, 지금 몸에 맞는 강도로 다시 시작해요.",rx:"그만둔 이유와 다시 하면 좋을 점(의미) 대화",warn:"예전 기준 강도는 실망을 부름",reg:"‘다시 시작’ 프레임, 소회차",call:"예전에 좋았던 운동 묻기, ‘다시 시작’ 소회차"}};
+  const JM={1:{n:"몸 풀기",two:"힘든 건 하지 않아요. 20~30분, 싫은 동작은 빼고 몸 상태만 같이 봐요."},
+    2:{n:"재미 찾기",two:"1~2분짜리 작은 도전으로 ‘어, 재밌네’를 찾아요. 고르는 건 회원님이에요."},
+    3:{n:"첫 몰입",two:"한 세션 안에 시간 가는 줄 모르는 5~15분을 만들어요. 세트마다 목표는 하나만."},
+    4:{n:"일상",two:"주 2~3회 리듬을 만들고 4주마다 새 기술 하나. 바쁜 주엔 15분 버전으로 이어요."},
+    5:{n:"나만의 무대",two:"분기 목표는 회원님이 정하고, 센터는 안전과 회복을 맡아요."}};
+  const ZONES={"2,0":"불안","2,1":"각성","2,2":"몰입","1,0":"걱정","1,1":"전환 지대","1,2":"통제","0,0":"무관심","0,1":"지루함","0,2":"이완"};
+  const STN={1:"전숙고",2:"숙고",3:"준비",4:"실행",5:"유지"};
+  const clamp=v=>Math.max(0,Math.min(10,v)), lvl=v=>v<3.7?0:v>=6.3?2:1;
+  function compute(a){
+    let st=null;
+    if(a.q1===true) st=a.q11===true?5:a.q11===false?4:null;
+    else if(a.q1===false){ if(a.q2===false) st=1; else if(a.q2===true) st=a.q3===true?3:a.q3===false?2:null; }
+    const need=['imp','conf','burden','exp','diff','can','pri','time'];
+    if(st===null||need.some(k=>a[k]==null)) return null;
+    const ct=(a.want||[]).length, stt=(a.hard||[]).length, cost=(a.hard||[]).includes('비용이 부담돼요')?2:null;
+    const C=clamp(a.burden*0.4+a.diff*0.6), Sk=clamp(a.conf*0.35+a.can*0.4+a.exp*0.25);
+    const parts=[[a.pri,.35],[a.time,.3],[a.imp,.2]]; if(cost!==null) parts.push([cost,.15]);
+    const ws=parts.reduce((s,p)=>s+p[1],0); let I=parts.reduce((s,p)=>s+p[0]*p[1],0)/ws;
+    I=clamp(I+Math.max(-1.5,Math.min(1.5,(ct-stt)*0.3)));
+    const zone=ZONES[lvl(C)+","+lvl(Sk)]; let start=st; const notes=[];
+    if((zone==="불안"||zone==="걱정")&&start>2){start=2;notes.push(`지도 위치가 ${zone}이라 ② 재미 찾기로 낮춰 시작`)}
+    if(zone==="무관심"&&a.imp<=3&&start>1){start=1;notes.push("무관심 영역 + 중요도 3 이하 → ① 몸 풀기")}
+    if(stt>=2&&stt>=ct*2&&start>1){start--;notes.push(`망설임(${stt})이 원하는 이유(${ct})의 두 배 이상 → 한 구간 낮춤`)}
+    const k=(C>=5?"1":"0")+(Sk>=5?"1":"0")+(I>=5?"1":"0"); const tp=Object.assign({k},T8[k]);
+    if(k==="101"&&start>3){start=3;notes.push("분투형 → ③ 이상 올리지 않음")}
+    const edge=[["도전",C],["기술",Sk],["투자 의지",I]].filter(x=>Math.abs(x[1]-5)<0.7).map(x=>x[0]);
+    if(edge.length) notes.push(`${edge.join(" · ")} 축이 경계선 → OT에서 다시 판정`);
+    return {st,stName:STN[st],C,Sk,I,ct,stt,zone,start,tp,notes,jm:JM[start]};
+  }
+  const PRESETS={
+    A:{label:'구경만 하러 온 분',q1:false,q2:false,q3:null,q11:null,imp:2,conf:2,burden:8,exp:0,diff:6,can:4,pri:3,time:3,want:['스트레스를 풀고 싶어요'],hard:['시간이 없어요','비용이 부담돼요','힘들까 봐 걱정돼요'],dir:['스트레스 해소'],days:['토'],slots:['오후'],name:'김OO',phone:'010-1234-5678',c1:true,c2:true},
+    B:{label:'의욕 넘치는 초보',q1:false,q2:true,q3:true,q11:null,imp:10,conf:6,burden:6,exp:0,diff:6,can:4,pri:9,time:6,want:['몸이 가벼워지고 싶어요','체력을 키우고 싶어요','보기 좋은 몸을 만들고 싶어요','오래 건강하고 싶어요'],hard:['혼자는 꾸준히 못 해요'],dir:['체지방·체중','근력'],days:['월','수','금'],slots:['저녁'],name:'이OO',phone:'010-2345-6789',c1:true,c2:true},
+    C:{label:'쉬고 있는 경험자',q1:false,q2:true,q3:false,q11:null,imp:6,conf:8,burden:2,exp:9,diff:2,can:8,pri:3,time:3,want:['아픈 곳을 줄이고 싶어요','체력을 키우고 싶어요'],hard:['시간이 없어요','혼자는 꾸준히 못 해요'],dir:['통증·불편 줄이기'],days:['화','목'],slots:['오전'],name:'박OO',phone:'010-3456-7890',c1:true,c2:false}};
+  const MW6={"111":"주 4회 이상도 좋아요. 대신 쉬는 날 하루를 먼저 정해요. 쉬는 것도 계획이에요.","101":"처음 2주는 PT 2회 + 혼자 15분 1회. 2주가 지켜지면 그때 늘려요.","011":"지금 리듬은 그대로, 네 번 중 한 번은 새 기술을 배우는 날로 바꿔요.","001":"PT 2회 + 혼자 2회(사진 한 장짜리 세 동작). 혼자 하는 날은 15분이면 충분해요.","100":"횟수 목표는 없어요. 편한 강도로 한 번 더 만나는 것부터 시작해요.","110":"고정 요일 2회부터. 2주가 지켜지면 15분 버전 2회를 더해요.","000":"운동 계획보다, 요즘 가장 아끼는 시간이 언제인지부터 이야기해요.","010":"예전에 하던 리듬으로, 강도는 지금 몸에 맞게 다시 시작해요."};
+  return {T8,JM,ZONES,STN,compute,PRESETS,MW6};
+})();
+
+const CFG=window.WLP_CFG||{},T=new URLSearchParams(location.search).get('t')||'';
+let sb=null;try{if(!CFG.DEMO)sb=window.supabase.createClient(CFG.SB_URL,CFG.SB_KEY,{auth:{storageKey:'wlp-auth'}})}catch(e){}
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let D=null,msg='';
+const WEEKS=[['1주','네 번(또는 정한 횟수)을 해내는 경험','제일 쉬웠던 날은 언제였나요?'],['2주','빠진 날 다시 잇기','그날엔 다음에 어떻게 해 볼까요?'],['3주','몸의 첫 신호 찾기','생활에서 달라진 게 있나요?'],['4주','처음 동작 다시 재기','처음이랑 비교해 보면?'],['5주','흔들림 대비','쉬워진 것과 어려워진 것은?'],['6주','앞으로를 직접 정하기','앞으로는 어떻게 하고 싶으세요?']];
+function render(){
+  const app=document.getElementById('app');
+  if(!D){app.innerHTML=`<p class="brand">WLP</p><div class="card"><p class="h">리포트를 찾을 수 없어요</p><p class="sub">링크가 잘못됐거나 보관 기간이 지났어요. 센터에 문의해 주세요.</p></div>`;return}
+  const r=D.result||{},k=r.k,tp=OTA.T8[k]||{},st=r.start||1,jm=OTA.JM[st],a=D.answers||{};
+  app.innerHTML=`<p class="brand">WLP <span style="font-weight:500;color:#6B6155;letter-spacing:0;font-size:12px">Workout · Life · Program</span></p>
+  <div class="hero"><span style="font-size:13px;color:#B9AE9F">${esc(D.name)}님에게 맞는 시작 방식</span><b>${esc(tp.start||'')}</b><span style="font-size:15px;line-height:1.7">${esc(tp.one||'')}</span></div>
+  <div class="card"><p class="h">첫 2주는 이렇게 진행돼요</p><p style="margin:0;font-size:15px;line-height:1.7">${esc(jm.two)}</p>
+  <div class="dots">${[1,2,3,4,5].map(n=>`<div class="${n===st?'on':''}"><span>${n}</span>${OTA.JM[n].n}</div>`).join('')}</div>
+  <p class="sub">WLP는 다섯 단계 여정으로 운영돼요. 회원님의 반응과 이야기를 보고 다음 여정이 열려요.</p></div>
+  <div class="card"><p class="h">6주 실험</p><p style="margin:0;font-size:15px;line-height:1.7">${esc((OTA.MW6||{})[k]||'')}</p>
+  ${k==='100'||k==='000'?'':`<table>${WEEKS.map(w=>`<tr><th>${w[0]}</th><td>${w[1]}<br><span class="sub">“${w[2]}”</span></td></tr>`).join('')}</table>`}
+  <p class="sub">숫자는 회원님이 정해요. 3번을 고르면 3번이 정답이에요. 바쁜 주엔 15분 버전도 한 번으로 쳐요.</p></div>
+  <div class="card"><p class="h">회원님이 고른 방향</p><p style="margin:0;font-size:15px">${esc((a.dir||[]).join(' · ')||'-')}</p>${(a.want||[]).length?`<p class="sub">얻고 싶은 것: ${esc(a.want.join(' · '))}</p>`:''}</div>
+  <div class="card"><p class="h">결과 설명 15분 상담 (선택)</p><p class="sub">트레이너가 리포트를 직접 풀어 드려요. 등록 권유 없이 설명만 해요.</p>
+  <button class="btn${D.consult?' on':''}" data-a="consult">${D.consult?'15분 상담 신청됨 · 센터에서 연락드려요':'15분 상담 신청하기'}</button></div>
+  <p class="sub" style="text-align:center">가격보다 먼저, 회원님이 운동에 빠질 수 있는 환경을 설계합니다.</p>
+  ${msg?`<p class="sub" style="text-align:center;color:#1F6F5C">${esc(msg)}</p>`:''}
+  <p class="sub" style="text-align:center"><a href="#" data-a="optout">센터 소식 문자 그만 받기</a></p>`;
+}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;e.preventDefault();
+  if(b.dataset.a==='consult'){D.consult=!D.consult;render();if(sb)await sb.rpc('wlp_set_consult',{p_token:T,p_on:D.consult})}
+  if(b.dataset.a==='optout'){if(sb)await sb.rpc('wlp_opt_out',{p_token:T});msg='소식 문자 수신을 멈췄어요. 리포트는 계속 볼 수 있어요.';render()}});
+(async()=>{
+  if(CFG.DEMO){const a=OTA.PRESETS.B,r=OTA.compute(a);D={name:a.name,consult:false,answers:a,result:{k:r.tp.k,start:r.start}};render();return}
+  try{const r=await sb.rpc('wlp_report',{p_token:T});D=r.data||null}catch(e){D=null}render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WLP · Workout Life Program</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="./config.js"></script>
+<style>
+:root{--dk:#1C1712;--dk2:#25201A;--dk3:#3A2F23;--ln:#4A3F34;--dt:#F5EFE6;--dm:#B9AE9F;--dm2:#8F8476;--am:#F0B85C;
+--bg:#FBF8F3;--pn:#fff;--bd:#EDE6DA;--tx:#1F1A14;--mu:#6B6155;--ac:#B45309;--acs:#FDECC8;--ac2:#7C3D06;--bad:#B91C1C;--ok:#1F6F5C;--tr:#2B241D}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:var(--tx);-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+#app{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+.dark{background:var(--dk);color:var(--dt);min-height:100vh}
+.wrap{padding:16px 16px 40px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--pn);border:1px solid var(--bd);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.card.warm{background:#FFF7E8;border-color:#F5DDB0}
+.card.blue{background:#F2F6FB;border-color:#D6E2F0}
+.h{font-size:15px;font-weight:800;margin:0}
+.sub{font-size:12px;color:var(--mu);margin:0;line-height:1.55}
+.row{display:flex;gap:8px;align-items:center}
+.wrapx{flex-wrap:wrap}
+.chip{min-height:40px;padding:0 14px;border-radius:20px;border:1px solid #E3D9CA;background:#fff;color:#3A322A;font-size:13px}
+.chip.on{background:var(--acs);border-color:var(--ac);color:var(--ac2);font-weight:800}
+.n6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.n{min-height:40px;border-radius:10px;border:1px solid #E3D9CA;background:#fff;font-size:14px;color:#3A322A;padding:0}
+.n.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:800}
+.n.red{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:800}
+.btn{min-height:46px;border-radius:12px;border:0;background:var(--ac);color:#fff;font-weight:800;font-size:14px;padding:0 16px}
+.btn.ghost{background:#fff;border:1px solid #D8CCBA;color:#3A322A}
+.btn.sm{min-height:36px;font-size:12px;padding:0 12px}
+.btn.dark{background:var(--tr)}
+.btn:disabled{opacity:.45}
+input[type=text],input[type=number],textarea,select{width:100%;min-height:44px;border-radius:10px;border:1px solid #E3D9CA;padding:8px 12px;font-size:14px;background:#fff;color:var(--tx)}
+textarea{min-height:64px;resize:vertical}
+label.l{font-size:12px;color:var(--mu);font-weight:700}
+.top{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 4px}
+.brand{font-weight:900;font-size:15px;color:var(--ac)}
+.link{background:none;border:0;color:var(--mu);font-size:13px;text-decoration:underline;min-height:44px;padding:0 4px}
+.mv{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #F3EEE6;font-size:14px;gap:8px}
+.gone{text-decoration:line-through;color:#8A8074}
+.stamp{width:34px;height:34px;border-radius:17px;border:1.5px dashed #D8CCBA;display:flex;align-items:center;justify-content:center;font-size:10px;color:#8A8074}
+.stamp.ok{border:1.5px solid var(--ac);background:var(--acs);color:var(--ac2);font-weight:800}
+.day{flex:1;text-align:center;padding:8px 0;border-radius:10px;font-size:12px;color:var(--mu)}
+.day.hl{background:#FDE68A;color:#5B3A06;font-weight:800}
+.wk{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:var(--mu)}
+.knot{width:100%;height:8px;border-radius:4px;background:#EDE6DA}
+.knot.a{background:var(--ac)}.knot.b{background:#F0B85C}
+.pill{background:#F4F2EE;border-radius:10px;padding:8px 10px}
+.pill b{display:block;font-size:11px;color:var(--mu)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tr);color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;z-index:99;max-width:90vw;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.demo{background:#2B241D;color:#F0B85C;font-size:11px;padding:6px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.demo button{min-height:28px;border-radius:8px;border:1px solid #5A4E42;background:transparent;color:#E8E1D6;font-size:11px;padding:0 8px}
+.demo button.on{background:#F0B85C;color:#2B241D;border-color:#F0B85C;font-weight:800}
+/* 여정 지도 */
+.map{position:relative;width:100%;max-width:390px;height:560px;margin:0 auto}
+.node{position:absolute;display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;color:inherit;text-align:left}
+.node.r{flex-direction:row-reverse;text-align:right}
+.orb{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;flex:none}
+.badge{font-size:10px;font-weight:800;border-radius:6px;padding:2px 6px;display:inline-block;margin-top:2px}
+/* 트레이너 */
+.tbar{background:var(--tr);color:#fff;padding:16px;display:flex;flex-direction:column;gap:4px}
+.tabs{display:flex;gap:6px}
+.tab{flex:1;min-height:40px;border-radius:10px;border:1px solid #5A4E42;background:transparent;color:#E8E1D6;font-size:13px}
+.tab.on{background:var(--am);color:var(--tr);border-color:var(--am);font-weight:800}
+.st{flex:1;min-height:52px;border-radius:12px;border:1px solid #E3D9CA;background:#fff;font-size:11px;color:#3A322A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0}
+.st b{font-size:15px}
+.st.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:800}
+.st.own{background:var(--tr);border-color:var(--tr);color:#fff;font-weight:800}
+.st.ok{background:var(--acs);border-color:var(--ac);color:var(--ac2);font-weight:800}
+.st.past{background:#F4F2EE;color:var(--mu)}
+.mrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px;border-radius:12px;border:1px solid var(--bd);background:#fff;text-align:left;width:100%}
+.fb{font-size:13px;padding:8px 0;border-top:1px solid #F3EEE6;display:flex;gap:8px;justify-content:space-between}
+.tag{font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;white-space:nowrap}
+.ck{display:flex;gap:10px;align-items:flex-start;font-size:13px;min-height:44px;padding:10px 0 0;border:0;border-top:1px solid #F3EEE6;background:none;text-align:left;color:var(--tx);width:100%}
+.box{width:20px;height:20px;border-radius:6px;border:1.5px solid #B9AD9C;flex:none}
+.box.on{background:var(--ac);border-color:var(--ac)}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const OTA = (function(){
+  const T8={
+   "111":{n:"열정 엔진",risk:false,start:"스스로 설계하는 시작",one:"이미 운동을 즐길 준비가 되어 있어요. 목표는 회원님이 정하고, 센터는 안전과 회복을 맡아요.",rx:"회원이 도전을 설계, 트레이너는 안전·회복만. 휴식 주 계획",warn:"강박적 열정(통증 참기·쉬는 날 불안) 살피기",reg:"장기 플랜도 회원이 먼저 말할 가능성 높음. 조건만 정직하게",call:"새 무대(대회·러닝)·장기 플랜 안내"},
+   "101":{n:"분투형",risk:true,start:"속도를 조절하며 쌓는 시작",one:"의욕이 커서 오히려 처음 4주는 일부러 천천히 가요. 그래야 오래 가요.",rx:"강도 한 단계 낮춰 성공 경험부터. 계획은 작게 쪼개기",warn:"가장 위험한 칸. 혼자 무리·3~6주 차 이탈. 의욕 말고 속도를 칭찬",reg:"등록이 빠를 수 있음. 낙관적 숫자 금지, 정체기 먼저 말하기",call:"‘천천히 가는 첫 4주’와 정체기를 미리 설명"},
+   "011":{n:"정체된 성실파",risk:false,start:"새 기술로 다시 불붙는 시작",one:"꾸준함은 이미 충분해요. 4주마다 새로 배울 것 하나로 지루함을 깨요.",rx:"도전 손잡이(템포·범위·균형·새 기술)를 회원이 고르게",warn:"같은 루틴이 계속되면 출석이 조용히 빠짐",reg:"‘새로 배울 것’이 등록 이유가 됨",call:"새로 배울 기술 하나를 미리 보여 주기"},
+   "001":{n:"출발선형",risk:false,start:"작고 정교한 첫걸음",one:"하고 싶은 마음이 준비돼 있어요. 처음 2주는 세 동작만 내 것으로 만들어요.",rx:"첫 경험을 정교하게. 미세 몰입 → 몰입 블록. 계획은 회원이 말하게",warn:"계획을 크게 세우기 쉬움(계획 오류)",reg:"등록 의향 높음. 단계와 재측정 날짜만 보여 주면 충분",call:"첫 2주 3동작 플랜 + 재측정 날짜 안내"},
+   "100":{n:"회피형",risk:true,start:"편안함부터 시작",one:"힘든 건 하지 않아요. 싫은 동작은 빼고, 몸 상태만 같이 봐요.",rx:"관계 맺기부터. 실패 없는 쉬운 경험, 사람 적은 자리",warn:"필요성 설득·위협은 회피를 굳힘",reg:"오늘은 등록 대화 금지. 다음 약속만",call:"등록 권유 금지. ‘편한 강도로 한 번 더’ 체험 초대만"},
+   "110":{n:"간헐형",risk:false,start:"요일부터 고정하는 시작",one:"오시면 잘하실 분이에요. 강도보다 ‘오는 요일’을 지키는 게 먼저예요.",rx:"강도보다 빈도 설계. 15분 최소 루틴, 고정 요일",warn:"‘오면 잘하니까’ 방치하면 한 달씩 빔",reg:"월 단위·소회차부터",call:"가능한 고정 요일 묻기 + 15분 버전 소개"},
+   "000":{n:"관망형",risk:false,start:"내가 아끼는 것에서 출발",one:"운동 얘기는 잠깐 두고, 회원님이 아끼는 시간과 연결되는 움직임부터 찾아요.",rx:"가치 듣기, 놀이 요소, 회원 선택지",warn:"정보를 쏟아붓는 순간 대화가 끝남",reg:"등록 대화 금지. 다시 만날 이유 하나만",call:"운동 정보 대신 ‘아끼는 시간’ 질문. 소식은 1회만"},
+   "010":{n:"휴면 경험자",risk:false,start:"예전 감각을 되찾는 시작",one:"해 본 경험이 있으세요. 예전 리듬으로, 지금 몸에 맞는 강도로 다시 시작해요.",rx:"그만둔 이유와 다시 하면 좋을 점(의미) 대화",warn:"예전 기준 강도는 실망을 부름",reg:"‘다시 시작’ 프레임, 소회차",call:"예전에 좋았던 운동 묻기, ‘다시 시작’ 소회차"}};
+  const JM={1:{n:"몸 풀기",two:"힘든 건 하지 않아요. 20~30분, 싫은 동작은 빼고 몸 상태만 같이 봐요."},
+    2:{n:"재미 찾기",two:"1~2분짜리 작은 도전으로 ‘어, 재밌네’를 찾아요. 고르는 건 회원님이에요."},
+    3:{n:"첫 몰입",two:"한 세션 안에 시간 가는 줄 모르는 5~15분을 만들어요. 세트마다 목표는 하나만."},
+    4:{n:"일상",two:"주 2~3회 리듬을 만들고 4주마다 새 기술 하나. 바쁜 주엔 15분 버전으로 이어요."},
+    5:{n:"나만의 무대",two:"분기 목표는 회원님이 정하고, 센터는 안전과 회복을 맡아요."}};
+  const ZONES={"2,0":"불안","2,1":"각성","2,2":"몰입","1,0":"걱정","1,1":"전환 지대","1,2":"통제","0,0":"무관심","0,1":"지루함","0,2":"이완"};
+  const STN={1:"전숙고",2:"숙고",3:"준비",4:"실행",5:"유지"};
+  const clamp=v=>Math.max(0,Math.min(10,v)), lvl=v=>v<3.7?0:v>=6.3?2:1;
+  function compute(a){
+    let st=null;
+    if(a.q1===true) st=a.q11===true?5:a.q11===false?4:null;
+    else if(a.q1===false){ if(a.q2===false) st=1; else if(a.q2===true) st=a.q3===true?3:a.q3===false?2:null; }
+    const need=['imp','conf','burden','exp','diff','can','pri','time'];
+    if(st===null||need.some(k=>a[k]==null)) return null;
+    const ct=(a.want||[]).length, stt=(a.hard||[]).length, cost=(a.hard||[]).includes('비용이 부담돼요')?2:null;
+    const C=clamp(a.burden*0.4+a.diff*0.6), Sk=clamp(a.conf*0.35+a.can*0.4+a.exp*0.25);
+    const parts=[[a.pri,.35],[a.time,.3],[a.imp,.2]]; if(cost!==null) parts.push([cost,.15]);
+    const ws=parts.reduce((s,p)=>s+p[1],0); let I=parts.reduce((s,p)=>s+p[0]*p[1],0)/ws;
+    I=clamp(I+Math.max(-1.5,Math.min(1.5,(ct-stt)*0.3)));
+    const zone=ZONES[lvl(C)+","+lvl(Sk)]; let start=st; const notes=[];
+    if((zone==="불안"||zone==="걱정")&&start>2){start=2;notes.push(`지도 위치가 ${zone}이라 ② 재미 찾기로 낮춰 시작`)}
+    if(zone==="무관심"&&a.imp<=3&&start>1){start=1;notes.push("무관심 영역 + 중요도 3 이하 → ① 몸 풀기")}
+    if(stt>=2&&stt>=ct*2&&start>1){start--;notes.push(`망설임(${stt})이 원하는 이유(${ct})의 두 배 이상 → 한 구간 낮춤`)}
+    const k=(C>=5?"1":"0")+(Sk>=5?"1":"0")+(I>=5?"1":"0"); const tp=Object.assign({k},T8[k]);
+    if(k==="101"&&start>3){start=3;notes.push("분투형 → ③ 이상 올리지 않음")}
+    const edge=[["도전",C],["기술",Sk],["투자 의지",I]].filter(x=>Math.abs(x[1]-5)<0.7).map(x=>x[0]);
+    if(edge.length) notes.push(`${edge.join(" · ")} 축이 경계선 → OT에서 다시 판정`);
+    return {st,stName:STN[st],C,Sk,I,ct,stt,zone,start,tp,notes,jm:JM[start]};
+  }
+  const PRESETS={
+    A:{label:'구경만 하러 온 분',q1:false,q2:false,q3:null,q11:null,imp:2,conf:2,burden:8,exp:0,diff:6,can:4,pri:3,time:3,want:['스트레스를 풀고 싶어요'],hard:['시간이 없어요','비용이 부담돼요','힘들까 봐 걱정돼요'],dir:['스트레스 해소'],days:['토'],slots:['오후'],name:'김OO',phone:'010-1234-5678',c1:true,c2:true},
+    B:{label:'의욕 넘치는 초보',q1:false,q2:true,q3:true,q11:null,imp:10,conf:6,burden:6,exp:0,diff:6,can:4,pri:9,time:6,want:['몸이 가벼워지고 싶어요','체력을 키우고 싶어요','보기 좋은 몸을 만들고 싶어요','오래 건강하고 싶어요'],hard:['혼자는 꾸준히 못 해요'],dir:['체지방·체중','근력'],days:['월','수','금'],slots:['저녁'],name:'이OO',phone:'010-2345-6789',c1:true,c2:true},
+    C:{label:'쉬고 있는 경험자',q1:false,q2:true,q3:false,q11:null,imp:6,conf:8,burden:2,exp:9,diff:2,can:8,pri:3,time:3,want:['아픈 곳을 줄이고 싶어요','체력을 키우고 싶어요'],hard:['시간이 없어요','혼자는 꾸준히 못 해요'],dir:['통증·불편 줄이기'],days:['화','목'],slots:['오전'],name:'박OO',phone:'010-3456-7890',c1:true,c2:false}};
+  const MW6={"111":"주 4회 이상도 좋아요. 대신 쉬는 날 하루를 먼저 정해요. 쉬는 것도 계획이에요.","101":"처음 2주는 PT 2회 + 혼자 15분 1회. 2주가 지켜지면 그때 늘려요.","011":"지금 리듬은 그대로, 네 번 중 한 번은 새 기술을 배우는 날로 바꿔요.","001":"PT 2회 + 혼자 2회(사진 한 장짜리 세 동작). 혼자 하는 날은 15분이면 충분해요.","100":"횟수 목표는 없어요. 편한 강도로 한 번 더 만나는 것부터 시작해요.","110":"고정 요일 2회부터. 2주가 지켜지면 15분 버전 2회를 더해요.","000":"운동 계획보다, 요즘 가장 아끼는 시간이 언제인지부터 이야기해요.","010":"예전에 하던 리듬으로, 강도는 지금 몸에 맞게 다시 시작해요."};
+  return {T8,JM,ZONES,STN,compute,PRESETS,MW6};
+})();
+
+/* ===== 설정 ===== */
+const CFG=window.WLP_CFG||{};
+const BASE=location.origin+location.pathname.replace(/[^/]*$/,'');
+const QS=new URLSearchParams(location.search);
+const DEMO=!!CFG.DEMO,LEGACY=!!CFG.LEGACY_RUNE,RUNE=CFG.RUNE_APP_URL||'../index.html';
+// 지나온 여정 다시 보기 허용 구간 (거부·일상은 자기 여정만)
+const PAST_OK={1:false,2:true,3:true,4:false,5:true};
+const J=[null,
+ {name:'몸 풀기',sub:'가볍게 움직여 보기',theory:'거부 · 전숙고'},
+ {name:'재미 찾기',sub:'내 숫자 하나',theory:'호기심 · 숙고'},
+ {name:'첫 몰입',sub:'룬 기록 시작',theory:'첫 몰입 · 준비→실행 초기'},
+ {name:'일상',sub:'티어와 내가 고르는 도전',theory:'일상 · 실행'},
+ {name:'나만의 무대',sub:'내가 설계하는 운동',theory:'열정의 동력 · 유지'}];
+const SIGNALS=[null,
+ ['“생각보다 괜찮네요”, “이 정도면 할 만하네요”라고 말한다','다음 약속을 거부하지 않는다'],
+ ['“이거 또 해요?”, “아까 그거 재밌었어요”라고 말한다','다음 세션을 먼저 잡거나 혼자 한 번 해 봤다고 말한다'],
+ ['“시간 가는 줄 몰랐어요”, “머리가 맑아요”라고 말한다','출석이 4주 이상 끊기지 않는다'],
+ ['스스로 다음 도전을 제안한다','혼자 운동한 날을 자연스럽게 말한다','“안 하면 찌뿌둥해요”라고 말한다'],
+ ['운동을 하고 싶은 것으로 말한다','쉬어도 불안해하지 않고 다시 돌아온다']];
+const PDT={0:'전혀 어렵지 않음',2:'매우 쉬움',4:'약간 어려움',6:'꽤 어려움',8:'매우 어려움',10:'도저히 수행하기 어려움'};
+const SET={0:'전혀 해낼 자신이 없음',2:'거의 자신이 없음',4:'조금 자신 있음',6:'해낼 수 있을 것 같음',8:'상당히 자신 있음',10:'확실히 해낼 자신 있음'};
+const STEPS=[0,2,4,6,8,10];
+
+/* ===== 상태 ===== */
+let sb=null;
+const S={scr:'boot',uid:null,role:'member',stage:null,approved:[],view:null,code:'',codeMsg:'',busy:false,
+  gifts:[],sessions:[],fb:[],ui:{},
+  tr:{tab:'members',list:null,others:null,q:'',sel:null,detail:null,invites:null,cases:null,openCase:null,rk:null,ropt:null,ui:{pd:null,se:null,vas:0,talk:'change',role:'trainer',ex:'',exs:[]}}};
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
+const sbErr=e=>/function|does not exist|schema cache|relation/i.test((e&&e.message)||'')?'서버에 wlp-schema-1.sql 을 먼저 실행해 주세요':((e&&e.message)||'서버 오류');
+const isStaff=()=>S.role==='center'||S.role==='trainer';
+
+/* ===== 접근 규칙 ===== */
+function isOpen(n){const st=S.stage;if(!st)return false;return n===st||S.approved.includes(n)||(PAST_OK[st]&&n<st)}
+function openKind(n){const st=S.stage;if(n===st)return 'own';if(S.approved.includes(n))return 'appr';if(PAST_OK[st]&&n<st)return 'past';return 'lock'}
+
+/* ===== 시험 모드 데이터 ===== */
+function demoData(){
+  const d=n=>new Date(Date.now()+9*3600e3-n*864e5).toISOString().slice(0,10);
+  S.gifts=[{id:1,gift_date:d(1),title:'수업 루틴',payload:{slots:[{nm:'고양이-소 스트레칭'},{nm:'가벼운 머신 체스트 프레스'},{nm:'벽 짚고 앉았다 일어나기'}]}}];
+  S.sessions=[
+    {session_date:d(1),session_no:1,items:[{nm:'고블릿 스쿼트',sets:[{t:'W',w:6,r:10,done:true},{t:'M',w:12,r:10,done:true},{t:'M',w:12,r:10,done:true}]},{nm:'랫풀다운',sets:[{t:'M',w:25,r:12,done:true}]}]},
+    {session_date:d(4),session_no:1,items:[{nm:'고블릿 스쿼트',sets:[{t:'M',w:10,r:10,done:true}]},{nm:'랫풀다운',sets:[{t:'M',w:20,r:12,done:true}]}]},
+    {session_date:d(8),session_no:1,items:[{nm:'고블릿 스쿼트',sets:[{t:'M',w:8,r:10,done:true}]}]},
+    {session_date:d(15),session_no:1,items:[{nm:'고블릿 스쿼트',sets:[{t:'M',w:8,r:8,done:true}]}]},
+    {session_date:d(29),session_no:1,items:[{nm:'고블릿 스쿼트',sets:[{t:'M',w:6,r:8,done:true}]}]}];
+  S.fb=[{id:1,kind:'number',entered_by:'member',session_date:d(4),data:{metric:'플랭크',guess:20,actual:25},created_at:d(4)}];
+}
+function demoTrainer(){
+  S.tr.list=[{member_id:'m1',name:'회원 A',stage:3,approved:[],last_feedback:today()},{member_id:'m2',name:'회원 B',stage:1,approved:[],last_feedback:null},{member_id:'m3',name:'회원 C',stage:4,approved:[5],last_feedback:null}];
+  S.tr.others=[];
+  S.tr.cases=[{id:11,name:'장OO',phone:'01020001008',status:'응답 대기',assigned_at:new Date(Date.now()-3*3600e3).toISOString(),result:{k:'001',start:3},answers:{days:['화','금'],slots:['점심'],dir:['운동 습관 만들기'],hard:['시간이 없어요']},med_memo:'허리 디스크 진단(2023)',reply:null},{id:12,name:'서OO',phone:'01020001004',status:'연락 중',assigned_at:new Date(Date.now()-20*3600e3).toISOString(),result:{k:'010',start:2},answers:{days:['화','목'],slots:['오전'],dir:['통증·불편 줄이기']},med_memo:'',reply:'연락 중 · 부재중, 문자 남김'}];
+  S.tr.invites=[{code:'WLP-7K2Q',kind:'member',name:'회원 B',start_stage:2,expires_at:new Date(Date.now()+6*864e5).toISOString(),used_at:null,canceled_at:null}];
+}
+function demoDetail(id){
+  const m=S.tr.list.find(x=>x.member_id===id)||{stage:1};
+  const fb=[];const base=[[2,6],[4,6],[6,4],[8,4],[8,8],[8,8],[10,4],[4,8],[6,8],[4,8]];
+  base.forEach(([se,pd],i)=>fb.push({id:100+i,entered_by:i%2?'member':'trainer',kind:'pdse',exercise:i<7?'고블릿 스쿼트':'루마니안 데드리프트',pd,se,vas:0,session_date:new Date(Date.now()-(10-i)*3*864e5).toISOString().slice(0,10),data:{},created_at:new Date(Date.now()-(10-i)*3*864e5).toISOString()}));
+  fb.push({id:200,entered_by:'trainer',kind:'talk',data:{type:'change',text:'계단에서 숨찬 건 좀 그렇긴 해요.'},session_date:today(),created_at:new Date().toISOString()});
+  return {stage:m.stage,access:(m.approved||[]).map(s=>({stage:s,role:'trainer',at:new Date().toISOString(),revoked:null})),ot:{type_name:'출발선형',start_stage:2,result:{zone:'걱정',stageName:'숙고'},at:new Date().toISOString()},feedback:fb.reverse()};
+}
+
+/* ===== 서버 ===== */
+async function boot(){
+  const c=QS.get('code');if(c){S.code=c.toUpperCase();try{localStorage.setItem('wlp-code',S.code)}catch(e){}}
+  else{try{S.code=localStorage.getItem('wlp-code')||''}catch(e){}}
+  if(DEMO){S.uid='demo';S.role='center';S.staffName='센터 관리자(시험)';loadCasesBadge();S.stage=Number(QS.get('stage'))||2;S.approved=[];demoData();S.scr='launch';render();return}
+  try{sb=window.supabase.createClient(CFG.SB_URL,CFG.SB_KEY,{auth:{storageKey:'wlp-auth'}})}catch(e){S.scr='login';render();return}
+  const {data}=await sb.auth.getSession();
+  if(!data||!data.session){S.scr='login';render();return}
+  S.uid=data.session.user.id;await loadMe();
+}
+async function loadMe(){
+  const r=await sb.rpc('wlp_me');
+  if(r.error){S.scr='err';S.err=sbErr(r.error);render();return}
+  S.role=(r.data&&r.data.role)||'member';S.staffName=r.data&&r.data.staff_name;S.centerExists=r.data&&r.data.center_exists;
+  S.stage=r.data&&r.data.stage||null;S.approved=(r.data&&r.data.approved)||[];
+  if(isStaff())loadCasesBadge();
+  if(!S.stage){S.scr=isStaff()?'launch':'code';render();if(S.code&&!isStaff())redeem();return}
+  try{localStorage.removeItem('wlp-code')}catch(e){}
+  S.scr='launch';render();loadMemberData();
+}
+async function loadMemberData(){
+  if(DEMO||!sb)return;
+  try{
+    const f=await sb.from('wlp_feedback').select('*').eq('member_id',S.uid).order('created_at',{ascending:false}).limit(300);S.fb=f.data||[];
+    if(LEGACY){ // 시범 기간: 룬 PT 수업 루틴·운동 기록을 읽기만 (분리 후 config.js 에서 LEGACY_RUNE=false)
+      const [g,s]=await Promise.all([
+        sb.from('routine_gifts').select('id,gift_date,title,payload,created_at').eq('member_id',S.uid).order('created_at',{ascending:false}).limit(5),
+        sb.from('workout_sessions').select('session_date,session_no,items').eq('member_id',S.uid).order('session_date',{ascending:false}).limit(60)]);
+      S.gifts=g.data||[];S.sessions=s.data||[];
+    }
+  }catch(e){}
+  render();
+}
+async function redeem(){
+  const code=(document.getElementById('code')?document.getElementById('code').value:S.code||'').trim().toUpperCase();
+  if(!code){S.codeMsg='코드를 입력해 주세요';render();return}
+  S.code=code;S.busy=true;S.codeMsg='';render();
+  if(DEMO){S.busy=false;if(code==='WLP-7K2Q'){S.stage=2;S.approved=[];S.scr='joined'}else S.codeMsg='코드를 찾을 수 없어요. 대문자·숫자를 다시 확인하거나 트레이너에게 물어봐 주세요.';render();return}
+  const r=await sb.rpc('wlp_redeem',{p_code:code});S.busy=false;
+  if(r.error){S.codeMsg=sbErr(r.error);render();return}
+  const d=r.data||{};
+  if(d.ok&&d.kind==='staff'){try{localStorage.removeItem('wlp-code')}catch(e){}toast('직원으로 등록됐어요');setTimeout(()=>location.reload(),800);return}
+  if(d.ok){try{localStorage.removeItem('wlp-code')}catch(e){}S.stage=d.stage;S.approved=[];S.scr='joined';render();loadMemberData();return}
+  S.codeMsg={bad:'코드를 찾을 수 없어요. 대문자·숫자를 다시 확인하거나 트레이너에게 물어봐 주세요.',expired:'기간이 지난 코드예요. 트레이너에게 새 코드를 요청해 주세요.',used:'이미 사용된 코드예요. 본인이 가입한 게 아니라면 트레이너에게 알려 주세요.',canceled:'취소된 코드예요. 트레이너에게 새 코드를 요청해 주세요.',login:'먼저 로그인해 주세요.'}[d.reason]||'확인하지 못했어요';
+  render();
+}
+async function addFb(row){
+  const r0=Object.assign({member_id:S.uid,entered_by:'member',session_date:today(),data:{}},row);
+  if(DEMO){r0.id=Date.now();r0.created_at=new Date().toISOString();S.fb.unshift(r0);toast('시험 모드: 화면에만 저장했어요');render();return true}
+  const r=await sb.from('wlp_feedback').insert(r0).select('*').single();
+  if(r.error){toast(sbErr(r.error));return false}
+  S.fb.unshift(r.data);toast('저장했어요');render();return true;
+}
+
+/* ===== 계산 도우미 ===== */
+function topSet(it){const ss=(it.sets||[]).filter(s=>s.done!==false&&s.t!=='W'&&(s.w>0||s.r>0));if(!ss.length)return null;ss.sort((a,b)=>(b.w||0)-(a.w||0)||(b.r||0)-(a.r||0));return ss[0]}
+const fmtSet=s=>s?((s.w>0?s.w+'kg × ':'')+(s.r||0)+'회'):'-';
+const exName=it=>it.nm||it.name||it.id||'종목';
+function latestFb(kind){return S.fb.find(f=>f.kind===kind)}
+function todayFb(kind){return S.fb.find(f=>f.kind===kind&&f.session_date===today())}
+function giftSlots(){const g=S.gifts[0];return g&&g.payload&&Array.isArray(g.payload.slots)?g.payload.slots.filter(Boolean):[]}
+function recentExNames(){const set=[];giftSlots().forEach(x=>{const n=exName(x);if(!set.includes(n))set.push(n)});(S.sessions[0]&&S.sessions[0].items||[]).forEach(x=>{const n=exName(x);if(!set.includes(n))set.push(n)});return set}
+function zoneOf(pd,se,vas){
+  if(vas>=4)return {z:'통증 우선',t:'해당 동작 범위·하중을 줄이고 원인부터 확인해요.',bg:'#FDECEC'};
+  if(pd==null||se==null)return null;
+  if(pd>=6&&se<=4)return {z:'불안 · 어렵고 부담스러운 수행',t:'다음 수업은 기술 난이도를 한 단계 낮추고 성공 경험을 먼저 주기.',bg:'#FFF1E6'};
+  if(pd>=6&&se>=6)return {z:'몰입 · 어렵지만 통제하는 느낌',t:'지금 강도 유지. 몰입 중엔 말 걸지 말고 끝난 뒤 이름 붙이기.',bg:'#E8F4EC'};
+  if(pd<=4&&se>=6)return {z:'통제·이완 · 편하고 자신 있는 수행',t:'도전 올리기. 무게·템포·범위·횟수 중 회원이 고르게.',bg:'#E9F0FA'};
+  if(pd<=4&&se<=4)return {z:'무관심 · 쉽지만 자신감 부족',t:'쉬운 기술을 쪼개 시범, 성공 확률 70~80% 과제로 흥미 먼저.',bg:'#F1EFEC'};
+  return {z:'각성·걱정 · 중간',t:'큐 하나로 정리하고 같은 과제를 한 번 더.',bg:'#FBF8F3'};
+}
+function activeDates(){const s=new Set();S.sessions.forEach(x=>s.add(x.session_date));S.fb.forEach(f=>{if(f.entered_by==='member')s.add(f.session_date)});return [...s].sort().reverse()}
+
+/* ===== 화면: 공통 ===== */
+function demoBar(){
+  if(!DEMO)return '';
+  return `<div class="demo">시험 모드(서버 저장 안 함) · 내 여정 ${[1,2,3,4,5].map(n=>`<button data-a="demoStage" data-v="${n}" class="${S.stage===n?'on':''}">${n}</button>`).join('')} <button data-a="demoCode">코드 입력 화면</button> <button data-a="goTrainer">M</button></div>`;
+}
+function render(){
+  const a=document.getElementById('app');
+  const f={boot:vBoot,login:vLogin,code:vCode,joined:vLaunch,launch:vLaunch,home:vHome,trainer:vTrainer,err:vErr}[S.scr]||vBoot;
+  a.innerHTML=demoBar()+f();
+}
+const vBoot=()=>`<div class="dark" style="display:flex;align-items:center;justify-content:center"><span style="color:var(--dm)">불러오는 중…</span></div>`;
+const vErr=()=>`<div class="wrap"><div class="card"><p class="h">연결 문제</p><p class="sub">${esc(S.err)}</p><button class="btn" data-a="reload">다시 시도</button></div></div>`;
+const logo=(c='#F0B85C',w=44)=>`<svg width="${w}" height="${Math.round(w*50/44)}" viewBox="0 0 44 50" aria-hidden="true"><polygon points="22,2 42,13.5 42,36.5 22,48 2,36.5 2,13.5" fill="none" stroke="${c}" stroke-width="2.5"/><text x="22" y="29.5" text-anchor="middle" font-size="11" font-weight="900" fill="${c}" font-family="Noto Sans KR, sans-serif">WLP</text></svg>`;
+function vLogin(){
+  return `<div class="dark" style="display:flex;flex-direction:column;align-items:center;padding:80px 24px;gap:10px;text-align:center">${logo()}
+  <p style="font-size:24px;font-weight:900;margin:8px 0 0;letter-spacing:.06em">WLP</p><p style="color:var(--dm);font-size:12px;margin:0">Workout · Life · Program</p><p style="color:var(--dm);font-size:13px;margin:6px 0 24px">센터에서 받은 코드로 시작해요</p>
+  <button class="btn" style="width:100%;max-width:320px;background:#FEE500;color:#191600" data-a="login" data-v="kakao">카카오로 시작하기</button>
+  <button class="btn ghost" style="width:100%;max-width:320px" data-a="login" data-v="google">구글로 시작하기</button>
+  <a href="./survey.html" style="color:var(--dm2);font-size:12px;margin-top:24px">3분 운동 성향 체크</a></div>`;
+}
+function vCode(){
+  return `<div class="dark" style="padding:0 24px 30px;display:flex;flex-direction:column">
+  <div style="margin-top:56px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">${logo('#F0B85C',52)}
+  <p style="margin:8px 0 0;font-size:20px;font-weight:900">센터에서 받은 코드를 입력해 주세요</p>
+  <p style="margin:0;font-size:12px;color:var(--dm);line-height:1.6">OT를 마친 뒤 트레이너가 드린 코드예요.<br>QR이나 카톡 링크로 들어왔다면 자동으로 채워져 있어요.</p></div>
+  <label for="code" style="margin-top:32px;font-size:12px;color:var(--dm)">가입 코드</label>
+  <input id="code" type="text" autocomplete="off" autocapitalize="characters" value="${esc(S.code)}" style="margin-top:6px;min-height:56px;border-radius:14px;border:1.5px solid ${S.codeMsg?'#F4A79B':'#4A3F34'};background:#25201A;color:#F5EFE6;font-size:22px;font-weight:800;letter-spacing:.08em;text-align:center">
+  <button class="btn" style="margin-top:12px;min-height:52px;background:#F0B85C;color:#1C1712;font-size:16px" data-a="redeem" ${S.busy?'disabled':''}>${S.busy?'확인 중…':'확인'}</button>
+  ${S.codeMsg?`<p style="margin:12px 0 0;font-size:13px;color:#F4A79B;text-align:center;line-height:1.5">${esc(S.codeMsg)}</p>`:''}
+  <p style="margin:16px 0 0;font-size:12px;color:var(--dm2);text-align:center">트레이너·센터 직원도 받은 직원 코드를 여기에 입력해요.</p><div style="flex:1"></div><div class="row" style="justify-content:space-between;margin-top:40px"><button class="link" style="color:var(--dm2)" data-a="logout">로그아웃</button>${S.centerExists===false?'<a href="./center.html" style="color:var(--dm2);font-size:12px">센터 관리자 첫 등록</a>':''}</div></div>`;
+}
+function vLaunch(){
+  const st=S.stage;
+  const pos=[null,[90,500],[290,400],[100,300],[290,200],[130,90]];
+  const nodes=[1,2,3,4,5].map(n=>{
+    const k=st?openKind(n):'lock',isCur=n===st,open=k!=='lock',size=isCur?76:56,[cx,cy]=pos[n],right=cx>200;
+    const orb=isCur?'background:#F0B85C;color:#1C1712;box-shadow:0 0 0 6px rgba(240,184,92,.22),0 0 28px rgba(240,184,92,.45)':open?'background:#3A2F23;color:#F0B85C;border:2px solid #F0B85C':'background:#25201A;border:2px dashed #4A3F34';
+    const p=(right?`right:${390-cx-size/2}px;`:`left:${cx-size/2}px;`)+`top:${cy-size/2}px`;
+    const badge=isCur?`<span class="badge" style="color:#1C1712;background:#F0B85C">내 여정</span>`:k==='appr'?`<span class="badge" style="color:#F0B85C;border:1px solid #F0B85C">승인됨</span>`:k==='past'?`<span class="badge" style="color:#B9AE9F;border:1px solid #4A3F34">지나온 여정</span>`:'';
+    const lock=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8F8476" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`;
+    return `<button class="node${right?' r':''}" style="${p}" data-a="${open?'openStage':'locked'}" data-v="${n}" aria-label="여정 ${n} ${J[n].name}${open?'':' (잠김)'}">
+      <span class="orb" style="width:${size}px;height:${size}px;font-size:${isCur?28:20}px;${orb}">${open?n:lock}</span>
+      <span style="display:flex;flex-direction:column;gap:2px;${right?'align-items:flex-end':''}"><span style="font-size:${isCur?16:14}px;font-weight:${isCur?900:700};color:${open?'#F5EFE6':'#8F8476'}">여정 ${n} · ${J[n].name}</span>
+      <span style="font-size:11px;color:${open?'#B9AE9F':'#8F8476'}">${open?J[n].sub:'트레이너·센터 승인 시 열려요'}</span>${badge}</span></button>`}).join('');
+  const toastJoined=S.scr==='joined'?`<div style="margin:0 16px;border-radius:16px;background:#F0B85C;color:#1C1712;padding:14px 16px;display:flex;align-items:center;gap:12px"><div style="flex:1"><b style="font-size:15px">첫 여정이 열렸어요</b><div style="font-size:12px">“${J[st].name}”를 눌러 시작해 보세요. 다음 여정은 트레이너와 함께 열려요.</div></div><button data-a="closeJoined" aria-label="닫기" style="width:44px;height:44px;border-radius:12px;border:0;background:rgba(28,23,18,.12);font-size:18px;font-weight:900">×</button></div>`:'';
+  const noStage=!st?`<p style="text-align:center;color:var(--dm);font-size:13px;margin:0 24px">${esc(S.staffName||'')} · 직원 계정이에요. 회원 여정과 OT 배정은 M에서 관리해요.</p>`:'';
+  const otBadge=isStaff()&&S.newCases?`<button data-a="goTrainerOt" style="margin:12px 16px 0;border:0;border-radius:16px;background:#F0B85C;color:#1C1712;padding:14px 16px;font-weight:800;font-size:14px;text-align:left">새 OT 배정 ${S.newCases}건 · 회원 정보 확인 후 스케줄을 조율해 주세요 ▸</button>`:'';
+  return `<div class="dark" style="display:flex;flex-direction:column">
+  <div style="padding:30px 24px 0;display:flex;flex-direction:column;align-items:center;gap:6px">${logo()}<span style="font-size:22px;font-weight:900;letter-spacing:.06em">WLP</span><span style="font-size:13px;color:var(--dm)">${isStaff()&&!st?'직원 계정':'회원님의 여정'}</span></div>
+  ${toastJoined}${otBadge}${noStage}
+  <div class="map"><svg width="390" height="560" viewBox="0 0 390 560" style="position:absolute;left:0;top:0" aria-hidden="true"><path d="M90 500 C 170 500, 300 470, 290 400 S 110 360, 100 300 S 280 250, 290 200 S 150 120, 130 90" fill="none" stroke="#4A3F34" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/></svg>${nodes}</div>
+  <p style="margin:0 24px 10px;font-size:11px;color:var(--dm2);text-align:center;line-height:1.5">${PAST_OK[st]?'내 여정과 지나온 여정이 열려 있어요.':'내 여정만 열려 있어요.'} 다른 여정은 트레이너나 센터가 승인하면 열려요.</p>
+  <div class="row" style="justify-content:space-between;padding:0 20px 26px"><button class="link" style="color:var(--dm2)" data-a="logout">로그아웃</button>
+  <button data-a="goTrainer" aria-label="관리자 (트레이너 전용)" style="width:44px;height:44px;border-radius:12px;border:1px solid #4A3F34;background:transparent;color:#8F8476;font-size:16px;font-weight:900">M</button></div></div>`;
+}
+
+/* ===== 화면: 구간별 홈 ===== */
+function hTop(n){return `<div class="top"><button class="link" data-a="toMap">◀ 여정 지도</button><span class="brand">WLP · 여정 ${n} · ${J[n].name}</span></div>`}
+function pdseCard(mode){
+  // mode: words(②) / num(③④) / full(⑤)
+  const u=S.ui,names=recentExNames();
+  const exSel=`<label class="l" for="pex">방금 한 종목</label><select id="pex">${names.map(x=>`<option${u.pex===x?' selected':''}>${esc(x)}</option>`).join('')}<option value="">(직접 입력 없이 오늘 전체)</option></select>`;
+  if(mode==='words'){
+    const ch=(key,list,vals)=>list.map((l,i)=>`<button class="chip${u[key]===vals[i]?' on':''}" style="flex:1" data-a="ui" data-k="${key}" data-v="${vals[i]}">${l}</button>`).join('');
+    return `<div class="card"><p class="h">방금 그거 어땠어요?</p>${names.length?exSel:''}<div class="row">${ch('pd',['쉬웠어요','딱 맞았어요','버거웠어요'],[2,6,8])}</div>
+    <p class="h" style="font-size:14px">한 번 더 하라면?</p><div class="row">${ch('se',['자신 없어요','해 볼 만해요','충분해요'],[2,6,10])}</div>
+    <button class="btn" data-a="savePdse" ${u.pd==null||u.se==null?'disabled':''}>남기기</button></div>`;
+  }
+  const row=k=>`<div class="n6">${STEPS.map(v=>`<button class="n${u[k]===v?(k==='vas'&&v>=4?' red':' on'):''}" data-a="ui" data-k="${k}" data-v="${v}">${v}</button>`).join('')}</div>`;
+  const mine=zoneOf(u.pd,u.se,u.vas||0);
+  return `<div class="card"><p class="h">방금 종목, 두 가지만</p>${names.length?exSel:''}
+  <div class="row" style="justify-content:space-between"><b style="font-size:13px">얼마나 어려웠어요?</b><b style="color:var(--ac)">${u.pd??''}</b></div>${row('pd')}<p class="sub">${u.pd!=null?PDT[u.pd]:'기술·자세가 어려웠던 것까지 포함해요'}</p>
+  <div class="row" style="justify-content:space-between"><b style="font-size:13px">한 세트 더 해낼 자신감은?</b><b style="color:var(--ac)">${u.se??''}</b></div>${row('se')}<p class="sub">${u.se!=null?SET[u.se]:''}</p>
+  ${mode==='full'?`<div class="row" style="justify-content:space-between"><b style="font-size:13px">통증 (VAS)</b><b style="color:var(--bad)">${u.vas??0}</b></div>${row('vas')}<p class="sub">4 이상이면 트레이너가 기록지에서 바로 봐요.</p>`:''}
+  ${S.stage>=4&&mine&&u.pd!=null&&u.se!=null?`<p style="margin:0;font-size:13px;font-weight:800;color:var(--ac2)">내 느낌으로 보면: ${esc(mine.z.split(' · ')[1]||mine.z)}</p>`:''}
+  <button class="btn" data-a="savePdse" ${u.pd==null||u.se==null?'disabled':''}>남기기</button></div>`;
+}
+function vHome(){
+  const n=S.view;const f=[null,home1,home2,home3,home4,home5][n];
+  return `<div style="display:flex;flex-direction:column">${hTop(n)}<div class="wrap">${f()}</div></div>`;
+}
+function home1(){
+  const sl=giftSlots().slice(0,3),dis=S.ui.dis||{},w=todayFb('word');
+  return `<div class="card warm"><p class="h" style="font-size:18px">오늘은 몸 풀기만 해요</p><p class="sub">운동이라기보다 몸이 지금 어떤지 같이 보는 시간이에요. 힘든 건 안 할 거예요.</p></div>
+  <div class="card"><p class="h">오늘 해 볼 움직임</p>${sl.length?sl.map((x,i)=>{const nm=exName(x),off=dis[nm]||S.fb.some(f=>f.kind==='dislike'&&f.exercise===nm&&f.session_date===today());return `<div class="mv"><span class="${off?'gone':''}">${esc(nm)}</span>${off?'<span class="sub">트레이너에게 전달됨</span>':`<button class="btn ghost sm" data-a="dislike" data-v="${esc(nm)}">빼 주세요</button>`}</div>`}).join(''):'<p class="sub">트레이너가 수업 루틴을 보내 주면 여기에 떠요.</p>'}
+  <p class="sub">싫은 건 빼 주세요. 트레이너에게 바로 전달돼요.</p></div>
+  <div class="card"><p class="h">오늘 해 보니 어땠어요?</p><div class="row wrapx">${['시원해요','개운해요','뻐근해요','그냥 그래요','별로예요'].map(l=>`<button class="chip${w&&w.data&&w.data.word===l?' on':''}" data-a="word" data-v="${l}">${l}</button>`).join('')}</div><p class="sub">한 단어면 충분해요. 어떤 답이든 괜찮아요.</p></div>`;
+}
+function home2(){
+  const nums=S.fb.filter(f=>f.kind==='number'),last=nums[0],prev=nums[1],metric=(last&&last.data.metric)||'플랭크';
+  const diff=last&&prev&&last.data.metric===prev.data.metric?(last.data.actual-prev.data.actual):null;
+  const fun=todayFb('fun'),sl=recentExNames().slice(0,6),dates=activeDates().slice(0,8);
+  return `<div class="card warm"><div class="row" style="justify-content:space-between"><p class="h">내 숫자 하나 · ${esc(metric)}</p><span class="sub">내가 고른 숫자</span></div>
+  ${last?`<div class="row"><div class="pill" style="flex:1;text-align:center;background:#fff"><b>내 예상</b><span style="font-size:22px;font-weight:900">${esc(last.data.guess)}</span></div><div class="pill" style="flex:1;text-align:center;background:#fff;border:1.5px solid var(--ac)"><b>실제로 해 보니</b><span style="font-size:22px;font-weight:900;color:var(--ac)">${esc(last.data.actual)}</span></div></div>${diff!=null&&diff>0?`<p style="margin:0;font-size:13px;color:var(--ac2);font-weight:800">지난번보다 ${diff} 늘었어요</p>`:''}`:'<p class="sub">아직 기록이 없어요. 오늘 하나 남겨 볼까요?</p>'}
+  <div class="row"><div style="flex:2"><label class="l" for="nm">숫자 이름</label><input id="nm" type="text" value="${esc(metric)}"></div><div style="flex:1"><label class="l" for="ng">예상</label><input id="ng" type="number" inputmode="numeric"></div><div style="flex:1"><label class="l" for="na">실제</label><input id="na" type="number" inputmode="numeric"></div></div>
+  <button class="btn" data-a="saveNum">남기기</button><p class="sub">다음엔 몇 초 버틸 수 있을 것 같아요?</p></div>
+  <div class="card"><p class="h">오늘 제일 재밌던 동작은?</p>${sl.length?`<div class="row wrapx">${sl.map(l=>`<button class="chip${fun&&fun.exercise===l?' on':''}" data-a="fun" data-v="${esc(l)}">${esc(l)}</button>`).join('')}</div><p class="sub">고른 동작은 다음 수업 첫 동작으로 트레이너에게 전달돼요.</p>`:'<p class="sub">수업 루틴을 받으면 여기서 고를 수 있어요.</p>'}</div>
+  ${pdseCard('words')}
+  <div class="card"><p class="h">해 봤다 스탬프</p><div class="row wrapx">${Array.from({length:8},(_,i)=>dates[i]?`<span class="stamp ok">${dates[i].slice(5).replace('-','/')}</span>`:'<span class="stamp"></span>').join('')}</div><p class="sub">빈칸은 그냥 빈칸이에요. 율이나 연속 기록은 없어요.</p></div>`;
+}
+function home3(){
+  const s0=S.sessions[0];let rows='<p class="sub">아직 운동 기록이 없어요.</p>';
+  if(s0){rows=(s0.items||[]).filter(Boolean).slice(0,6).map(it=>{const nm=exName(it),t=topSet(it);let prev=null;for(const s of S.sessions.slice(1)){const p=(s.items||[]).find(x=>x&&exName(x)===nm);if(p){prev=topSet(p);break}}
+    return `<div class="mv"><span><b>${esc(nm)}</b></span><span class="sub">${prev?fmtSet(prev)+' → ':''}<b style="color:var(--tx)">${fmtSet(t)}</b></span></div>`}).join('')}
+  const line=latestFb('line');
+  const d=new Date(Date.now()+9*3600e3),dow=(d.getUTCDay()+6)%7,mon=new Date(d.getTime()-dow*864e5);
+  const days=['월','화','수','목','금','토','일'].map((l,i)=>{const ds=new Date(mon.getTime()+i*864e5).toISOString().slice(0,10);return `<span class="day${S.sessions.some(x=>x.session_date===ds)?' hl':''}">${l}</span>`}).join('');
+  return `<div class="card"><div class="row" style="justify-content:space-between"><p class="h">최근 운동${s0?' · '+s0.session_date.slice(5).replace('-','/'):''}</p><span class="sub">지난번 → 이번</span></div>${rows}
+  ${LEGACY?`<a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="${RUNE}">운동 기록 열기 (룬 PT)</a>`:''}</div>
+  ${pdseCard('num')}
+  <div class="card"><p class="h">오늘 한 줄</p><textarea id="ln" placeholder="무엇을, 얼마나, 어떤 느낌">${''}</textarea>${line?`<p class="sub">지난 한 줄: ${esc(line.data.text)}</p>`:''}<button class="btn ghost" data-a="saveLine">남기기</button></div>
+  <div class="card"><p class="h">이번 주</p><div class="row" style="gap:4px">${days}</div></div>
+  <div class="card blue"><p class="h" style="font-size:14px">미리 알려 드려요</p><p class="sub" style="color:#3D4E63">3~6주 차쯤 제자리 같은 느낌이 올 수 있어요. 몸이 적응하는 정상 과정이에요.</p></div>`;
+}
+function weeksKnots(){
+  const d=new Date(Date.now()+9*3600e3),dow=(d.getUTCDay()+6)%7,mon0=new Date(d.getTime()-dow*864e5);
+  return Array.from({length:6},(_,i)=>{const st=new Date(mon0.getTime()-(5-i)*7*864e5),en=new Date(st.getTime()+7*864e5),a=st.toISOString().slice(0,10),b=en.toISOString().slice(0,10);
+    const ses=S.sessions.some(x=>x.session_date>=a&&x.session_date<b),mini=S.fb.some(f=>f.kind==='mini15'&&f.session_date>=a&&f.session_date<b);
+    return `<div class="wk"><span class="knot${ses?' a':mini?' b':''}"></span>${ses?'운동':mini?'15분':''}</div>`}).join('');
+}
+function home4(){
+  const g=latestFb('goal4w'),u=S.ui,ways=['무게','템포','범위','횟수','기술 다듬기'];
+  return `<div class="card"><p class="h">다음 4주, 뭘로 올려 볼까요?</p><div class="row wrapx">${ways.map(l=>`<button class="chip${u.way===l?' on':''}" data-a="ui" data-k="way" data-v="${l}">${l}</button>`).join('')}</div>
+  <label class="l" for="g4">내가 정하는 다음 4주 목표</label><input id="g4" type="text" placeholder="예: 스쿼트 내려갈 때 4초로 10회" value="${g?esc(g.data.text):''}">
+  <button class="btn" data-a="saveGoal4">정하기</button>${g?`<p class="sub">지금 목표 (${esc(g.session_date)}): ${esc(g.data.way||'')} · ${esc(g.data.text)}</p>`:''}</div>
+  <div class="card"><div class="row" style="justify-content:space-between"><p class="h">이어 온 끈</p><span class="sub">최근 6주</span></div><div class="row" style="gap:6px">${weeksKnots()}</div>
+  <button class="btn" data-a="mini15">바쁜 주 · 15분 루틴으로 끈 잇기</button></div>
+  <div class="card"><p class="h">혼자 하는 날 메뉴판</p><div class="row" style="align-items:stretch">
+  <div class="pill" style="flex:1"><b>헬스장</b>스쿼트·랫풀다운·플랭크</div><div class="pill" style="flex:1"><b>집</b>맨몸 스쿼트·푸쉬업·브릿지</div><div class="pill" style="flex:1"><b>출장지</b>밴드 3종 15분</div></div></div>
+  ${pdseCard('num')}
+  <div class="card"><p class="h" style="font-size:14px">요즘 생활에서 쉬워진 게 있어요?</p><input id="lf" type="text" placeholder="계단, 장보기, 아이 안기…"><button class="btn ghost" data-a="saveLife">남기기</button><p class="sub">4주 재평가 때 트레이너와 같이 봐요.</p></div>
+  ${LEGACY?`<div class="card"><p class="sub">티어·운동도감·또래 비교(원할 때만)는 기록 앱에서 볼 수 있어요.</p><a class="btn ghost" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="${RUNE}">기록 앱 열기 (룬 PT)</a></div>`:''}`;
+}
+function home5(){
+  const q=latestFb('qgoal'),r=latestFb('retro');
+  return `<div class="card warm"><div class="row" style="justify-content:space-between"><p class="h">이번 분기 내 목표</p><span class="sub" style="color:var(--ac2);font-weight:800">내가 정함</span></div>
+  ${q?`<p style="margin:0;font-size:16px;font-weight:800">${esc(q.data.text)}</p>`:''}<input id="qg" type="text" placeholder="예: 10km 러닝 완주 + 데드리프트 기술 다듬기"><button class="btn" data-a="saveQgoal">${q?'바꾸기':'정하기'}</button><p class="sub">트레이너는 안전과 단계만 조정해요.</p></div>
+  <div class="card"><p class="h">분기 리듬</p><div style="display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:3px;font-size:11px;font-weight:800;text-align:center">
+  <span style="grid-column:span 4;background:var(--ac);color:#fff;border-radius:8px;padding:8px 2px">집중 4주</span><span style="background:#FDE68A;color:#5B3A06;border-radius:8px;padding:8px 2px">쉼</span><span style="grid-column:span 4;background:var(--ac);color:#fff;border-radius:8px;padding:8px 2px">집중 4주</span><span style="grid-column:span 2;background:#F3E1BE;color:#5B3A06;border-radius:8px;padding:8px 2px">회복</span><span style="grid-column:span 2;background:#DCE7F3;color:#2F4560;border-radius:8px;padding:8px 2px">회고</span></div>
+  <p class="sub">쉬는 주도 계획의 일부예요.</p></div>
+  ${pdseCard('full')}
+  <div class="card"><p class="h">분기 회고</p><label class="l" for="r1">무엇이 좋았나</label><textarea id="r1">${r?esc(r.data.good):''}</textarea><label class="l" for="r2">무엇을 배웠나</label><textarea id="r2">${r?esc(r.data.learn):''}</textarea><label class="l" for="r3">다음엔 무엇을 해 볼까</label><textarea id="r3">${r?esc(r.data.next):''}</textarea><button class="btn ghost" data-a="saveRetro">남기기</button></div>
+  <div class="card"><p class="h">새 무대</p><div class="row" style="align-items:stretch"><div class="pill" style="flex:1"><b>움직임 챌린지</b>확장팩 준비 중</div><div class="pill" style="flex:1"><b>대회·러닝</b>트레이너와 찾기</div><div class="pill" style="flex:1"><b>초보 응원</b>함께 운동</div></div>
+  ${LEGACY?`<a class="btn ghost" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="${RUNE}">기록 앱 열기 (루틴 직접 짜기)</a>`:''}</div>`;
+}
+
+/* ===== 화면: 트레이너 (M) ===== */
+async function loadTrainer(){
+  if(DEMO){if(!S.tr.list)demoTrainer();render();return}
+  const [a,c,k]=await Promise.all([sb.rpc('wlp_trainer_members'),sb.rpc('wlp_my_codes'),sb.rpc('wlp_cases')]);
+  if(a.error){S.tr.err=sbErr(a.error);render();return}
+  S.tr.err='';S.tr.list=a.data||[];S.tr.others=[];S.tr.invites=c.error?[]:(c.data||[]);
+  S.tr.cases=k.error?[]:(k.data||[]).filter(x=>x.trainer_id===S.uid&&['응답 대기','연락 중','조율 완료'].includes(x.status));S.newCases=S.tr.cases.filter(x=>x.status==='응답 대기').length;render();
+}
+async function loadDetail(id){
+  S.tr.sel=id;S.tr.detail=null;S.tr.ui=Object.assign(S.tr.ui,{pd:null,se:null,vas:0,ex:''});render();
+  if(DEMO){S.tr.detail=demoDetail(id);S.tr.ui.exs=['고블릿 스쿼트','루마니안 데드리프트','랫풀다운'];render();return}
+  const r=await sb.rpc('wlp_member_detail',{p_member:id});
+  if(r.error){toast(sbErr(r.error));return}
+  S.tr.detail=r.data||{};
+  const set=[];(S.tr.detail.feedback||[]).forEach(f=>{if(f.exercise&&!set.includes(f.exercise))set.push(f.exercise)});
+  if(LEGACY){try{const s=await sb.rpc('trainer_member_sessions',{p_member:id,p_limit:5});(s.data||[]).forEach(x=>(x.items||[]).forEach(it=>{if(it){const n=exName(it);if(!set.includes(n))set.push(n)}}))}catch(e){}}
+  S.tr.ui.exs=set;
+  render();
+}
+function vTrainer(){
+  const t=S.tr;
+  const head=`<div class="tbar"><div class="row" style="justify-content:space-between"><b style="font-size:15px">WLP 관리 · ${esc(S.staffName||'')}</b><button class="link" style="color:#E8E1D6" data-a="toMap">여정 지도 ▸</button></div>
+  <div class="tabs"><button class="tab${t.tab==='ot'?' on':''}" data-a="trTab" data-v="ot">OT 배정${S.newCases?' '+S.newCases:''}</button><button class="tab${t.tab==='members'?' on':''}" data-a="trTab" data-v="members">회원</button><button class="tab${t.tab==='codes'?' on':''}" data-a="trTab" data-v="codes">가입 코드</button></div></div>`;
+  const links=`<div class="row"><a class="btn" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--ok)" href="./ot.html">OT 판정 · 코드 발급</a><a class="btn ghost" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="${S.role==='center'?'./center.html':(LEGACY?RUNE:'./center.html')}">${S.role==='center'?'센터 화면':(LEGACY?'룬 PT 기록 앱':'센터 화면')}</a></div>`;
+  if(t.err)return head+`<div class="wrap"><div class="card"><p class="sub">${esc(t.err)}</p></div>${links}</div>`;
+  if(!t.list)return head+`<div class="wrap"><p class="sub">불러오는 중…</p></div>`;
+  if(t.tab==='codes'){
+    const inv=t.invites||[];
+    return head+`<div class="wrap">${links}<div class="card"><p class="h">내가 발급한 코드</p>${inv.length?inv.map(x=>{const st=x.canceled_at?'취소됨':x.used_at?'사용됨 '+x.used_at.slice(5,10).replace('-','/'):new Date(x.expires_at)<new Date()?'만료됨':'대기 · '+x.expires_at.slice(5,10).replace('-','/')+'까지';
+      return `<div class="fb"><span><b>${esc(x.code)}</b> · ${esc(x.name||'')} · ${x.kind==='staff'?'직원':'여정 '+x.start_stage}</span><span class="row" style="gap:6px"><span class="sub">${st}</span>${!x.used_at&&!x.canceled_at?`<button class="btn ghost sm" data-a="cancelCode" data-v="${esc(x.code)}">취소</button>`:''}</span></div>`}).join(''):'<p class="sub">아직 없어요. OT 판정 화면에서 발급해요.</p>'}</div></div>`;
+  }
+  if(t.tab==='ot')return head+vTrOt();
+  if(t.sel)return head+vTrDetail();
+  const q=t.q.trim();
+  const list=t.list.filter(x=>!q||(x.name||'').includes(q));
+  return head+`<div class="wrap">${links}<input id="trq" type="text" placeholder="회원 이름 검색" value="${esc(t.q)}" data-in="trq">
+  <div class="card"><p class="h">여정 회원 ${list.length}명</p>${list.length?list.map(x=>`<button class="mrow" data-a="trSel" data-v="${x.member_id}"><span><b>${esc(x.name)}</b><br><span class="sub">여정 ${x.stage} · ${J[x.stage].name}${(x.approved||[]).length?' · 승인 '+x.approved.join(','):''}</span></span><span class="sub">${x.last_feedback?'최근 기록 '+String(x.last_feedback).slice(5).replace('-','/'):''} ▸</span></button>`).join(''):'<p class="sub">가입 코드로 들어온 회원이 여기에 보여요.</p>'}</div>
+  ${(t.others||[]).length?`<div class="card"><p class="h">여정 미지정 가입 회원</p><p class="sub">코드 없이 이미 가입한 회원은 여기서 여정을 정해 줘요.</p>${t.others.slice(0,30).map(x=>`<div class="fb"><span>${esc(x.name||'회원')}</span><span class="row" style="gap:4px">${[1,2,3,4,5].map(n=>`<button class="btn ghost sm" style="min-width:34px;padding:0" data-a="assign" data-m="${x.id}" data-v="${n}">${n}</button>`).join('')}</span></div>`).join('')}</div>`:''}</div>`;
+}
+function vTrOt(){
+  const t=S.tr,cs=t.cases||[],c=cs.find(x=>x.id===t.openCase);
+  const SC={'응답 대기':'background:#E9F0FA;color:#1D4ED8','연락 중':'background:#FDECC8;color:#7C3D06','조율 완료':'background:#1F6F5C;color:#fff'};
+  const hrs=d=>d?Math.floor((Date.now()-new Date(d).getTime())/3600e3):0;
+  if(!c){
+    return `<div class="wrap">${S.newCases?`<div class="card warm"><p class="h">새 OT 배정 ${S.newCases}건</p><p class="sub">회원 정보 확인 후 스케줄을 조율해 주세요.</p></div>`:''}
+    ${cs.length?cs.map(x=>{const tp=OTA.T8[(x.result||{}).k]||{},late=x.status==='응답 대기'&&hrs(x.assigned_at)>=24;
+      return `<button class="mrow" data-a="openCase" data-v="${x.id}"><span><b>${esc(x.name)}</b><br><span class="sub">${esc(tp.start||'')} · 희망 ${esc(((x.answers||{}).days||[]).join('·'))} ${esc(((x.answers||{}).slots||[]).join('·'))}</span><br><span class="sub" style="${late?'color:#B91C1C;font-weight:800':''}">${late?hrs(x.assigned_at)+'시간째 응답 대기':esc(x.reply||'새 배정')}</span></span><span class="tag" style="${SC[x.status]||''}">${x.status}</span></button>`}).join(''):'<div class="card"><p class="sub">배정된 OT가 없어요.</p></div>'}</div>`;
+  }
+  const tp=OTA.T8[(c.result||{}).k]||{},a=c.answers||{},opt=(list)=>list.map(l=>`<button class="chip${t.ropt===l?' on':''}" data-a="ropt" data-v="${esc(l)}">${esc(l)}</button>`).join('');
+  const ready=t.rk==='contact'||((t.rk==='done'||t.rk==='back')&&t.ropt);
+  return `<div class="wrap"><button class="link" style="align-self:flex-start" data-a="closeCase">◀ 목록</button>
+  <div class="card warm"><p class="sub" style="color:var(--ac2)"><b>센터 메시지</b></p><p style="margin:0;font-size:14px;line-height:1.6">${esc(c.name)} 회원님 OT 배정합니다. 희망 시간은 ${esc((a.days||[]).join('·'))} ${esc((a.slots||[]).join('·'))}이에요. 회원 정보 확인 후 스케줄을 조율해 주세요.</p></div>
+  <div class="card"><p class="h">${esc(c.name)} · <a href="tel:${esc(c.phone||'')}">${esc(c.phone||'')}</a></p>
+  <p class="sub"><b style="color:var(--tx)">시작 방식</b> ${esc(tp.start||'-')} (${esc(tp.n||'-')}) · 설문 시작 여정 ${esc((c.result||{}).start||'-')}</p>
+  <p class="sub"><b style="color:var(--tx)">방향</b> ${esc((a.dir||[]).join(' · ')||'-')} · <b style="color:var(--tx)">망설임</b> ${esc((a.hard||[]).join(' · ')||'-')}</p>
+  ${c.med_memo?`<p class="sub" style="color:var(--bad)"><b>의학 메모</b> ${esc(c.med_memo)}</p>`:''}
+  <p class="sub"><b style="color:var(--tx)">등록 대화</b> ${esc(tp.reg||'-')}</p><p class="sub"><b style="color:var(--tx)">주의</b> ${esc(tp.warn||'-')}</p></div>
+  ${c.status==='조율 완료'?`<div class="card"><p class="h">조율 완료 · ${esc(c.first_ot_at||'')}</p><p class="sub">OT 때 판정 도구로 다시 판정하고, 결과 화면에서 가입 코드를 발급해요.</p><a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--ok)" href="./ot.html?case=${c.id}&name=${encodeURIComponent(c.name)}">OT 판정 · 가입 코드 발급</a></div>`:''}
+  <div class="card"><p class="h">응답하기</p><div class="row">${[['done','일정 조율 완료'],['contact','연락 중'],['back','재배정 요청']].map(([k,l])=>`<button class="chip${t.rk===k?' on':''}" style="flex:1" data-a="rk" data-v="${k}">${l}</button>`).join('')}</div>
+  ${t.rk==='done'?`<label class="l" for="otAt">첫 OT 일시</label><input id="otAt" type="text" placeholder="예: 11/26(수) 19:00" data-in="otAt" value="${esc(t.ropt||'')}">`:''}
+  ${t.rk==='contact'?`<div class="row wrapx">${opt(['부재중 · 문자 남김','통화함 · 일정 확인 중','회원이 다시 연락 주기로'])}</div>`:''}
+  ${t.rk==='back'?`<p class="sub">사유 (필수)</p><div class="row wrapx">${opt(['시간이 안 맞음','회원과 연락이 안 됨','전문 분야가 아님','기타'])}</div>`:''}
+  <button class="btn" data-a="sendReply" ${ready?'':'disabled'}>센터로 보내기</button>
+  <p class="sub">${t.rk==='back'?'센터 현황판의 ‘재배정 요청’ 칸으로 돌아가요.':'응답은 센터 현황판에 바로 보여요.'}</p></div></div>`;
+}
+async function loadCasesBadge(){if(DEMO){if(!S.tr.cases)demoTrainer();S.newCases=(S.tr.cases||[]).filter(x=>x.status==='응답 대기').length;return}
+  try{const k=await sb.rpc('wlp_cases');S.tr.cases=(k.data||[]).filter(x=>x.trainer_id===S.uid&&['응답 대기','연락 중','조율 완료'].includes(x.status));S.newCases=S.tr.cases.filter(x=>x.status==='응답 대기').length;render()}catch(e){}}
+function flowMap(fb){
+  const by={};fb.filter(f=>f.kind==='pdse'&&f.pd!=null&&f.se!=null).forEach(f=>{(by[f.session_date]=by[f.session_date]||[]).push(f)});
+  const pts=Object.keys(by).sort().slice(-12).map((d,i)=>{const a=by[d];return {d,pd:a.reduce((s,x)=>s+x.pd,0)/a.length,se:a.reduce((s,x)=>s+x.se,0)/a.length,i}});
+  if(!pts.length)return '<p class="sub">PD·SE 기록이 쌓이면 지도가 그려져요.</p>';
+  const W=300,H=260,X=v=>20+v/10*W,Y=v=>10+(1-v/10)*H;
+  const col=p=>p.pd>=5&&p.se<5?'#C2410C':p.pd>=5?'#15803D':p.se>=5?'#1D4ED8':'#57534E';
+  return `<svg viewBox="0 0 340 300" role="img" aria-label="회원 몰입 지도 추이" style="width:100%;height:auto">
+  <rect x="20" y="10" width="150" height="130" fill="#FBE7DA"/><rect x="170" y="10" width="150" height="130" fill="#DDEFE3"/><rect x="20" y="140" width="150" height="130" fill="#ECEAE6"/><rect x="170" y="140" width="150" height="130" fill="#E2EAF6"/>
+  <text x="26" y="26" font-size="11" font-weight="700" fill="#8A3B12">불안</text><text x="314" y="26" font-size="11" font-weight="700" fill="#1F5A33" text-anchor="end">몰입</text><text x="26" y="264" font-size="11" font-weight="700" fill="#5C544B">무관심</text><text x="314" y="264" font-size="11" font-weight="700" fill="#2F4560" text-anchor="end">통제·이완</text>
+  <line x1="20" y1="270" x2="320" y2="10" stroke="#7FA996" stroke-dasharray="5 5"/>
+  <polyline points="${pts.map(p=>X(p.se).toFixed(0)+','+Y(p.pd).toFixed(0)).join(' ')}" fill="none" stroke="#2B241D" stroke-width="2" opacity=".5"/>
+  ${pts.map((p,i)=>`<circle cx="${X(p.se).toFixed(0)}" cy="${Y(p.pd).toFixed(0)}" r="${i===pts.length-1?10:8}" fill="${col(p)}" stroke="#fff" stroke-width="2"/><text x="${X(p.se).toFixed(0)}" y="${(Y(p.pd)+4).toFixed(0)}" font-size="9" font-weight="800" fill="#fff" text-anchor="middle">${i+1}</text>`).join('')}
+  <text x="170" y="292" font-size="11" fill="#6B6155" text-anchor="middle">SE 해낼 자신감 →</text><text x="10" y="140" font-size="11" fill="#6B6155" transform="rotate(-90 10 140)" text-anchor="middle">PD 어려움 →</text></svg>
+  <p class="sub">최근 ${pts.length}일 · 날짜별 평균 (1 = 가장 오래된 날)</p>`;
+}
+function fbText(f){
+  const who=f.entered_by==='trainer'?'<span class="tag" style="background:#2B241D;color:#fff">트레이너</span>':'<span class="tag" style="background:#FDECC8;color:#7C3D06">회원</span>';
+  const d=f.data||{};let t='';
+  switch(f.kind){case 'pdse':t=`${esc(f.exercise||'오늘')} · PD ${f.pd} · SE ${f.se}${f.vas?` · <b style="color:#B91C1C">VAS ${f.vas}</b>`:''}`;break;
+  case 'word':t='소감: '+esc(d.word);break;case 'dislike':t='빼 주세요: '+esc(f.exercise);break;case 'fun':t='재밌던 동작: '+esc(f.exercise);break;
+  case 'number':t=`내 숫자 ${esc(d.metric)}: 예상 ${esc(d.guess)} → 실제 ${esc(d.actual)}`;break;case 'line':t='한 줄: '+esc(d.text);break;
+  case 'goal4w':t=`4주 목표(${esc(d.way||'')}): ${esc(d.text)}`;break;case 'life':t='생활에서 쉬워진 것: '+esc(d.text);break;case 'mini15':t='15분 루틴으로 끈 잇기';break;
+  case 'qgoal':t='분기 목표: '+esc(d.text);break;case 'retro':t='분기 회고 작성';break;
+  case 'talk':t=`<span class="tag" style="background:${d.type==='change'?'#E3F1E7;color:#1F5A33':'#F3E8E3;color:#7A3418'}">${d.type==='change'?'변화 대화':'유지 대화'}</span> “${esc(d.text)}”`;break;
+  case 'signal':t=`구간 ${d.stage} 신호 확인: ${esc(d.text)}`;break;default:t=esc(f.kind)}
+  return `<div class="fb"><span>${t}</span><span class="row" style="gap:4px">${who}<span class="sub">${String(f.session_date).slice(5).replace('-','/')}</span></span></div>`;
+}
+function vTrDetail(){
+  const t=S.tr,m=t.list.find(x=>x.member_id===t.sel)||{name:'회원'},d=t.detail;
+  if(!d)return `<div class="wrap"><button class="link" data-a="trBack">◀ 회원 목록</button><p class="sub">불러오는 중…</p></div>`;
+  const st=d.stage||m.stage,acc=(d.access||[]).filter(a=>!a.revoked&&a.role!=='code').map(a=>a.stage),u=t.ui;
+  const stBtns=[1,2,3,4,5].map(n=>`<button class="st${st===n?' on':''}" data-a="setStage" data-v="${n}"><b>${n}</b>${J[n].theory.split(' · ')[0]}</button>`).join('');
+  const accBtns=[1,2,3,4,5].map(n=>{const own=n===st,ok=acc.includes(n),past=!own&&!ok&&PAST_OK[st]&&n<st;
+    return `<button class="st${own?' own':ok?' ok':past?' past':''}" data-a="${own||past?'noop':'toggleAcc'}" data-v="${n}"><b>${n}</b>${own?'내 여정':ok?'승인됨':past?'지나옴':'잠김'}</button>`}).join('');
+  const sig=(SIGNALS[st]||[]).map((s,i)=>{const done=(d.feedback||[]).some(f=>f.kind==='signal'&&f.data&&f.data.stage===st&&f.data.idx===i);return `<button class="ck" data-a="${done?'noop':'signal'}" data-v="${i}"><span class="box${done?' on':''}"></span><span>${esc(s)}</span></button>`}).join('');
+  const row=k=>`<div class="n6">${STEPS.map(v=>`<button class="n${u[k]===v?(k==='vas'&&v>=4?' red':' on'):''}" data-a="trUi" data-k="${k}" data-v="${v}">${v}</button>`).join('')}</div>`;
+  const z=zoneOf(u.pd,u.se,u.vas||0);
+  const ot=d.ot;
+  const otTxt=ot?`<div class="row wrapx" style="gap:6px"><div class="pill"><b>3축 유형</b>${esc(ot.type_name||'-')}</div><div class="pill"><b>마음 상태</b>${esc((ot.result&&ot.result.zone)||'-')}</div><div class="pill"><b>변화 단계</b>${esc((ot.result&&ot.result.stageName)||'-')}</div><div class="pill"><b>판정 시작</b>여정 ${esc(ot.start_stage)}</div></div>${ot.result&&ot.result.memo&&ot.result.memo.med?`<p class="sub" style="color:var(--bad)">의학적 특이사항: ${esc(ot.result.memo.med)}</p>`:''}`:'<p class="sub">OT 판정 기록이 없어요 (코드 없이 지정된 회원).</p>';
+  return `<div class="wrap"><button class="link" style="align-self:flex-start" data-a="trBack">◀ 회원 목록</button>
+  <div class="card"><p class="h">${esc(m.name)} · 지금 구간</p><div class="row" style="gap:5px">${stBtns}</div><p class="sub">회원 화면에는 구간 이론 이름이 보이지 않아요(“${J[st].name}”로만). 구간을 내려도 승인한 여정은 그대로예요.</p></div>
+  <div class="card"><p class="h">여정 접근 승인</p><p class="sub">${PAST_OK[st]?'이 구간은 지나온 여정을 다시 볼 수 있어요.':'이 구간은 자기 여정만 열려요.'} 다른 여정은 여기서 승인해요.</p><div class="row" style="gap:5px">${accBtns}</div>
+  <div class="row"><span class="sub">승인 주체</span>${['trainer','center'].map(r=>`<button class="chip${u.role===r?' on':''}" data-a="trUi" data-k="role" data-v="${r}">${r==='trainer'?'트레이너':'센터'}</button>`).join('')}</div>
+  ${(d.access||[]).slice(0,6).map(a=>`<p class="sub">여정 ${a.stage} · ${a.role==='code'?'가입 코드':a.role==='center'?'센터 승인':'트레이너 승인'} · ${String(a.at).slice(0,10)}${a.revoked?' · 취소 '+String(a.revoked).slice(0,10):''}</p>`).join('')}</div>
+  <div class="card" style="border:1.5px solid var(--ac)"><p class="h">수업 기록지 · 종목 끝</p>
+  <label class="l" for="tex">종목</label><input id="tex" type="text" list="exs" value="${esc(u.ex)}" placeholder="종목 이름" data-in="tex"><datalist id="exs">${(u.exs||[]).map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+  <div class="row" style="justify-content:space-between"><b style="font-size:13px">PD · 얼마나 어려웠나 (기술·인지 포함)</b><b style="color:var(--ac)">${u.pd??''}</b></div>${row('pd')}<p class="sub">${u.pd!=null?PDT[u.pd]:''}</p>
+  <div class="row" style="justify-content:space-between"><b style="font-size:13px">SE · 한 세트 더 해낼 자신감</b><b style="color:var(--ac)">${u.se??''}</b></div>${row('se')}<p class="sub">${u.se!=null?SET[u.se]:''}</p>
+  <div class="row" style="justify-content:space-between"><b style="font-size:13px">VAS · 통증</b><b style="color:var(--bad)">${u.vas??0}</b></div>${row('vas')}
+  ${z?`<div style="background:${z.bg};border-radius:12px;padding:12px"><p style="margin:0;font-size:11px;font-weight:800;color:var(--mu)">다음 수업 제안</p><p class="h">${esc(z.z)}</p><p style="margin:4px 0 0;font-size:13px">${esc(z.t)}</p></div>`:''}
+  <button class="btn" data-a="trSavePdse" ${u.pd==null||u.se==null?'disabled':''}>기록지에 저장</button><p class="sub">${st>=3?'구간 ③ 이상 회원은 앱에서 직접 남긴 값도 아래 기록에 같이 보여요.':'구간 ①~② 회원은 트레이너가 칩으로 기록해요.'}</p></div>
+  <div class="card"><p class="h">회원이 한 말</p><div class="row">${['change','sustain'].map(k=>`<button class="chip${u.talk===k?' on':''}" data-a="trUi" data-k="talk" data-v="${k}">${k==='change'?'변화 대화':'유지 대화'}</button>`).join('')}</div><input id="ttk" type="text" placeholder="회원의 말 그대로"><button class="btn ghost" data-a="trTalk">남기기</button></div>
+  <div class="card"><p class="h">다음 구간으로 넘어가는 신호</p><p class="sub">날짜가 아니라 회원의 말과 행동으로 판단해요.</p>${sig}</div>
+  <div class="card"><p class="h">몰입 지도 추이</p>${flowMap(d.feedback||[])}</div>
+  <div class="card"><p class="h">OT 판정</p>${otTxt}</div>
+  <div class="card"><p class="h">최근 기록</p>${(d.feedback||[]).slice(0,40).map(fbText).join('')||'<p class="sub">아직 없어요.</p>'}</div></div>`;
+}
+async function trWrite(fn,args,ok){
+  if(DEMO){ok&&ok();render();toast('시험 모드: 화면에만 반영했어요');return}
+  const r=await sb.rpc(fn,args);if(r.error){toast(sbErr(r.error));return}
+  toast('저장했어요');await loadTrainer();if(S.tr.sel)await loadDetail(S.tr.sel);
+}
+async function trAddFb(row){
+  const r0=Object.assign({member_id:S.tr.sel,entered_by:'trainer',session_date:today(),data:{}},row);
+  if(DEMO){r0.id=Date.now();r0.created_at=new Date().toISOString();S.tr.detail.feedback.unshift(r0);toast('시험 모드: 화면에만 저장했어요');render();return}
+  const r=await sb.from('wlp_feedback').insert(r0).select('*').single();
+  if(r.error){toast(sbErr(r.error));return}
+  S.tr.detail.feedback.unshift(r.data);toast('저장했어요');render();
+}
+
+/* ===== 이벤트 ===== */
+document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.in;if(k==='trq'){S.tr.q=e.target.value;const p=e.target.selectionStart;render();const el=document.getElementById('trq');if(el){el.focus();el.setSelectionRange(p,p)}}if(k==='tex')S.tr.ui.ex=e.target.value;if(k==='otAt'){S.tr.ropt=e.target.value;const b=document.querySelector('[data-a=sendReply]');if(b)b.disabled=!e.target.value.trim()}});
+document.addEventListener('change',e=>{if(e.target.id==='pex')S.ui.pex=e.target.value});
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v,val=id=>(document.getElementById(id)||{}).value||'';
+  const A={
+    reload:()=>location.reload(),
+    login:()=>{if(!sb){toast('로그인은 upvible.github.io 주소에서만 동작해요');return}sb.auth.signInWithOAuth({provider:v,options:{redirectTo:BASE+'journey.html'+(S.code?'?code='+encodeURIComponent(S.code):'')}}).then(r=>{if(r.error)toast('로그인을 시작하지 못했어요: '+r.error.message)})},
+    logout:async()=>{if(DEMO){S.scr='code';render();return}await sb.auth.signOut();location.href=BASE+'journey.html'},
+    redeem,
+    closeJoined:()=>{S.scr='launch';render()},
+    openStage:()=>{S.view=+v;S.ui={pex:recentExNames()[0]||''};S.scr='home';render();window.scrollTo(0,0)},
+    locked:()=>toast('트레이너나 센터가 승인하면 열려요'),
+    toMap:()=>{S.scr='launch';render();window.scrollTo(0,0)},
+    goTrainer:()=>{if(!isStaff()){toast('직원 계정만 들어갈 수 있어요. 직원 코드를 받았다면 로그아웃 후 코드 입력 화면에서 넣어 주세요');return}S.scr='trainer';S.tr.sel=null;render();loadTrainer()},
+    demoStage:()=>{S.stage=+v;S.scr='launch';render()},
+    demoCode:()=>{S.stage=null;S.scr='code';S.code='RUNE-7K2Q';S.codeMsg='';render()},
+    ui:()=>{const k=b.dataset.k;S.ui[k]=isNaN(+v)?v:+v;render()},
+    dislike:()=>{S.ui.dis=Object.assign({},S.ui.dis,{[v]:true});addFb({kind:'dislike',exercise:v})},
+    word:()=>addFb({kind:'word',data:{word:v}}),
+    fun:()=>addFb({kind:'fun',exercise:v}),
+    saveNum:()=>{const g=+val('ng'),ac=+val('na'),m=val('nm').trim()||'플랭크';if(!val('na')){toast('실제로 해 본 숫자를 적어 주세요');return}addFb({kind:'number',data:{metric:m,guess:val('ng')?g:null,actual:ac}})},
+    savePdse:()=>{const u=S.ui,ex=(document.getElementById('pex')||{}).value||null;addFb({kind:'pdse',exercise:ex,pd:u.pd,se:u.se,vas:u.vas||0}).then(ok=>{if(ok){S.ui.pd=null;S.ui.se=null;S.ui.vas=0;render()}})},
+    saveLine:()=>{const t=val('ln').trim();if(t)addFb({kind:'line',data:{text:t}})},
+    saveGoal4:()=>{const t=val('g4').trim();if(t)addFb({kind:'goal4w',data:{way:S.ui.way||'',text:t}})},
+    mini15:()=>addFb({kind:'mini15'}),
+    saveLife:()=>{const t=val('lf').trim();if(t)addFb({kind:'life',data:{text:t}})},
+    saveQgoal:()=>{const t=val('qg').trim();if(t)addFb({kind:'qgoal',data:{text:t}})},
+    saveRetro:()=>addFb({kind:'retro',data:{good:val('r1'),learn:val('r2'),next:val('r3')}}),
+    trTab:()=>{S.tr.tab=v;S.tr.sel=null;S.tr.openCase=null;render()},
+    trSel:()=>loadDetail(v),
+    trBack:()=>{S.tr.sel=null;render()},
+    trUi:()=>{const k=b.dataset.k;S.tr.ui[k]=isNaN(+v)?v:+v;render()},
+    setStage:()=>trWrite('wlp_set_stage',{p_member:S.tr.sel,p_stage:+v},()=>{S.tr.detail.stage=+v;const m=S.tr.list.find(x=>x.member_id===S.tr.sel);if(m)m.stage=+v}),
+    toggleAcc:()=>{const d=S.tr.detail,on=!(d.access||[]).some(a=>!a.revoked&&a.role!=='code'&&a.stage===+v);
+      trWrite('wlp_set_access',{p_member:S.tr.sel,p_stage:+v,p_on:on,p_role:S.tr.ui.role},()=>{if(on)d.access.unshift({stage:+v,role:S.tr.ui.role,at:new Date().toISOString(),revoked:null});else d.access.forEach(a=>{if(a.stage===+v&&!a.revoked&&a.role!=='code')a.revoked=new Date().toISOString()})})},
+    cancelCode:()=>trWrite('wlp_cancel_code',{p_code:v},()=>{const x=S.tr.invites.find(i=>i.code===v);if(x)x.canceled_at=new Date().toISOString()}),
+    trSavePdse:()=>{const u=S.tr.ui;trAddFb({kind:'pdse',exercise:val('tex').trim()||null,pd:u.pd,se:u.se,vas:u.vas||0}).then(()=>{u.pd=null;u.se=null;u.vas=0;render()})},
+    trTalk:()=>{const t=val('ttk').trim();if(t)trAddFb({kind:'talk',data:{type:S.tr.ui.talk,text:t}})},
+    signal:()=>{const st=S.tr.detail.stage;trAddFb({kind:'signal',data:{stage:st,idx:+v,text:SIGNALS[st][+v]}})},
+    goTrainerOt:()=>{S.scr='trainer';S.tr.tab='ot';S.tr.sel=null;render();loadTrainer()},
+    openCase:()=>{S.tr.openCase=+v;S.tr.rk=null;S.tr.ropt=null;render();window.scrollTo(0,0)},
+    closeCase:()=>{S.tr.openCase=null;render()},
+    rk:()=>{S.tr.rk=v;S.tr.ropt=null;render()},
+    ropt:()=>{S.tr.ropt=v;render()},
+    sendReply:async()=>{const t=S.tr,note=t.rk==='done'?(val('otAt').trim()||t.ropt):t.ropt;if(t.rk!=='contact'&&!note)return;
+      if(DEMO){const c=t.cases.find(x=>x.id===t.openCase);if(t.rk==='back')t.cases=t.cases.filter(x=>x!==c);else{c.status=t.rk==='done'?'조율 완료':'연락 중';c.reply=(t.rk==='done'?'조율 완료 · ':'연락 중 · ')+(note||'');if(t.rk==='done')c.first_ot_at=note}
+        S.newCases=t.cases.filter(x=>x.status==='응답 대기').length;t.openCase=t.rk==='done'?t.openCase:null;t.rk=null;render();toast('시험 모드: 화면에만 반영했어요');return}
+      const r=await sb.rpc('wlp_respond',{p_case:t.openCase,p_kind:t.rk,p_note:note||null});if(r.error){toast(sbErr(r.error));return}
+      toast('센터로 보냈어요');const keep=t.rk==='done';t.rk=null;t.ropt=null;if(!keep)t.openCase=null;await loadTrainer()},
+    noop:()=>{}
+  };
+  if(A[a]){e.preventDefault();await A[a]()}
+});
+if(!DEMO)window.addEventListener('load',()=>{try{sb&&sb.auth.onAuthStateChange((ev,s)=>{if(ev==='SIGNED_IN'&&s&&!S.uid){S.uid=s.user.id;loadMe()}})}catch(e){}});
+render();boot();
+</script>
+</body>
+</html>

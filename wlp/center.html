@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WLP · 센터 관리자</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="./config.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:'Noto Sans KR',system-ui,sans-serif;background:#F4F2EE;color:#1F1A14}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.top{background:#2B241D;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.top b{font-size:16px;letter-spacing:.04em}.top .sp{flex:1}
+.tabs{display:flex;gap:6px}.tab{min-height:38px;border-radius:10px;border:1px solid #5A4E42;background:transparent;color:#E8E1D6;font-size:13px;padding:0 14px}
+.tab.on{background:#F0B85C;border-color:#F0B85C;color:#2B241D;font-weight:800}
+.wrap{max-width:1400px;margin:0 auto;padding:14px 16px 40px;display:flex;flex-direction:column;gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.kpi{background:#fff;border:1px solid #EDE6DA;border-radius:14px;padding:12px 14px}.kpi b{display:block;font-size:22px;font-weight:900}.kpi span{font-size:12px;color:#6B6155}
+.two{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}.main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:10px}.side{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.card{background:#fff;border:1px solid #EDE6DA;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.h{font-size:15px;font-weight:800;margin:0}.sub{font-size:12px;color:#6B6155;margin:0;line-height:1.55}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.ch{min-height:36px;border-radius:18px;border:1px solid #E3D9CA;background:#fff;font-size:12px;padding:0 12px;color:#3A322A}
+.ch.on{background:#2B241D;border-color:#2B241D;color:#fff;font-weight:800}.ch.ac{background:#B45309;border-color:#B45309;color:#fff;font-weight:800}
+.list{background:#fff;border:1px solid #EDE6DA;border-radius:14px;overflow:auto;max-height:560px}
+.row{display:grid;grid-template-columns:90px 70px minmax(0,1.6fr) minmax(0,1fr) 84px 80px;gap:8px;align-items:center;padding:10px 12px;border:0;border-bottom:1px solid #F0EAE0;background:#fff;font-size:12px;text-align:left;width:100%;color:#1F1A14}
+.row.on{background:#FFF7E8}.row.hd{font-size:11px;color:#6B6155;font-weight:800;background:#F4F2EE;cursor:default;position:sticky;top:0}
+.st{font-size:11px;font-weight:800;border-radius:6px;padding:2px 6px;justify-self:start}
+.kv{display:grid;grid-template-columns:90px minmax(0,1fr);gap:4px 10px;font-size:13px;line-height:1.5}.kv b{color:#6B6155;font-weight:700}
+.btn{min-height:42px;border-radius:12px;border:0;background:#B45309;color:#fff;font-weight:800;font-size:13px;padding:0 14px;white-space:nowrap}
+.btn.g{background:#fff;border:1px solid #D8CCBA;color:#3A322A}.btn.ok{background:#1F6F5C}.btn:disabled{opacity:.45;cursor:default}
+.msg{font-size:13px;line-height:1.6;background:#FBF8F3;border:1px solid #EDE6DA;border-radius:10px;padding:10px;white-space:pre-wrap}
+.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.col{background:#EFEAE2;border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px;min-height:200px;max-height:440px;overflow:auto}
+.colh{display:flex;justify-content:space-between;font-size:12px;font-weight:800;padding:2px 4px}
+.cc{background:#fff;border:1.5px solid #fff;border-radius:12px;padding:8px 10px;text-align:left;display:flex;flex-direction:column;gap:2px;font-size:12px;width:100%;color:#1F1A14}
+.cc.on{border-color:#B45309}
+.trs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.tr{min-height:48px;border-radius:12px;border:1.5px solid #E3D9CA;background:#fff;font-size:12px;padding:6px 10px;text-align:left;display:flex;flex-direction:column;gap:1px;color:#1F1A14}
+.tr.on{border-color:#B45309;background:#FFF7E8}.tr.no{opacity:.45;cursor:default}
+table{border-collapse:collapse;width:100%;font-size:12px}th{text-align:left;color:#6B6155;padding:5px 6px;border-bottom:1px solid #EDE6DA}td{padding:6px;border-bottom:1px solid #F3EEE6}
+input[type=text],textarea,select{width:100%;min-height:42px;border-radius:10px;border:1px solid #E3D9CA;padding:8px 12px;font-size:14px;background:#fff}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2B241D;color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;z-index:9}
+.demo{background:#1C1712;color:#F0B85C;font-size:11px;padding:6px 20px}
+.center{max-width:420px;margin:80px auto;padding:0 20px;display:flex;flex-direction:column;gap:10px;text-align:center}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.board{grid-template-columns:repeat(2,minmax(0,1fr))}.row{grid-template-columns:70px minmax(0,1fr) 70px}.row .hm{display:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const OTA = (function(){
+  const T8={
+   "111":{n:"열정 엔진",risk:false,start:"스스로 설계하는 시작",one:"이미 운동을 즐길 준비가 되어 있어요. 목표는 회원님이 정하고, 센터는 안전과 회복을 맡아요.",rx:"회원이 도전을 설계, 트레이너는 안전·회복만. 휴식 주 계획",warn:"강박적 열정(통증 참기·쉬는 날 불안) 살피기",reg:"장기 플랜도 회원이 먼저 말할 가능성 높음. 조건만 정직하게",call:"새 무대(대회·러닝)·장기 플랜 안내"},
+   "101":{n:"분투형",risk:true,start:"속도를 조절하며 쌓는 시작",one:"의욕이 커서 오히려 처음 4주는 일부러 천천히 가요. 그래야 오래 가요.",rx:"강도 한 단계 낮춰 성공 경험부터. 계획은 작게 쪼개기",warn:"가장 위험한 칸. 혼자 무리·3~6주 차 이탈. 의욕 말고 속도를 칭찬",reg:"등록이 빠를 수 있음. 낙관적 숫자 금지, 정체기 먼저 말하기",call:"‘천천히 가는 첫 4주’와 정체기를 미리 설명"},
+   "011":{n:"정체된 성실파",risk:false,start:"새 기술로 다시 불붙는 시작",one:"꾸준함은 이미 충분해요. 4주마다 새로 배울 것 하나로 지루함을 깨요.",rx:"도전 손잡이(템포·범위·균형·새 기술)를 회원이 고르게",warn:"같은 루틴이 계속되면 출석이 조용히 빠짐",reg:"‘새로 배울 것’이 등록 이유가 됨",call:"새로 배울 기술 하나를 미리 보여 주기"},
+   "001":{n:"출발선형",risk:false,start:"작고 정교한 첫걸음",one:"하고 싶은 마음이 준비돼 있어요. 처음 2주는 세 동작만 내 것으로 만들어요.",rx:"첫 경험을 정교하게. 미세 몰입 → 몰입 블록. 계획은 회원이 말하게",warn:"계획을 크게 세우기 쉬움(계획 오류)",reg:"등록 의향 높음. 단계와 재측정 날짜만 보여 주면 충분",call:"첫 2주 3동작 플랜 + 재측정 날짜 안내"},
+   "100":{n:"회피형",risk:true,start:"편안함부터 시작",one:"힘든 건 하지 않아요. 싫은 동작은 빼고, 몸 상태만 같이 봐요.",rx:"관계 맺기부터. 실패 없는 쉬운 경험, 사람 적은 자리",warn:"필요성 설득·위협은 회피를 굳힘",reg:"오늘은 등록 대화 금지. 다음 약속만",call:"등록 권유 금지. ‘편한 강도로 한 번 더’ 체험 초대만"},
+   "110":{n:"간헐형",risk:false,start:"요일부터 고정하는 시작",one:"오시면 잘하실 분이에요. 강도보다 ‘오는 요일’을 지키는 게 먼저예요.",rx:"강도보다 빈도 설계. 15분 최소 루틴, 고정 요일",warn:"‘오면 잘하니까’ 방치하면 한 달씩 빔",reg:"월 단위·소회차부터",call:"가능한 고정 요일 묻기 + 15분 버전 소개"},
+   "000":{n:"관망형",risk:false,start:"내가 아끼는 것에서 출발",one:"운동 얘기는 잠깐 두고, 회원님이 아끼는 시간과 연결되는 움직임부터 찾아요.",rx:"가치 듣기, 놀이 요소, 회원 선택지",warn:"정보를 쏟아붓는 순간 대화가 끝남",reg:"등록 대화 금지. 다시 만날 이유 하나만",call:"운동 정보 대신 ‘아끼는 시간’ 질문. 소식은 1회만"},
+   "010":{n:"휴면 경험자",risk:false,start:"예전 감각을 되찾는 시작",one:"해 본 경험이 있으세요. 예전 리듬으로, 지금 몸에 맞는 강도로 다시 시작해요.",rx:"그만둔 이유와 다시 하면 좋을 점(의미) 대화",warn:"예전 기준 강도는 실망을 부름",reg:"‘다시 시작’ 프레임, 소회차",call:"예전에 좋았던 운동 묻기, ‘다시 시작’ 소회차"}};
+  const JM={1:{n:"몸 풀기",two:"힘든 건 하지 않아요. 20~30분, 싫은 동작은 빼고 몸 상태만 같이 봐요."},
+    2:{n:"재미 찾기",two:"1~2분짜리 작은 도전으로 ‘어, 재밌네’를 찾아요. 고르는 건 회원님이에요."},
+    3:{n:"첫 몰입",two:"한 세션 안에 시간 가는 줄 모르는 5~15분을 만들어요. 세트마다 목표는 하나만."},
+    4:{n:"일상",two:"주 2~3회 리듬을 만들고 4주마다 새 기술 하나. 바쁜 주엔 15분 버전으로 이어요."},
+    5:{n:"나만의 무대",two:"분기 목표는 회원님이 정하고, 센터는 안전과 회복을 맡아요."}};
+  const ZONES={"2,0":"불안","2,1":"각성","2,2":"몰입","1,0":"걱정","1,1":"전환 지대","1,2":"통제","0,0":"무관심","0,1":"지루함","0,2":"이완"};
+  const STN={1:"전숙고",2:"숙고",3:"준비",4:"실행",5:"유지"};
+  const clamp=v=>Math.max(0,Math.min(10,v)), lvl=v=>v<3.7?0:v>=6.3?2:1;
+  function compute(a){
+    let st=null;
+    if(a.q1===true) st=a.q11===true?5:a.q11===false?4:null;
+    else if(a.q1===false){ if(a.q2===false) st=1; else if(a.q2===true) st=a.q3===true?3:a.q3===false?2:null; }
+    const need=['imp','conf','burden','exp','diff','can','pri','time'];
+    if(st===null||need.some(k=>a[k]==null)) return null;
+    const ct=(a.want||[]).length, stt=(a.hard||[]).length, cost=(a.hard||[]).includes('비용이 부담돼요')?2:null;
+    const C=clamp(a.burden*0.4+a.diff*0.6), Sk=clamp(a.conf*0.35+a.can*0.4+a.exp*0.25);
+    const parts=[[a.pri,.35],[a.time,.3],[a.imp,.2]]; if(cost!==null) parts.push([cost,.15]);
+    const ws=parts.reduce((s,p)=>s+p[1],0); let I=parts.reduce((s,p)=>s+p[0]*p[1],0)/ws;
+    I=clamp(I+Math.max(-1.5,Math.min(1.5,(ct-stt)*0.3)));
+    const zone=ZONES[lvl(C)+","+lvl(Sk)]; let start=st; const notes=[];
+    if((zone==="불안"||zone==="걱정")&&start>2){start=2;notes.push(`지도 위치가 ${zone}이라 ② 재미 찾기로 낮춰 시작`)}
+    if(zone==="무관심"&&a.imp<=3&&start>1){start=1;notes.push("무관심 영역 + 중요도 3 이하 → ① 몸 풀기")}
+    if(stt>=2&&stt>=ct*2&&start>1){start--;notes.push(`망설임(${stt})이 원하는 이유(${ct})의 두 배 이상 → 한 구간 낮춤`)}
+    const k=(C>=5?"1":"0")+(Sk>=5?"1":"0")+(I>=5?"1":"0"); const tp=Object.assign({k},T8[k]);
+    if(k==="101"&&start>3){start=3;notes.push("분투형 → ③ 이상 올리지 않음")}
+    const edge=[["도전",C],["기술",Sk],["투자 의지",I]].filter(x=>Math.abs(x[1]-5)<0.7).map(x=>x[0]);
+    if(edge.length) notes.push(`${edge.join(" · ")} 축이 경계선 → OT에서 다시 판정`);
+    return {st,stName:STN[st],C,Sk,I,ct,stt,zone,start,tp,notes,jm:JM[start]};
+  }
+  const PRESETS={
+    A:{label:'구경만 하러 온 분',q1:false,q2:false,q3:null,q11:null,imp:2,conf:2,burden:8,exp:0,diff:6,can:4,pri:3,time:3,want:['스트레스를 풀고 싶어요'],hard:['시간이 없어요','비용이 부담돼요','힘들까 봐 걱정돼요'],dir:['스트레스 해소'],days:['토'],slots:['오후'],name:'김OO',phone:'010-1234-5678',c1:true,c2:true},
+    B:{label:'의욕 넘치는 초보',q1:false,q2:true,q3:true,q11:null,imp:10,conf:6,burden:6,exp:0,diff:6,can:4,pri:9,time:6,want:['몸이 가벼워지고 싶어요','체력을 키우고 싶어요','보기 좋은 몸을 만들고 싶어요','오래 건강하고 싶어요'],hard:['혼자는 꾸준히 못 해요'],dir:['체지방·체중','근력'],days:['월','수','금'],slots:['저녁'],name:'이OO',phone:'010-2345-6789',c1:true,c2:true},
+    C:{label:'쉬고 있는 경험자',q1:false,q2:true,q3:false,q11:null,imp:6,conf:8,burden:2,exp:9,diff:2,can:8,pri:3,time:3,want:['아픈 곳을 줄이고 싶어요','체력을 키우고 싶어요'],hard:['시간이 없어요','혼자는 꾸준히 못 해요'],dir:['통증·불편 줄이기'],days:['화','목'],slots:['오전'],name:'박OO',phone:'010-3456-7890',c1:true,c2:false}};
+  const MW6={"111":"주 4회 이상도 좋아요. 대신 쉬는 날 하루를 먼저 정해요. 쉬는 것도 계획이에요.","101":"처음 2주는 PT 2회 + 혼자 15분 1회. 2주가 지켜지면 그때 늘려요.","011":"지금 리듬은 그대로, 네 번 중 한 번은 새 기술을 배우는 날로 바꿔요.","001":"PT 2회 + 혼자 2회(사진 한 장짜리 세 동작). 혼자 하는 날은 15분이면 충분해요.","100":"횟수 목표는 없어요. 편한 강도로 한 번 더 만나는 것부터 시작해요.","110":"고정 요일 2회부터. 2주가 지켜지면 15분 버전 2회를 더해요.","000":"운동 계획보다, 요즘 가장 아끼는 시간이 언제인지부터 이야기해요.","010":"예전에 하던 리듬으로, 강도는 지금 몸에 맞게 다시 시작해요."};
+  return {T8,JM,ZONES,STN,compute,PRESETS,MW6};
+})();
+
+const CFG=window.WLP_CFG||{},DEMO=!!CFG.DEMO,BASE=location.origin+location.pathname.replace(/[^/]*$/,'');
+let sb=null;try{if(!DEMO)sb=window.supabase.createClient(CFG.SB_URL,CFG.SB_KEY,{auth:{storageKey:'wlp-auth'}})}catch(e){}
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ST=['신규','연락함','상담 예약','등록','보류','수신 거부'],COLS=['미배정','응답 대기','연락 중','조율 완료','재배정 요청'];
+const SC={'신규':'background:#E9F0FA;color:#1D4ED8','연락함':'background:#FDECC8;color:#7C3D06','상담 예약':'background:#E3F1E7;color:#1F5A33','등록':'background:#1F6F5C;color:#fff','보류':'background:#F1EFEC;color:#57534E','수신 거부':'background:#FDECEC;color:#B91C1C',
+ '미배정':'background:#EDE6DA;color:#3A322A','응답 대기':'background:#E9F0FA;color:#1D4ED8','연락 중':'background:#FDECC8;color:#7C3D06','조율 완료':'background:#1F6F5C;color:#fff','재배정 요청':'background:#FDECEC;color:#B91C1C','가입 완료':'background:#2B241D;color:#fff'};
+const MSG={'100':'[WLP] {n}님, 지난번 설문 감사했어요. 힘든 건 빼고 몸 상태만 같이 보는 20분 체험이 있어요. 편하실 때 답장 주세요.',
+ '101':'[WLP] {n}님, 의욕이 크셨던 만큼 처음 4주를 일부러 천천히 가는 이유를 15분만 설명드리고 싶어요.',
+ '010':'[WLP] {n}님, 예전에 좋았던 운동을 지금 몸에 맞게 다시 시작하는 짧은 플랜을 리포트에 담아 두었어요.',
+ '001':'[WLP] {n}님, 처음 2주 세 동작 플랜과 재측정 날짜까지 같이 정해 드릴게요. 편한 요일만 알려 주세요.',
+ '000':'[WLP] {n}님, 운동 얘기보다 {n}님이 아끼는 시간과 연결되는 움직임 하나를 리포트에 담아 두었어요.',
+ '110':'[WLP] {n}님, 오시기 편한 요일 하나만 알려 주시면 그 요일 기준으로 첫 플랜을 짜 드려요.',
+ '011':'[WLP] {n}님, 지금 꾸준함 위에 새로 배울 기술 하나를 보여 드리고 싶어요.',
+ '111':'[WLP] {n}님, 직접 목표를 설계하실 수 있게 분기 플랜 틀을 보내 드릴게요.'};
+const S={scr:'boot',tab:'leads',me:null,leads:[],ev:{},cases:[],staff:[],codes:[],selL:null,selC:null,pickT:null,lf:'전체',err:''};
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
+const errText=e=>/function|does not exist|schema cache|relation/i.test((e&&e.message)||'')?'서버에 wlp-schema-1.sql 을 먼저 실행해 주세요':((e&&e.message)||'서버 오류');
+const kst=d=>new Date(new Date(d).getTime()+9*3600e3).toISOString();
+const md=d=>{const s=kst(d);return s.slice(5,7)*1+'/'+s.slice(8,10)*1};
+const hoursSince=d=>d?Math.floor((Date.now()-new Date(d).getTime())/3600e3):0;
+const typeOf=l=>OTA.T8[(l.result||{}).k]||{n:'-',start:'-',call:'-',reg:'-'};
+const whenOf=a=>((a&&a.days)||[]).join('·')+' '+((a&&a.slots)||[]).join('·');
+const staffName=id=>(S.staff.find(x=>x.user_id===id)||{}).name||'-';
+
+/* ===== 시험 모드 데이터 ===== */
+function demo(){
+  S.me={role:'center',staff_name:'센터 관리자'};
+  const P=[['김OO','100','연락함',false,true],['이OO','101','상담 예약',true,true],['박OO','010','신규',false,false],['최OO','001','등록',true,true],['정OO','000','보류',false,false],['강OO','110','신규',false,true],['조OO','011','연락함',false,true],['윤OO','100','수신 거부',false,false],['장OO','001','등록',true,true],['임OO','111','신규',false,true]];
+  S.leads=P.map((p,i)=>({id:i+1,token:'demo'+i,name:p[0],phone:'0102000'+(1000+i),source:i%2?'tablet':'qr',status:p[2],consult:p[3],consent_marketing:p[4],consent_contact:true,created_at:new Date(Date.now()-(20-i*2)*864e5).toISOString(),
+    result:{k:p[1],start:[1,2,2,3,1,2,3,1,3,4][i]},answers:{days:['월','수'],slots:['저녁'],hard:['시간이 없어요'],dir:['근력'],want:['체력을 키우고 싶어요']}}));
+  S.staff=[{user_id:'t1',role:'trainer',name:'김T',active:true},{user_id:'t2',role:'trainer',name:'이T',active:true},{user_id:'t3',role:'trainer',name:'박T',active:true},{user_id:'c1',role:'center',name:'센터 관리자',active:true}];
+  S.cases=[{id:1,lead_id:4,name:'최OO',phone:'01020001003',status:'미배정',trainer_id:null,returned_by:[],result:{k:'001',start:3},answers:{days:['월','목'],slots:['저녁'],dir:['체지방·체중']},med_memo:'',events:[{action:'OT 접수',at:new Date().toISOString()}]},
+    {id:2,lead_id:9,name:'장OO',phone:'01020001008',status:'응답 대기',trainer_id:'t2',assigned_at:new Date(Date.now()-30*3600e3).toISOString(),returned_by:[],result:{k:'001',start:3},answers:{days:['화','금'],slots:['점심'],dir:['운동 습관 만들기']},med_memo:'허리 디스크 진단(2023)',events:[]},
+    {id:3,lead_id:null,name:'문OO',phone:'01099990000',status:'재배정 요청',trainer_id:null,returned_by:['t3'],reply:'재배정 요청 · 시간이 안 맞음',result:{k:'100',start:1},answers:{days:['토'],slots:['오후']},med_memo:'',events:[]}];
+  S.codes=[{code:'WLP-7K2Q',kind:'member',name:'최OO',start_stage:3,expires_at:new Date(Date.now()+5*864e5).toISOString(),used_at:null,canceled_at:null}];
+  S.scr='app';
+}
+/* ===== 서버 ===== */
+async function boot(){
+  if(DEMO){demo();render();return}
+  const {data}=await sb.auth.getSession();
+  if(!data||!data.session){S.scr='login';render();return}
+  const r=await sb.rpc('wlp_me');if(r.error){S.scr='err';S.err=errText(r.error);render();return}
+  S.me=r.data;
+  if(S.me.role!=='center'){S.scr=S.me.center_exists?'deny':'bootstrap';render();return}
+  S.scr='app';render();loadAll();
+}
+async function loadAll(){
+  if(DEMO){render();return}
+  const [l,c,s,k]=await Promise.all([sb.from('wlp_leads').select('*').order('created_at',{ascending:false}).limit(500),sb.rpc('wlp_cases'),sb.rpc('wlp_staff_list'),sb.rpc('wlp_my_codes')]);
+  if(l.error){toast(errText(l.error));return}
+  S.leads=l.data||[];S.cases=c.data||[];S.staff=s.data||[];S.codes=k.data||[];render();
+}
+async function loadEvents(id){if(DEMO){S.ev[id]=S.ev[id]||[{action:'설문 제출',created_at:new Date().toISOString()}];render();return}
+  const r=await sb.from('wlp_lead_events').select('*').eq('lead_id',id).order('created_at');S.ev[id]=r.data||[];render()}
+async function call(fn,args,demoFn){
+  if(DEMO){demoFn&&demoFn();render();toast('시험 모드: 화면에만 반영했어요');return true}
+  const r=await sb.rpc(fn,args);if(r.error){toast(errText(r.error));return false}
+  await loadAll();return r.data===undefined?true:(r.data??true);
+}
+async function copy(t){try{await navigator.clipboard.writeText(t);return true}catch(e){prompt('복사해서 쓰세요',t);return true}}
+
+/* ===== 화면 ===== */
+function render(){
+  const app=document.getElementById('app'),d=DEMO?'<div class="demo">시험 모드 · 서버 저장 안 함 · 예시 데이터</div>':'';
+  if(S.scr==='boot'){app.innerHTML='<p class="center sub">불러오는 중…</p>';return}
+  if(S.scr==='login'){app.innerHTML=`<div class="center"><b style="font-size:24px;color:#B45309;letter-spacing:.06em">WLP</b><p class="sub">센터 관리자 로그인</p><button class="btn" style="background:#FEE500;color:#191600" data-a="login" data-v="kakao">카카오로 로그인</button><button class="btn g" data-a="login" data-v="google">구글로 로그인</button></div>`;return}
+  if(S.scr==='err'){app.innerHTML=`<div class="center"><p class="h">연결 문제</p><p class="sub">${esc(S.err)}</p></div>`;return}
+  if(S.scr==='deny'){app.innerHTML=`<div class="center"><p class="h">센터 관리자 계정이 아니에요</p><p class="sub">센터 관리자에게 직원 코드를 받아 <a href="./index.html">WLP 첫 화면</a>에서 입력하거나, 관리자 권한을 요청해 주세요.</p><button class="btn g" data-a="logout">로그아웃</button></div>`;return}
+  if(S.scr==='bootstrap'){app.innerHTML=`<div class="center"><p class="h">첫 센터 관리자 등록</p><p class="sub">아직 센터 관리자가 없어요. 지금 로그인한 계정을 첫 센터 관리자로 등록해요. (한 번만 가능)</p><input id="bn" type="text" placeholder="표시할 이름 (예: 센터장 홍길동)"><button class="btn" data-a="bootstrap">이 계정을 센터 관리자로</button></div>`;return}
+  const tabs=`<div class="tabs">${[['leads','잠재회원'],['cases','OT 배정'],['staff','직원·코드']].map(([k,l])=>`<button class="tab${S.tab===k?' on':''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  app.innerHTML=d+`<div class="top"><b>WLP</b><span style="font-size:12px;color:#B9AE9F">센터 관리자 · ${esc(S.me&&S.me.staff_name)}</span><span class="sp"></span>${tabs}<a href="./survey.html?mode=tablet" style="color:#F0B85C;font-size:12px">태블릿 설문</a><a href="./index.html" style="color:#F0B85C;font-size:12px">WLP 앱</a></div><div class="wrap">${S.tab==='leads'?vLeads():S.tab==='cases'?vCases():vStaff()}</div>`;
+}
+function vLeads(){
+  const now=kst(Date.now()).slice(0,7),m=S.leads.filter(l=>kst(l.created_at).slice(0,7)===now),reg=m.filter(l=>l.status==='등록').length;
+  const list=S.leads.filter(l=>S.lf==='전체'||(S.lf==='상담 신청'?l.consult:l.status===S.lf));
+  const L=S.leads.find(x=>x.id===S.selL)||list[0]||null;if(L&&S.selL!==L.id){S.selL=L.id;if(!S.ev[L.id])loadEvents(L.id)}
+  const byType=Object.keys(OTA.T8).map(k=>{const a=m.filter(l=>(l.result||{}).k===k),b=a.filter(l=>l.status==='등록');return `<tr><td>${OTA.T8[k].n}</td><td>${OTA.T8[k].start}</td><td>${a.length}</td><td>${b.length}</td><td>${a.length?Math.round(b.length/a.length*100)+'%':'-'}</td></tr>`}).join('');
+  let side='<div class="card"><p class="sub">왼쪽에서 사람을 골라 주세요.</p></div>';
+  if(L){const t=typeOf(L),a=L.answers||{},canMsg=L.consent_marketing&&!['수신 거부','등록'].includes(L.status),msg=(MSG[(L.result||{}).k]||'').replace(/\{n\}/g,L.name);
+    side=`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><p class="h">${esc(L.name)} · ${esc(L.phone)}</p><span class="sub">${md(L.created_at)} · ${L.source==='tablet'?'태블릿':'QR'}</span></div>
+    <div class="kv"><b>시작 방식</b><span>${esc(t.start)} · 직원용 ${esc(t.n)}</span><b>희망 시간</b><span>${esc(whenOf(a))}</span><b>망설임</b><span>${esc((a.hard||[]).join(' · ')||'-')}</span><b>방향</b><span>${esc((a.dir||[]).join(' · ')||'-')}</span><b>동의</b><span>리포트·상담 ${L.consent_contact?'O':'X'} · 소식 문자 ${L.consent_marketing?'O':'X'} · 15분 상담 ${L.consult?'신청':'-'}</span></div>
+    <div class="chips">${ST.map(s=>`<button class="ch${L.status===s?' ac':''}" data-a="lstatus" data-v="${s}">${s}</button>`).join('')}</div></div>
+    <div class="card"><p class="h">리포트 보내기</p><p class="sub">카톡이나 문자로 링크를 보내 주세요. 보내면 기록이 남아요.</p><div class="msg">[WLP] ${esc(L.name)}님, 오늘 운동 성향 체크 감사했어요. 회원님에게 맞는 시작 방식과 6주 실험 계획이에요.\n${BASE}report.html?t=${esc(L.token)}</div><button class="btn g" data-a="copyReport">문구 복사 + 발송 기록</button></div>
+    <div class="card"><p class="h">재연락 포인트</p><p style="margin:0;font-size:13px">${esc(t.call)}</p><p class="h" style="font-size:13px">추천 문자 (가격 언급 없음)</p><div class="msg">${esc(msg)}</div>
+    <button class="btn" data-a="copyMsg" ${canMsg?'':'disabled'}>${canMsg?'문구 복사 + 문자 발송 기록':'보낼 수 없음'}</button><p class="sub">${L.status==='수신 거부'?'수신 거부한 분이에요.':L.consent_marketing?'같은 분께는 2주에 1번까지만 권장':'소식 문자 동의가 없어 홍보 문자는 못 보내요. 리포트·상담 관련 연락만 가능해요.'}</p></div>
+    <div class="card"><p class="h">등록 → OT 접수</p><label class="sub" for="med">의학적 특이사항 (있으면, 담당 트레이너에게 보여요)</label><input id="med" type="text" placeholder="예: 허리 디스크 진단(2023)">
+    <button class="btn ok" data-a="register" ${L.status==='등록'?'disabled':''}>${L.status==='등록'?'OT 접수됨':'등록 처리 → OT 접수'}</button></div>
+    <div class="card"><p class="h">기록</p>${(S.ev[L.id]||[]).map(e=>`<p class="sub">${md(e.created_at)} · ${esc(e.action)}${e.note?' · '+esc(e.note).slice(0,60):''}</p>`).join('')||'<p class="sub">불러오는 중…</p>'}</div>`}
+  return `<div class="kpis"><div class="kpi"><b>${m.length}</b><span>이번 달 설문</span></div><div class="kpi"><b>${m.filter(l=>l.consent_contact).length}</b><span>리포트 대상</span></div><div class="kpi"><b>${m.filter(l=>l.consult).length}</b><span>15분 상담 신청</span></div><div class="kpi"><b>${reg}</b><span>등록 (OT 접수)</span></div><div class="kpi"><b>${m.length?Math.round(reg/m.length*100):0}%</b><span>등록 전환율</span></div></div>
+  <div class="two"><div class="main"><div class="chips">${['전체'].concat(ST,['상담 신청']).map(s=>`<button class="ch${S.lf===s?' on':''}" data-a="lf" data-v="${s}">${s} ${s==='전체'?S.leads.length:s==='상담 신청'?S.leads.filter(l=>l.consult).length:S.leads.filter(l=>l.status===s).length}</button>`).join('')}</div>
+  <div class="list"><div class="row hd"><span>이름</span><span class="hm">설문일</span><span class="hm">시작 방식 (유형)</span><span class="hm">망설임</span><span class="hm">동의</span><span>상태</span></div>
+  ${list.map(l=>{const t=typeOf(l);return `<button class="row${S.selL===l.id?' on':''}" data-a="selL" data-v="${l.id}"><span><b>${esc(l.name)}</b>${l.consult?' · 상담':''}</span><span class="hm">${md(l.created_at)}</span><span class="hm">${esc(t.start)} <span style="color:#8A8074">(${esc(t.n)})</span></span><span class="hm">${esc(((l.answers||{}).hard||[]).join(' · ')||'-')}</span><span class="hm">${l.consent_contact?'리포트':''}${l.consent_marketing?' · 문자':''}</span><span class="st" style="${SC[l.status]}">${l.status}</span></button>`}).join('')||'<p class="sub" style="padding:14px">아직 없어요. 데스크 QR이나 태블릿 설문으로 쌓여요.</p>'}</div>
+  <div class="card"><p class="h">유형별 등록 전환 (이번 달)</p><table><tr><th>유형</th><th>회원에게 보인 이름</th><th>설문</th><th>등록</th><th>전환</th></tr>${byType}</table></div></div>
+  <div class="side">${side}</div></div>`;
+}
+function vCases(){
+  const C=S.cases.find(x=>x.id===S.selC)||null,trainers=S.staff.filter(x=>x.active&&(x.role==='trainer'||x.role==='center'));
+  const board=COLS.map(col=>{const items=S.cases.filter(c=>c.status===col);return `<div class="col"><div class="colh"><span>${col}</span><span>${items.length}</span></div>${items.map(c=>{const t=typeOf(c),late=c.status==='응답 대기'&&hoursSince(c.assigned_at)>=24;
+    const tag=late?`<span style="color:#B91C1C;font-weight:800">${staffName(c.trainer_id)} · ${hoursSince(c.assigned_at)}시간 응답 없음</span>`:c.trainer_id?`<span>${staffName(c.trainer_id)}${c.status==='조율 완료'?' · '+esc(c.first_ot_at||''):''}</span>`:(c.returned_by||[]).length?`<span style="color:#B91C1C;font-weight:800">반송: ${c.returned_by.map(staffName).join(', ')}</span>`:'<span style="color:#8A8074">배정 필요</span>';
+    return `<button class="cc${S.selC===c.id?' on':''}" data-a="selC" data-v="${c.id}"><b style="font-size:13px">${esc(c.name)}</b><span style="color:#6B6155">${esc(t.start)}</span><span style="color:#6B6155">${esc(whenOf(c.answers))}</span>${tag}</button>`}).join('')}</div>`}).join('');
+  const joined=S.cases.filter(c=>c.status==='가입 완료').length;
+  let side='<div class="card"><p class="sub">현황판에서 회원을 골라 주세요.</p></div>';
+  if(C){const t=typeOf(C),can=C.status==='미배정'||C.status==='재배정 요청';
+    side=`<div class="card"><div style="display:flex;justify-content:space-between"><p class="h">${esc(C.name)} · ${esc(C.phone||'')}</p><span class="st" style="${SC[C.status]}">${C.status}</span></div>
+    <div class="kv"><b>시작 방식</b><span>${esc(t.start)} · 직원용 ${esc(t.n)}</span><b>희망 시간</b><span>${esc(whenOf(C.answers))}</span><b>방향</b><span>${esc(((C.answers||{}).dir||[]).join(' · ')||'-')}</span><b>의학 메모</b><span style="color:#B91C1C">${esc(C.med_memo||'-')}</span><b>응답</b><span>${esc(C.reply||'-')}</span></div>
+    <div style="display:flex;gap:6px"><input id="cmed" type="text" placeholder="의학 메모 고치기" value="${esc(C.med_memo||'')}"><button class="btn g" data-a="setMed">저장</button></div></div>
+    <div class="card"><p class="h">${C.status==='재배정 요청'?'다시 배정 (반송한 트레이너 제외)':can?'담당 트레이너 배정':'배정됨 · '+esc(staffName(C.trainer_id))}</p>
+    <div class="trs">${trainers.map(tr=>{const ex=(C.returned_by||[]).includes(tr.user_id),load=S.cases.filter(x=>x.trainer_id===tr.user_id&&['응답 대기','연락 중'].includes(x.status)).length;
+      return `<button class="tr${ex||!can?' no':S.pickT===tr.user_id?' on':''}" data-a="${ex||!can?'noop':'pickT'}" data-v="${tr.user_id}"><b>${esc(tr.name)}${ex?' (반송)':''}</b><span class="sub">진행 ${load}건</span></button>`}).join('')||'<p class="sub">직원·코드 탭에서 트레이너를 먼저 등록해 주세요.</p>'}</div>
+    <button class="btn" data-a="assign" ${can&&S.pickT?'':'disabled'}>배정 + 스케줄 조율 요청 보내기</button><p class="sub">트레이너가 WLP 앱(M)에 들어가면 알림이 떠요.</p></div>
+    <div class="card"><p class="h">기록</p>${(C.events||[]).map(e=>`<p class="sub">${md(e.at)} · ${esc(e.action)}${e.note?' · '+esc(e.note):''}</p>`).join('')}</div>`}
+  const stats=trainers.map(tr=>{const mine=S.cases.filter(x=>x.trainer_id===tr.user_id),late=mine.some(x=>x.status==='응답 대기'&&hoursSince(x.assigned_at)>=24);
+    return `<tr><td>${esc(tr.name)}</td><td style="${late?'color:#B91C1C;font-weight:800':''}">${mine.filter(x=>x.status==='응답 대기').length}</td><td>${mine.filter(x=>x.status==='연락 중').length}</td><td>${mine.filter(x=>x.status==='조율 완료').length}</td><td>${S.cases.filter(x=>x.member_id&&x.trainer_id===tr.user_id).length}</td><td>${S.cases.filter(x=>(x.returned_by||[]).includes(tr.user_id)).length}</td></tr>`}).join('');
+  return `<div class="board">${board}</div><div class="two"><div class="main"><div class="card"><p class="h">트레이너별 진행</p><table><tr><th>트레이너</th><th>응답 대기</th><th>연락 중</th><th>조율 완료</th><th>가입 완료</th><th>반송</th></tr>${stats}</table><p class="sub">가입 완료(코드로 가입까지 끝난 회원) ${joined}명은 현황판에서 빠져요.</p></div></div><div class="side">${side}</div></div>`;
+}
+function vStaff(){
+  return `<div class="two"><div class="main"><div class="card"><p class="h">직원</p><table><tr><th>이름</th><th>역할</th><th>상태</th></tr>${S.staff.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.role==='center'?'센터 관리자':'트레이너'}</td><td>${s.active?'사용 중':'중지'}</td></tr>`).join('')}</table></div>
+  <div class="card"><p class="h">발급한 코드</p><table><tr><th>코드</th><th>종류</th><th>이름</th><th>상태</th><th></th></tr>${S.codes.map(c=>{const st=c.canceled_at?'취소됨':c.used_at?'사용됨 '+md(c.used_at):new Date(c.expires_at)<new Date()?'만료됨':'대기 · '+md(c.expires_at)+'까지';
+    return `<tr><td><b>${esc(c.code)}</b></td><td>${c.kind==='staff'?'직원 ('+(c.staff_role==='center'?'센터':'트레이너')+')':'회원 · 여정 '+c.start_stage}</td><td>${esc(c.name||'')}</td><td>${st}</td><td>${!c.used_at&&!c.canceled_at?`<button class="btn g" style="min-height:32px" data-a="cancelCode" data-v="${esc(c.code)}">취소</button>`:''}</td></tr>`}).join('')}</table></div></div>
+  <div class="side"><div class="card"><p class="h">직원 코드 발급</p><p class="sub">트레이너가 WLP 앱(${BASE}index.html)에 카카오로 로그인한 뒤 이 코드를 입력하면 직원으로 등록돼요. 3일 뒤 만료, 한 번만 쓸 수 있어요.</p>
+  <input id="sn" type="text" placeholder="이름 (예: 김민수 T)"><div class="chips"><button class="ch${(S.srole||'trainer')==='trainer'?' ac':''}" data-a="srole" data-v="trainer">트레이너</button><button class="ch${S.srole==='center'?' ac':''}" data-a="srole" data-v="center">센터 관리자</button></div>
+  <button class="btn" data-a="staffCode">직원 코드 발급</button>${S.lastStaffCode?`<div class="msg">${esc(S.lastStaffCode)}</div>`:''}</div>
+  <div class="card"><p class="h">설문 QR 안내</p><p class="sub">데스크 QR: ${BASE}survey.html<br>센터 태블릿: ${BASE}survey.html?mode=tablet</p><p class="sub">QR을 인쇄할 때는 나중에 서버를 옮겨도 바뀌지 않는 주소(센터 도메인)를 쓰는 걸 권해요.</p></div>
+  <div class="card"><p class="h">보관 기간 정리</p><p class="sub">미등록 잠재회원 중 1년 지난 기록을 지워요. 월 1회 권장.</p><button class="btn g" data-a="purge">지금 정리</button></div></div></div>`;
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v,val=id=>(document.getElementById(id)||{}).value||'';
+  const L=S.leads.find(x=>x.id===S.selL),C=S.cases.find(x=>x.id===S.selC);
+  switch(a){
+   case 'login':sb.auth.signInWithOAuth({provider:v,options:{redirectTo:BASE+'center.html'}});break;
+   case 'logout':await sb.auth.signOut();location.reload();break;
+   case 'bootstrap':{const r=await sb.rpc('wlp_bootstrap_center',{p_name:val('bn')});if(r.error)toast(errText(r.error));else if(r.data==='ok')location.reload();else toast('이미 센터 관리자가 있어요');break}
+   case 'tab':S.tab=v;render();break;
+   case 'lf':S.lf=v;render();break;
+   case 'selL':S.selL=+v;if(!S.ev[+v])loadEvents(+v);render();break;
+   case 'lstatus':await call('wlp_lead_set_status',{p_id:L.id,p_status:v},()=>{L.status=v});S.ev[L.id]=null;loadEvents(L.id);break;
+   case 'copyReport':await copy(document.querySelector('.msg').textContent);await call('wlp_lead_log',{p_id:L.id,p_action:'리포트 발송',p_note:null},()=>{});toast('복사했어요. 카톡/문자에 붙여 넣어 보내 주세요');S.ev[L.id]=null;loadEvents(L.id);break;
+   case 'copyMsg':{const t=(MSG[(L.result||{}).k]||'').replace(/\{n\}/g,L.name);await copy(t);await call('wlp_lead_log',{p_id:L.id,p_action:'문자 발송',p_note:t},()=>{if(L.status==='신규')L.status='연락함'});toast('복사했어요');S.ev[L.id]=null;loadEvents(L.id);break}
+   case 'register':await call('wlp_lead_register',{p_id:L.id,p_med:val('med')||null},()=>{L.status='등록';S.cases.unshift({id:Date.now(),lead_id:L.id,name:L.name,phone:L.phone,status:'미배정',trainer_id:null,returned_by:[],result:L.result,answers:L.answers,med_memo:val('med'),events:[{action:'OT 접수',at:new Date().toISOString()}]})});toast('OT 배정 탭에 추가됐어요');break;
+   case 'selC':S.selC=+v;S.pickT=null;render();break;
+   case 'pickT':S.pickT=v;render();break;
+   case 'assign':await call('wlp_assign',{p_case:C.id,p_trainer:S.pickT},()=>{C.status='응답 대기';C.trainer_id=S.pickT;C.assigned_at=new Date().toISOString();(C.events=C.events||[]).push({action:'배정',note:staffName(S.pickT),at:new Date().toISOString()})});S.pickT=null;render();break;
+   case 'setMed':await call('wlp_set_med',{p_case:C.id,p_med:val('cmed')},()=>{C.med_memo=val('cmed')});break;
+   case 'srole':S.srole=v;render();break;
+   case 'staffCode':{if(!val('sn').trim()){toast('이름을 적어 주세요');break}if(DEMO){S.lastStaffCode='WLP-DEMO · '+val('sn');render();break}
+     const r=await sb.rpc('wlp_issue_staff_code',{p_role:S.srole||'trainer',p_name:val('sn').trim()});if(r.error){toast(errText(r.error));break}
+     S.lastStaffCode=`[WLP] ${val('sn').trim()}님 직원 코드: ${r.data.code}\n${BASE}index.html 에서 카카오 로그인 → 코드 입력 (3일 안)`;await loadAll();break}
+   case 'cancelCode':await call('wlp_cancel_code',{p_code:v},()=>{const c=S.codes.find(x=>x.code===v);if(c)c.canceled_at=new Date().toISOString()});break;
+   case 'purge':{if(DEMO){toast('시험 모드');break}const r=await sb.rpc('wlp_purge_leads');if(r.error)toast(errText(r.error));else{toast(r.data+'건 정리했어요');loadAll()}break}
+  }
+});
+render();boot();
+</script>
+</body>
+</html>
