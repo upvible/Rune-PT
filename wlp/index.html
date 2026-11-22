@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="./config.js"></script>
+<script src="./rec.js"></script>
 <style>
 :root{--dk:#1C1712;--dk2:#25201A;--dk3:#3A2F23;--ln:#4A3F34;--dt:#F5EFE6;--dm:#B9AE9F;--dm2:#8F8476;--am:#F0B85C;
 --bg:#FBF8F3;--pn:#fff;--bd:#EDE6DA;--tx:#1F1A14;--mu:#6B6155;--ac:#B45309;--acs:#FDECC8;--ac2:#7C3D06;--bad:#B91C1C;--ok:#1F6F5C;--tr:#2B241D}
@@ -57,6 +58,22 @@ label.l{font-size:12px;color:var(--mu);font-weight:700}
 .demo{background:#2B241D;color:#F0B85C;font-size:11px;padding:6px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .demo button{min-height:28px;border-radius:8px;border:1px solid #5A4E42;background:transparent;color:#E8E1D6;font-size:11px;padding:0 8px}
 .demo button.on{background:#F0B85C;color:#2B241D;border-color:#F0B85C;font-weight:800}
+/* 운동 기록 */
+.srow{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,1fr) 44px 44px;gap:6px;align-items:center}
+.srow.hd{font-size:10px;color:var(--mu);text-align:center}
+.tb{min-height:40px;border-radius:8px;border:0;font-size:11px;font-weight:900;padding:0}
+.tb.W{background:#EDE6DA;color:#6B6155}.tb.M{background:#FDECC8;color:#7C3D06}.tb.SL{background:#B91C1C;color:#fff}
+input.sin{min-height:42px;padding:0 6px;text-align:center;font-weight:800;font-size:15px}
+input.sin::placeholder{color:#B9AD9C;font-weight:700}
+.ckb{height:42px;border-radius:12px;border:1.5px solid #D8CCBA;background:#fff;font-size:16px;font-weight:900;color:#B9AD9C;padding:0}
+.ckb.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.mini{min-height:40px;min-width:40px;border-radius:10px;border:1px solid #E3D9CA;background:#fff;font-size:12px;font-weight:800;color:var(--mu);padding:0 6px}
+.mini.on{background:var(--acs);border-color:var(--ac);color:var(--ac2)}
+.mini:disabled{opacity:.3}
+.zone{font-size:10px;font-weight:800;margin:-2px 0 2px 46px}
+.zl{border-radius:6px;padding:3px 6px}
+.cue{font-size:13px;background:#FFF7E8;border-radius:10px;padding:8px 10px;color:var(--ac2);margin:0;line-height:1.5}
+.add{flex:1;min-height:38px;border-radius:10px;border:1px dashed #D8CCBA;background:none;font-size:12px;color:var(--mu)}
 /* 여정 지도 */
 .map{position:relative;width:100%;max-width:390px;height:560px;margin:0 auto}
 .node{position:absolute;display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;color:inherit;text-align:left}
@@ -181,6 +198,7 @@ function demoData(){
     {session_date:d(8),session_no:1,items:[{nm:'고블릿 스쿼트',sets:[{t:'M',w:8,r:10,done:true}]}]},
     {session_date:d(15),session_no:1,items:[{nm:'고블릿 스쿼트',sets:[{t:'M',w:8,r:8,done:true}]}]},
     {session_date:d(29),session_no:1,items:[{nm:'고블릿 스쿼트',sets:[{t:'M',w:6,r:8,done:true}]}]}];
+  S.runeSessions=S.sessions;S.wk=[];S.prefs={};
   S.fb=[{id:1,kind:'number',entered_by:'member',session_date:d(4),data:{metric:'플랭크',guess:20,actual:25},created_at:d(4)}];
 }
 function demoTrainer(){
@@ -225,8 +243,9 @@ async function loadMemberData(){
       const [g,s]=await Promise.all([
         sb.from('routine_gifts').select('id,gift_date,title,payload,created_at').eq('member_id',S.uid).order('created_at',{ascending:false}).limit(5),
         sb.from('workout_sessions').select('session_date,session_no,items').eq('member_id',S.uid).order('session_date',{ascending:false}).limit(60)]);
-      S.gifts=g.data||[];S.sessions=s.data||[];
+      S.gifts=g.data||[];S.runeSessions=s.data||[];
     }
+    await loadRec();mergeSessions();
   }catch(e){}
   render();
 }
@@ -277,7 +296,7 @@ function demoBar(){
 }
 function render(){
   const a=document.getElementById('app');
-  const f={boot:vBoot,login:vLogin,code:vCode,staffReq:vStaffReq,pending:vPending,joined:vLaunch,launch:vLaunch,home:vHome,trainer:vTrainer,err:vErr}[S.scr]||vBoot;
+  const f={boot:vBoot,login:vLogin,code:vCode,staffReq:vStaffReq,pending:vPending,joined:vLaunch,launch:vLaunch,home:vHome,rec:vRec,recEdit:vRecEdit,trainer:vTrainer,err:vErr}[S.scr]||vBoot;
   a.innerHTML=demoBar()+f();
 }
 const vBoot=()=>`<div class="dark" style="display:flex;align-items:center;justify-content:center"><span style="color:var(--dm)">불러오는 중…</span></div>`;
@@ -390,6 +409,7 @@ function home2(){
   ${pdseCard('words')}
   <div class="card"><p class="h">해 봤다 스탬프</p><div class="row wrapx">${Array.from({length:8},(_,i)=>dates[i]?`<span class="stamp ok">${dates[i].slice(5).replace('-','/')}</span>`:'<span class="stamp"></span>').join('')}</div><p class="sub">빈칸은 그냥 빈칸이에요. 율이나 연속 기록은 없어요.</p></div>`;
 }
+function recBtn(){return `<button class="btn" data-a="openRec" style="min-height:52px;font-size:15px">오늘 운동 기록하기</button>`}
 function home3(){
   const s0=S.sessions[0];let rows='<p class="sub">아직 운동 기록이 없어요.</p>';
   if(s0){rows=(s0.items||[]).filter(Boolean).slice(0,6).map(it=>{const nm=exName(it),t=topSet(it);let prev=null;for(const s of S.sessions.slice(1)){const p=(s.items||[]).find(x=>x&&exName(x)===nm);if(p){prev=topSet(p);break}}
@@ -397,8 +417,8 @@ function home3(){
   const line=latestFb('line');
   const d=new Date(Date.now()+9*3600e3),dow=(d.getUTCDay()+6)%7,mon=new Date(d.getTime()-dow*864e5);
   const days=['월','화','수','목','금','토','일'].map((l,i)=>{const ds=new Date(mon.getTime()+i*864e5).toISOString().slice(0,10);return `<span class="day${S.sessions.some(x=>x.session_date===ds)?' hl':''}">${l}</span>`}).join('');
-  return `<div class="card"><div class="row" style="justify-content:space-between"><p class="h">최근 운동${s0?' · '+s0.session_date.slice(5).replace('-','/'):''}</p><span class="sub">지난번 → 이번</span></div>${rows}
-  ${LEGACY?`<a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="${RUNE}">운동 기록 열기 (룬 PT)</a>`:''}</div>
+  return `${recBtn()}<div class="card"><div class="row" style="justify-content:space-between"><p class="h">최근 운동${s0?' · '+s0.session_date.slice(5).replace('-','/'):''}</p><span class="sub">지난번 → 이번</span></div>${rows}
+  ${LEGACY?`<a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="${RUNE}">예전 기록 보기 (룬 PT)</a>`:''}</div>
   ${pdseCard('num')}
   <div class="card"><p class="h">오늘 한 줄</p><textarea id="ln" placeholder="무엇을, 얼마나, 어떤 느낌">${''}</textarea>${line?`<p class="sub">지난 한 줄: ${esc(line.data.text)}</p>`:''}<button class="btn ghost" data-a="saveLine">남기기</button></div>
   <div class="card"><p class="h">이번 주</p><div class="row" style="gap:4px">${days}</div></div>
@@ -412,7 +432,7 @@ function weeksKnots(){
 }
 function home4(){
   const g=latestFb('goal4w'),u=S.ui,ways=['무게','템포','범위','횟수','기술 다듬기'];
-  return `<div class="card"><p class="h">다음 4주, 뭘로 올려 볼까요?</p><div class="row wrapx">${ways.map(l=>`<button class="chip${u.way===l?' on':''}" data-a="ui" data-k="way" data-v="${l}">${l}</button>`).join('')}</div>
+  return `${recBtn()}<div class="card"><p class="h">다음 4주, 뭘로 올려 볼까요?</p><div class="row wrapx">${ways.map(l=>`<button class="chip${u.way===l?' on':''}" data-a="ui" data-k="way" data-v="${l}">${l}</button>`).join('')}</div>
   <label class="l" for="g4">내가 정하는 다음 4주 목표</label><input id="g4" type="text" placeholder="예: 스쿼트 내려갈 때 4초로 10회" value="${g?esc(g.data.text):''}">
   <button class="btn" data-a="saveGoal4">정하기</button>${g?`<p class="sub">지금 목표 (${esc(g.session_date)}): ${esc(g.data.way||'')} · ${esc(g.data.text)}</p>`:''}</div>
   <div class="card"><div class="row" style="justify-content:space-between"><p class="h">이어 온 끈</p><span class="sub">최근 6주</span></div><div class="row" style="gap:6px">${weeksKnots()}</div>
@@ -425,7 +445,7 @@ function home4(){
 }
 function home5(){
   const q=latestFb('qgoal'),r=latestFb('retro');
-  return `<div class="card warm"><div class="row" style="justify-content:space-between"><p class="h">이번 분기 내 목표</p><span class="sub" style="color:var(--ac2);font-weight:800">내가 정함</span></div>
+  return `${recBtn()}<div class="card warm"><div class="row" style="justify-content:space-between"><p class="h">이번 분기 내 목표</p><span class="sub" style="color:var(--ac2);font-weight:800">내가 정함</span></div>
   ${q?`<p style="margin:0;font-size:16px;font-weight:800">${esc(q.data.text)}</p>`:''}<input id="qg" type="text" placeholder="예: 10km 러닝 완주 + 데드리프트 기술 다듬기"><button class="btn" data-a="saveQgoal">${q?'바꾸기':'정하기'}</button><p class="sub">트레이너는 안전과 단계만 조정해요.</p></div>
   <div class="card"><p class="h">분기 리듬</p><div style="display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:3px;font-size:11px;font-weight:800;text-align:center">
   <span style="grid-column:span 4;background:var(--ac);color:#fff;border-radius:8px;padding:8px 2px">집중 4주</span><span style="background:#FDE68A;color:#5B3A06;border-radius:8px;padding:8px 2px">쉼</span><span style="grid-column:span 4;background:var(--ac);color:#fff;border-radius:8px;padding:8px 2px">집중 4주</span><span style="grid-column:span 2;background:#F3E1BE;color:#5B3A06;border-radius:8px;padding:8px 2px">회복</span><span style="grid-column:span 2;background:#DCE7F3;color:#2F4560;border-radius:8px;padding:8px 2px">회고</span></div>
@@ -450,6 +470,7 @@ async function loadDetail(id){
   const r=await sb.rpc('wlp_member_detail',{p_member:id});
   if(r.error){toast(sbErr(r.error));return}
   S.tr.detail=r.data||{};
+  try{const w=await sb.from('wlp_workouts').select('session_date,items,extra,source').eq('member_id',id).order('session_date',{ascending:false}).limit(10);S.tr.detail.workouts=w.data||[]}catch(e){}
   const set=[];(S.tr.detail.feedback||[]).forEach(f=>{if(f.exercise&&!set.includes(f.exercise))set.push(f.exercise)});
   if(LEGACY){try{const s=await sb.rpc('trainer_member_sessions',{p_member:id,p_limit:5});(s.data||[]).forEach(x=>(x.items||[]).forEach(it=>{if(it){const n=exName(it);if(!set.includes(n))set.push(n)}}))}catch(e){}}
   S.tr.ui.exs=set;
@@ -527,6 +548,7 @@ function fbText(f){
   case 'goal4w':t=`4주 목표(${esc(d.way||'')}): ${esc(d.text)}`;break;case 'life':t='생활에서 쉬워진 것: '+esc(d.text);break;case 'mini15':t='15분 루틴으로 끈 잇기';break;
   case 'qgoal':t='분기 목표: '+esc(d.text);break;case 'retro':t='분기 회고 작성';break;
   case 'talk':t=`<span class="tag" style="background:${d.type==='change'?'#E3F1E7;color:#1F5A33':'#F3E8E3;color:#7A3418'}">${d.type==='change'?'변화 대화':'유지 대화'}</span> “${esc(d.text)}”`;break;
+  case 'alert':t=`<b style="color:#B91C1C">회복 신호</b> · ${esc(d.why||'')}`;break;case 'cheer':t='초보 응원: '+esc(d.text);break;case 'skillok':t='기술 미션 통과';break;
   case 'signal':t=`구간 ${d.stage} 신호 확인: ${esc(d.text)}`;break;default:t=esc(f.kind)}
   return `<div class="fb"><span>${t}</span><span class="row" style="gap:4px">${who}<span class="sub">${String(f.session_date).slice(5).replace('-','/')}</span></span></div>`;
 }
@@ -558,6 +580,7 @@ function vTrDetail(){
   <div class="card"><p class="h">다음 구간으로 넘어가는 신호</p><p class="sub">날짜가 아니라 회원의 말과 행동으로 판단해요.</p>${sig}</div>
   <div class="card"><p class="h">몰입 지도 추이</p>${flowMap(d.feedback||[])}</div>
   <div class="card"><p class="h">OT 판정</p>${otTxt}</div>
+  ${(d.workouts||[]).length?`<div class="card"><p class="h">WLP 운동 기록</p>${d.workouts.map(w=>`<div class="fb"><span>${esc(w.session_date.slice(5).replace('-','/'))}${w.source==='rune'?' · 룬PT':''}${(w.extra||{}).alert?' <span class="tag" style="background:#FDECEC;color:#B91C1C">회복 신호</span>':''}</span><span class="sub" style="text-align:right">${(w.items||[]).map(it=>esc(exName(it))+' '+fmtSet(topSet(it))).join(' · ')}</span></div>`).join('')}</div>`:''}
   <div class="card"><p class="h">최근 기록</p>${(d.feedback||[]).slice(0,40).map(fbText).join('')||'<p class="sub">아직 없어요.</p>'}</div></div>`;
 }
 async function trWrite(fn,args,ok){
@@ -634,6 +657,7 @@ document.addEventListener('click',async e=>{
     noop:()=>{}
   };
   if(A[a]){e.preventDefault();await A[a]()}
+  else if(typeof RA!=='undefined'&&RA[a]){e.preventDefault();await RA[a](b,v)}
 });
 if(!DEMO)window.addEventListener('load',()=>{try{sb&&sb.auth.onAuthStateChange((ev,s)=>{if(ev==='SIGNED_IN'&&s&&!S.uid){S.uid=s.user.id;loadMe()}})}catch(e){}});
 render();boot();
