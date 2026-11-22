@@ -462,7 +462,7 @@ async function loadTrainer(){
   const [a,c,k]=await Promise.all([sb.rpc('wlp_trainer_members'),sb.rpc('wlp_my_codes'),sb.rpc('wlp_cases')]);
   if(a.error){S.tr.err=sbErr(a.error);render();return}
   S.tr.err='';S.tr.list=a.data||[];S.tr.others=[];S.tr.invites=c.error?[]:(c.data||[]);
-  S.tr.cases=k.error?[]:(k.data||[]).filter(x=>x.trainer_id===S.uid&&['응답 대기','연락 중','조율 완료'].includes(x.status));S.newCases=S.tr.cases.filter(x=>x.status==='응답 대기').length;render();
+  S.tr.cases=k.error?[]:(k.data||[]).filter(x=>x.trainer_id===S.uid);S.newCases=S.tr.cases.filter(x=>x.status==='응답 대기').length;render();
 }
 async function loadDetail(id){
   S.tr.sel=id;S.tr.detail=null;S.tr.ui=Object.assign(S.tr.ui,{pd:null,se:null,vas:0,ex:''});render();
@@ -500,10 +500,17 @@ function vTrOt(){
   const t=S.tr,cs=t.cases||[],c=cs.find(x=>x.id===t.openCase);
   const SC={'응답 대기':'background:#E9F0FA;color:#1D4ED8','연락 중':'background:#FDECC8;color:#7C3D06','조율 완료':'background:#1F6F5C;color:#fff'};
   const hrs=d=>d?Math.floor((Date.now()-new Date(d).getTime())/3600e3):0;
+  const NY=+today().slice(0,4),NM=+today().slice(5,7);if(!t.ym)t.ym={y:NY,m:NM};if(!t.of)t.of='전체';
+  const PS={'OT1 완료':'background:#FEF9C3;color:#854D0E','OT2 완료':'background:#DCFCE7;color:#166534','PT 등록':'background:#1F6F5C;color:#fff','거절':'background:#FDECEC;color:#B91C1C','연락 안 됨':'background:#F3E8E3;color:#7A3418','재배정 요청':'background:#FDECEC;color:#B91C1C'};Object.assign(SC,PS);SC['조율 완료']='background:#E0E7FF;color:#3730A3';
   if(!c){
+    const yms=[...new Set(cs.map(x=>(x.reg_y||NY)*100+(x.reg_m||NM)).concat([NY*100+NM]))].sort((a,b)=>b-a),cur=t.ym.y*100+t.ym.m;
+    const mon=cs.filter(x=>(x.reg_y||NY)*100+(x.reg_m||NM)===cur),F={'전체':()=>true,'할 일':x=>['응답 대기','연락 중','조율 완료'].includes(x.status),'OT 완료':x=>['OT1 완료','OT2 완료','PT 등록'].includes(x.status),'PT 등록':x=>x.status==='PT 등록'};
+    const shown=mon.filter(F[t.of]);
     return `<div class="wrap">${S.newCases?`<div class="card warm"><p class="h">새 OT 배정 ${S.newCases}건</p><p class="sub">회원 정보 확인 후 스케줄을 조율해 주세요.</p></div>`:''}
-    ${cs.length?cs.map(x=>{const tp=OTA.T8[(x.result||{}).k]||{},late=x.status==='응답 대기'&&hrs(x.assigned_at)>=24;
-      return `<button class="mrow" data-a="openCase" data-v="${x.id}"><span><b>${esc(x.name)}</b><br><span class="sub">${esc(tp.start||'')} · 희망 ${esc(((x.answers||{}).days||[]).join('·'))} ${esc(((x.answers||{}).slots||[]).join('·'))}</span><br><span class="sub" style="${late?'color:#B91C1C;font-weight:800':''}">${late?hrs(x.assigned_at)+'시간째 응답 대기':esc(x.reply||'새 배정')}</span></span><span class="tag" style="${SC[x.status]||''}">${x.status}</span></button>`}).join(''):'<div class="card"><p class="sub">배정된 OT가 없어요.</p></div>'}</div>`;
+    <div class="row" style="gap:6px;overflow-x:auto;padding-bottom:2px">${yms.map(v=>{const y=Math.floor(v/100),m=v%100,n=cs.filter(x=>(x.reg_y||NY)*100+(x.reg_m||NM)===v).length;return `<button class="chip${v===cur?' on':''}" style="flex:none" data-a="trYm" data-v="${v}">${y!==NY?String(y).slice(2)+'년 ':''}${m}월${n?' '+n:''}</button>`}).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">${Object.keys(F).map(k=>`<button class="st${t.of===k?' on':''}" data-a="trOf" data-v="${k}"><b>${mon.filter(F[k]).length}</b>${k}</button>`).join('')}</div>
+    ${shown.length?shown.map(x=>{const tp=OTA.T8[(x.result||{}).k]||{},late=x.status==='응답 대기'&&hrs(x.assigned_at)>=24;
+      return `<button class="mrow" data-a="openCase" data-v="${x.id}"><span><b>${esc(x.name)}</b><br><span class="sub">${esc(tp.start||'')} · 희망 ${esc(((x.answers||{}).days||[]).join('·'))} ${esc(((x.answers||{}).slots||[]).join('·'))}</span><br><span class="sub" style="${late?'color:#B91C1C;font-weight:800':''}">${late?hrs(x.assigned_at)+'시간째 응답 대기':['OT1 완료','OT2 완료','PT 등록'].includes(x.status)?'OT1 '+esc(x.ot1_at||x.first_ot_at||'—')+' · OT2 '+esc(x.ot2_at||'—')+(x.pt_at?' · PT '+esc(x.pt_at):''):esc(x.reply||(x.from_sheet?(x.pref_time||'')+(x.note?' · '+x.note:''):'새 배정'))}</span></span><span class="tag" style="${SC[x.status]||''}">${x.status}</span></button>`}).join(''):'<div class="card"><p class="sub">이 달에 배정된 OT가 없어요.</p></div>'}</div>`;
   }
   const tp=OTA.T8[(c.result||{}).k]||{},a=c.answers||{},opt=(list)=>list.map(l=>`<button class="chip${t.ropt===l?' on':''}" data-a="ropt" data-v="${esc(l)}">${esc(l)}</button>`).join('');
   const ready=t.rk==='contact'||((t.rk==='done'||t.rk==='back')&&t.ropt);
@@ -515,12 +522,15 @@ function vTrOt(){
   ${c.med_memo?`<p class="sub" style="color:var(--bad)"><b>의학 메모</b> ${esc(c.med_memo)}</p>`:''}
   <p class="sub"><b style="color:var(--tx)">등록 대화</b> ${esc(tp.reg||'-')}</p><p class="sub"><b style="color:var(--tx)">주의</b> ${esc(tp.warn||'-')}</p></div>
   ${c.status==='조율 완료'?`<div class="card"><p class="h">조율 완료 · ${esc(c.first_ot_at||'')}</p><p class="sub">OT 때 판정 도구로 다시 판정하고, 결과 화면에서 가입 코드를 발급해요.</p><a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--ok)" href="./ot.html?case=${c.id}&name=${encodeURIComponent(c.name)}">OT 판정 · 가입 코드 발급</a></div>`:''}
+  <div class="card"><p class="h">진행 기록</p><p class="sub">OT1 ${esc(c.ot1_at||c.first_ot_at||'—')} · OT2 ${esc(c.ot2_at||'—')} · PT ${esc(c.pt_at||'—')}</p>
+  <input id="trPd" type="text" placeholder="날짜 (예: 11/26)"><div class="row wrapx">${['OT1 완료','OT2 완료','PT 등록','연락 안 됨','거절'].map(s=>`<button class="chip${c.status===s?' on':''}" data-a="trProg" data-v="${s}">${s}</button>`).join('')}</div></div>
+  ${['응답 대기','연락 중','조율 완료'].includes(c.status)?'':'<!--'}
   <div class="card"><p class="h">응답하기</p><div class="row">${[['done','일정 조율 완료'],['contact','연락 중'],['back','재배정 요청']].map(([k,l])=>`<button class="chip${t.rk===k?' on':''}" style="flex:1" data-a="rk" data-v="${k}">${l}</button>`).join('')}</div>
   ${t.rk==='done'?`<label class="l" for="otAt">첫 OT 일시</label><input id="otAt" type="text" placeholder="예: 11/26(수) 19:00" data-in="otAt" value="${esc(t.ropt||'')}">`:''}
   ${t.rk==='contact'?`<div class="row wrapx">${opt(['부재중 · 문자 남김','통화함 · 일정 확인 중','회원이 다시 연락 주기로'])}</div>`:''}
   ${t.rk==='back'?`<p class="sub">사유 (필수)</p><div class="row wrapx">${opt(['시간이 안 맞음','회원과 연락이 안 됨','전문 분야가 아님','기타'])}</div>`:''}
   <button class="btn" data-a="sendReply" ${ready?'':'disabled'}>센터로 보내기</button>
-  <p class="sub">${t.rk==='back'?'센터 현황판의 ‘재배정 요청’ 칸으로 돌아가요.':'응답은 센터 현황판에 바로 보여요.'}</p></div></div>`;
+  <p class="sub">${t.rk==='back'?'센터 현황판의 ‘재배정 요청’ 칸으로 돌아가요.':'응답은 센터 현황판에 바로 보여요.'}</p></div>${['응답 대기','연락 중','조율 완료'].includes(c.status)?'':'-->'}</div>`;
 }
 async function loadCasesBadge(){if(DEMO){if(!S.tr.cases)demoTrainer();S.newCases=(S.tr.cases||[]).filter(x=>x.status==='응답 대기').length;return}
   try{const k=await sb.rpc('wlp_cases');S.tr.cases=(k.data||[]).filter(x=>x.trainer_id===S.uid&&['응답 대기','연락 중','조율 완료'].includes(x.status));S.newCases=S.tr.cases.filter(x=>x.status==='응답 대기').length;render()}catch(e){}}
@@ -640,6 +650,11 @@ document.addEventListener('click',async e=>{
     goTrainerOt:()=>{S.scr='trainer';S.tr.tab='ot';S.tr.sel=null;render();loadTrainer()},
     openCase:()=>{S.tr.openCase=+v;S.tr.rk=null;S.tr.ropt=null;render();window.scrollTo(0,0)},
     closeCase:()=>{S.tr.openCase=null;render()},
+    trYm:()=>{S.tr.ym={y:Math.floor(+v/100),m:+v%100};S.tr.of='전체';render()},
+    trOf:()=>{S.tr.of=v;render()},
+    trProg:async()=>{const c=S.tr.cases.find(x=>x.id===S.tr.openCase),d=val('trPd').trim();
+      if(DEMO){c.status=v;if(d){if(v==='OT1 완료')c.ot1_at=d;if(v==='OT2 완료')c.ot2_at=d;if(v==='PT 등록')c.pt_at=d}S.newCases=S.tr.cases.filter(x=>x.status==='응답 대기').length;render();toast('시험 모드: 화면에만 반영했어요');return}
+      const r=await sb.rpc('wlp_set_progress',{p_case:c.id,p_status:v,p_date:d||null});if(r.error||(r.data&&r.data.ok===false)){toast(r.error?sbErr(r.error):'바꾸지 못했어요');return}toast('센터 OT 현황에도 반영됐어요');await loadTrainer()},
     rk:()=>{S.tr.rk=v;S.tr.ropt=null;render()},
     ropt:()=>{S.tr.ropt=v;render()},
     sendReply:async()=>{const t=S.tr,note=t.rk==='done'?(val('otAt').trim()||t.ropt):t.ropt;if(t.rk!=='contact'&&!note)return;

@@ -41,6 +41,17 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 .tr.on{border-color:#B45309;background:#FFF7E8}.tr.no{opacity:.45;cursor:default}
 table{border-collapse:collapse;width:100%;font-size:12px}th{text-align:left;color:#6B6155;padding:5px 6px;border-bottom:1px solid #EDE6DA}td{padding:6px;border-bottom:1px solid #F3EEE6}
 input[type=text],textarea,select{width:100%;min-height:42px;border-radius:10px;border:1px solid #E3D9CA;padding:8px 12px;font-size:14px;background:#fff}
+.ym{display:flex;gap:4px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid #EDE6DA;border-radius:14px;padding:8px 10px}
+.ym select{width:auto;min-height:38px;font-weight:800}
+.mo{min-height:38px;min-width:52px;border-radius:10px;border:0;background:none;font-size:13px;color:#6B6155;padding:0 8px}
+.mo.on{background:#2B241D;color:#fff;font-weight:900}.mo.none{color:#C9BFB1}.mo i{font-style:normal;font-size:10px;margin-left:2px;opacity:.75}
+.kk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.kb{background:#fff;border:1px solid #EDE6DA;border-radius:12px;padding:8px 12px;text-align:left;display:flex;flex-direction:column;color:#1F1A14}
+.kb.on{border-color:#B45309;background:#FFF7E8}.kb b{font-size:20px;font-weight:900}.kb span{font-size:11px;color:#6B6155}
+.ol{background:#fff;border:1px solid #EDE6DA;border-radius:14px;overflow:auto;max-height:640px}
+.orow{display:grid;grid-template-columns:34px 76px 64px 60px 68px minmax(0,1fr) 84px 64px 64px 60px;gap:6px;align-items:center;padding:8px 10px;border:0;border-bottom:1px solid #F0EAE0;background:#fff;font-size:12px;text-align:left;width:100%;color:#1F1A14}
+.orow.on{background:#FFF7E8}.orow.hd{font-size:11px;color:#6B6155;font-weight:800;background:#F4F2EE;cursor:default;position:sticky;top:0;z-index:1}
+@media(max-width:900px){.kk{grid-template-columns:repeat(3,minmax(0,1fr))}.orow{grid-template-columns:30px minmax(0,1fr) 64px 84px}.orow .hm{display:none}}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2B241D;color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;z-index:9}
 .demo{background:#1C1712;color:#F0B85C;font-size:11px;padding:6px 20px}
 .center{max-width:420px;margin:80px auto;padding:0 20px;display:flex;flex-direction:column;gap:10px;text-align:center}
@@ -101,8 +112,10 @@ const CFG=window.WLP_CFG||{},DEMO=!!CFG.DEMO,BASE=location.origin+location.pathn
 let sb=null;try{if(!DEMO)sb=window.supabase.createClient(CFG.SB_URL,CFG.SB_KEY,{auth:{storageKey:'wlp-auth'}})}catch(e){}
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ST=['신규','연락함','상담 예약','등록','보류','수신 거부'],COLS=['미배정','응답 대기','연락 중','조율 완료','재배정 요청'];
+const PROG=['OT1 완료','OT2 완료','PT 등록','거절','연락 안 됨'];
 const SC={'신규':'background:#E9F0FA;color:#1D4ED8','연락함':'background:#FDECC8;color:#7C3D06','상담 예약':'background:#E3F1E7;color:#1F5A33','등록':'background:#1F6F5C;color:#fff','보류':'background:#F1EFEC;color:#57534E','수신 거부':'background:#FDECEC;color:#B91C1C',
- '미배정':'background:#EDE6DA;color:#3A322A','응답 대기':'background:#E9F0FA;color:#1D4ED8','연락 중':'background:#FDECC8;color:#7C3D06','조율 완료':'background:#1F6F5C;color:#fff','재배정 요청':'background:#FDECEC;color:#B91C1C','가입 완료':'background:#2B241D;color:#fff'};
+ '미배정':'background:#EDE6DA;color:#3A322A','응답 대기':'background:#E9F0FA;color:#1D4ED8','연락 중':'background:#FDECC8;color:#7C3D06','조율 완료':'background:#1F6F5C;color:#fff','재배정 요청':'background:#FDECEC;color:#B91C1C','가입 완료':'background:#2B241D;color:#fff','OT1 완료':'background:#FEF9C3;color:#854D0E','OT2 완료':'background:#DCFCE7;color:#166534','PT 등록':'background:#1F6F5C;color:#fff','거절':'background:#FDECEC;color:#B91C1C','연락 안 됨':'background:#F3E8E3;color:#7A3418'};
+SC['조율 완료']='background:#E0E7FF;color:#3730A3';
 const MSG={'100':'[WLP] {n}님, 지난번 설문 감사했어요. 힘든 건 빼고 몸 상태만 같이 보는 20분 체험이 있어요. 편하실 때 답장 주세요.',
  '101':'[WLP] {n}님, 의욕이 크셨던 만큼 처음 4주를 일부러 천천히 가는 이유를 15분만 설명드리고 싶어요.',
  '010':'[WLP] {n}님, 예전에 좋았던 운동을 지금 몸에 맞게 다시 시작하는 짧은 플랜을 리포트에 담아 두었어요.',
@@ -111,7 +124,8 @@ const MSG={'100':'[WLP] {n}님, 지난번 설문 감사했어요. 힘든 건 빼
  '110':'[WLP] {n}님, 오시기 편한 요일 하나만 알려 주시면 그 요일 기준으로 첫 플랜을 짜 드려요.',
  '011':'[WLP] {n}님, 지금 꾸준함 위에 새로 배울 기술 하나를 보여 드리고 싶어요.',
  '111':'[WLP] {n}님, 직접 목표를 설계하실 수 있게 분기 플랜 틀을 보내 드릴게요.'};
-const S={scr:'boot',tab:'leads',me:null,leads:[],ev:{},cases:[],staff:[],codes:[],reqs:[],selL:null,selC:null,pickT:null,lf:'전체',err:''};
+const NOWY=+new Date(Date.now()+9*3600e3).toISOString().slice(0,4),NOWM=+new Date(Date.now()+9*3600e3).toISOString().slice(5,7);
+const S={ym:{y:NOWY,m:NOWM},cf:'전체',ctr:'전체',sync:'',scr:'boot',tab:'leads',me:null,leads:[],ev:{},cases:[],staff:[],codes:[],reqs:[],selL:null,selC:null,pickT:null,lf:'전체',err:''};
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
 const errText=e=>/function|does not exist|schema cache|relation/i.test((e&&e.message)||'')?'서버에 wlp-schema-1.sql 을 먼저 실행해 주세요':((e&&e.message)||'서버 오류');
 const kst=d=>new Date(new Date(d).getTime()+9*3600e3).toISOString();
@@ -132,6 +146,10 @@ function demo(){
   S.cases=[{id:1,lead_id:4,name:'최OO',phone:'01020001003',status:'미배정',trainer_id:null,returned_by:[],result:{k:'001',start:3},answers:{days:['월','목'],slots:['저녁'],dir:['체지방·체중']},med_memo:'',events:[{action:'OT 접수',at:new Date().toISOString()}]},
     {id:2,lead_id:9,name:'장OO',phone:'01020001008',status:'응답 대기',trainer_id:'t2',assigned_at:new Date(Date.now()-30*3600e3).toISOString(),returned_by:[],result:{k:'001',start:3},answers:{days:['화','금'],slots:['점심'],dir:['운동 습관 만들기']},med_memo:'허리 디스크 진단(2023)',events:[]},
     {id:3,lead_id:null,name:'문OO',phone:'01099990000',status:'재배정 요청',trainer_id:null,returned_by:['t3'],reply:'재배정 요청 · 시간이 안 맞음',result:{k:'100',start:1},answers:{days:['토'],slots:['오후']},med_memo:'',events:[]}];
+  S.cases.forEach((c,i)=>{c.reg_y=NOWY;c.reg_m=NOWM;c.sheet_no=i+1});
+  const TRN=['이규','지원','성경','진용','동주','범운'],NM=['김','이','박','최','정','강','조','윤'];
+  for(let k=0;k<40;k++){const m=((NOWM-1-(k%4))+12)%12+1,y=m>NOWM?NOWY-1:NOWY,st=['OT1 완료','OT2 완료','PT 등록','연락 안 됨','거절','응답 대기','조율 완료'][k%7];S.cases.push({id:100+k,name:NM[k%8]+'OO',phone:'010'+(20000000+k),status:st,trainer_id:null,trainer_name:TRN[k%6],returned_by:[],reg_y:y,reg_m:m,sheet_no:k+1,sex:k%2?'여':'남',age:20+k,months:'3개월',pref_time:k%2?'오전':'오후 7:00',note:k%5?'':'문화센터',ot1_at:['OT1 완료','OT2 완료','PT 등록','조율 완료'].includes(st)?m+'/'+(3+k%20):'',ot2_at:['OT2 완료','PT 등록'].includes(st)?m+'/'+(8+k%18):'',pt_at:st==='PT 등록'?m+'/'+(12+k%15):'',from_sheet:true,events:[]})}
+  S.sync='시험 모드 예시 데이터';
   S.codes=[{code:'WLP-7K2Q',kind:'member',name:'최OO',start_stage:3,expires_at:new Date(Date.now()+5*864e5).toISOString(),used_at:null,canceled_at:null}];
   S.scr='app';
 }
@@ -149,7 +167,8 @@ async function loadAll(){
   if(DEMO){render();return}
   const [l,c,s,k,q]=await Promise.all([sb.from('wlp_leads').select('*').order('created_at',{ascending:false}).limit(500),sb.rpc('wlp_cases'),sb.rpc('wlp_staff_list'),sb.rpc('wlp_my_codes'),sb.rpc('wlp_staff_requests_list')]);
   if(l.error){toast(errText(l.error));return}
-  S.leads=l.data||[];S.cases=c.data||[];S.staff=s.data||[];S.codes=k.data||[];S.reqs=q.error?[]:(q.data||[]);render();
+  S.leads=l.data||[];S.cases=c.data||[];try{const g=await sb.from('wlp_settings').select('value').eq('key','sheet_last_sync').maybeSingle();S.sync=(g.data&&g.data.value)||''}catch(e){}
+  S.staff=s.data||[];S.codes=k.data||[];S.reqs=q.error?[]:(q.data||[]);render();
 }
 async function loadEvents(id){if(DEMO){S.ev[id]=S.ev[id]||[{action:'설문 제출',created_at:new Date().toISOString()}];render();return}
   const r=await sb.from('wlp_lead_events').select('*').eq('lead_id',id).order('created_at');S.ev[id]=r.data||[];render()}
@@ -168,7 +187,7 @@ function render(){
   if(S.scr==='err'){app.innerHTML=`<div class="center"><p class="h">연결 문제</p><p class="sub">${esc(S.err)}</p></div>`;return}
   if(S.scr==='deny'){app.innerHTML=`<div class="center"><p class="h">센터 관리자(점장·부점장) 계정이 아니에요</p><p class="sub"><a href="./index.html">WLP 앱</a>에서 '직원 승인 요청'을 보내고 총관리자 승인을 기다려 주세요. 트레이너는 WLP 앱의 M에서 일해요.</p><button class="btn g" data-a="logout">로그아웃</button></div>`;return}
   if(S.scr==='bootstrap'){app.innerHTML=`<div class="center"><p class="h">첫 총관리자 등록</p><p class="sub">아직 총관리자가 없어요. 지금 로그인한 계정을 첫 총관리자로 등록해요(한 번만). 점장님·부점장님은 그다음에 WLP 앱에서 직원 승인 요청을 보내면, 승인할 때 총관리자 권한이 함께 붙어요.</p><input id="bn" type="text" placeholder="이름"><input id="bt" type="text" placeholder="직책 (예: 총괄 관리자)" value="총괄 관리자"><button class="btn" data-a="bootstrap">이 계정을 총관리자로 등록</button></div>`;return}
-  const tabs=`<div class="tabs">${[['leads','잠재회원'],['cases','OT 배정'],['staff','직원 승인'+(S.reqs.filter(r=>r.status==='대기').length?' '+S.reqs.filter(r=>r.status==='대기').length:'')]].map(([k,l])=>`<button class="tab${S.tab===k?' on':''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const tabs=`<div class="tabs">${[['leads','잠재회원'],['cases','OT 현황'],['staff','직원 승인'+(S.reqs.filter(r=>r.status==='대기').length?' '+S.reqs.filter(r=>r.status==='대기').length:'')]].map(([k,l])=>`<button class="tab${S.tab===k?' on':''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
   app.innerHTML=d+`<div class="top"><b>WLP</b><span style="font-size:12px;color:#B9AE9F">${esc(S.me&&S.me.title||'센터 관리자')} · ${esc(S.me&&S.me.staff_name)}${S.me&&S.me.is_owner?' · 총관리자':''}</span><span class="sp"></span>${tabs}<a href="./survey.html?mode=tablet" style="color:#F0B85C;font-size:12px">태블릿 설문</a><a href="./index.html" style="color:#F0B85C;font-size:12px">WLP 앱</a></div><div class="wrap">${S.tab==='leads'?vLeads():S.tab==='cases'?vCases():vStaff()}</div>`;
 }
 function vLeads(){
@@ -185,7 +204,7 @@ function vLeads(){
     <div class="card"><p class="h">재연락 포인트</p><p style="margin:0;font-size:13px">${esc(t.call)}</p><p class="h" style="font-size:13px">추천 문자 (가격 언급 없음)</p><div class="msg">${esc(msg)}</div>
     <button class="btn" data-a="copyMsg" ${canMsg?'':'disabled'}>${canMsg?'문구 복사 + 문자 발송 기록':'보낼 수 없음'}</button><p class="sub">${L.status==='수신 거부'?'수신 거부한 분이에요.':L.consent_marketing?'같은 분께는 2주에 1번까지만 권장':'소식 문자 동의가 없어 홍보 문자는 못 보내요. 리포트·상담 관련 연락만 가능해요.'}</p></div>
     <div class="card"><p class="h">등록 → OT 접수</p><label class="sub" for="med">의학적 특이사항 (있으면, 담당 트레이너에게 보여요)</label><input id="med" type="text" placeholder="예: 허리 디스크 진단(2023)">
-    <button class="btn ok" data-a="register" ${L.status==='등록'?'disabled':''}>${L.status==='등록'?'OT 접수됨':'등록 처리 → OT 접수'}</button></div>
+    ${S.cases.some(c=>c.lead_id===L.id)?`<button class="btn g" data-a="toCase" data-v="${L.id}">OT 접수됨 · OT 현황에서 보기</button>`:`<button class="btn ok" data-a="register">등록 처리 → OT 접수</button>`}</div>
     <div class="card"><p class="h">기록</p>${(S.ev[L.id]||[]).map(e=>`<p class="sub">${md(e.created_at)} · ${esc(e.action)}${e.note?' · '+esc(e.note).slice(0,60):''}</p>`).join('')||'<p class="sub">불러오는 중…</p>'}</div>`}
   return `<div class="kpis"><div class="kpi"><b>${m.length}</b><span>이번 달 설문</span></div><div class="kpi"><b>${m.filter(l=>l.consent_contact).length}</b><span>리포트 대상</span></div><div class="kpi"><b>${m.filter(l=>l.consult).length}</b><span>15분 상담 신청</span></div><div class="kpi"><b>${reg}</b><span>등록 (OT 접수)</span></div><div class="kpi"><b>${m.length?Math.round(reg/m.length*100):0}%</b><span>등록 전환율</span></div></div>
   <div class="two"><div class="main"><div class="chips">${['전체'].concat(ST,['상담 신청']).map(s=>`<button class="ch${S.lf===s?' on':''}" data-a="lf" data-v="${s}">${s} ${s==='전체'?S.leads.length:s==='상담 신청'?S.leads.filter(l=>l.consult).length:S.leads.filter(l=>l.status===s).length}</button>`).join('')}</div>
@@ -196,23 +215,38 @@ function vLeads(){
 }
 function vCases(){
   const C=S.cases.find(x=>x.id===S.selC)||null,trainers=S.staff.filter(x=>x.active&&(x.role==='trainer'||x.role==='center'));
-  const board=COLS.map(col=>{const items=S.cases.filter(c=>c.status===col);return `<div class="col"><div class="colh"><span>${col}</span><span>${items.length}</span></div>${items.map(c=>{const t=typeOf(c),late=c.status==='응답 대기'&&hoursSince(c.assigned_at)>=24;
-    const tag=late?`<span style="color:#B91C1C;font-weight:800">${staffName(c.trainer_id)} · ${hoursSince(c.assigned_at)}시간 응답 없음</span>`:c.trainer_id?`<span>${staffName(c.trainer_id)}${c.status==='조율 완료'?' · '+esc(c.first_ot_at||''):''}</span>`:(c.returned_by||[]).length?`<span style="color:#B91C1C;font-weight:800">반송: ${c.returned_by.map(staffName).join(', ')}</span>`:'<span style="color:#8A8074">배정 필요</span>';
-    return `<button class="cc${S.selC===c.id?' on':''}" data-a="selC" data-v="${c.id}"><b style="font-size:13px">${esc(c.name)}</b><span style="color:#6B6155">${esc(t.start)}</span><span style="color:#6B6155">${esc(whenOf(c.answers))}</span>${tag}</button>`}).join('')}</div>`}).join('');
-  const joined=S.cases.filter(c=>c.status==='가입 완료').length;
-  let side='<div class="card"><p class="sub">현황판에서 회원을 골라 주세요.</p></div>';
-  if(C){const t=typeOf(C),can=C.status==='미배정'||C.status==='재배정 요청';
-    side=`<div class="card"><div style="display:flex;justify-content:space-between"><p class="h">${esc(C.name)} · ${esc(C.phone||'')}</p><span class="st" style="${SC[C.status]}">${C.status}</span></div>
-    <div class="kv"><b>시작 방식</b><span>${esc(t.start)} · 직원용 ${esc(t.n)}</span><b>희망 시간</b><span>${esc(whenOf(C.answers))}</span><b>방향</b><span>${esc(((C.answers||{}).dir||[]).join(' · ')||'-')}</span><b>의학 메모</b><span style="color:#B91C1C">${esc(C.med_memo||'-')}</span><b>응답</b><span>${esc(C.reply||'-')}</span></div>
+  const tn=c=>c.trainer_id?staffName(c.trainer_id):(c.trainer_name||'');
+  const ys=[...new Set(S.cases.map(c=>c.reg_y).filter(Boolean).concat([NOWY]))].sort((a,b)=>b-a),Y=S.ym.y,M=S.ym.m;
+  const cntYM=(y,m)=>S.cases.filter(c=>c.reg_y===y&&c.reg_m===m).length;
+  const mon=Array.from({length:12},(_,i)=>i+1).filter(m=>Y<NOWY||m<=NOWM||cntYM(Y,m)).map(m=>{const n=cntYM(Y,m);return `<button class="mo${M===m?' on':''}${n?'':' none'}" data-a="cm" data-v="${m}">${m}월${n?`<i>${n}</i>`:''}</button>`}).join('');
+  const mine=S.cases.filter(c=>c.reg_y===Y&&c.reg_m===M),G={'진행 중':['응답 대기','연락 중','조율 완료','재배정 요청'],'OT 완료':['OT1 완료','OT2 완료','PT 등록']};
+  const byT=S.ctr==='전체'?mine:S.ctr==='미배정'?mine.filter(c=>!tn(c)):mine.filter(c=>tn(c)===S.ctr);
+  const cnt=f=>byT.filter(f).length,pt=cnt(c=>c.status==='PT 등록');
+  const K=[['전체',(Y===NOWY&&M===NOWM?'이번 달':M+'월')+' 등록',byT.length,''],['미배정','미배정',cnt(c=>c.status==='미배정'),''],['진행 중','배정·연락·조율',cnt(c=>G['진행 중'].includes(c.status)),'color:#1D4ED8'],['OT 완료','OT 1회 이상',cnt(c=>G['OT 완료'].includes(c.status)),'color:#854D0E'],['PT 등록','PT 등록 '+(byT.length?Math.round(pt/byT.length*100):0)+'%',pt,'color:#1F6F5C'],['연락 안 됨','연락 안 됨',cnt(c=>c.status==='연락 안 됨'),'color:#7A3418'],['거절','거절',cnt(c=>c.status==='거절'),'color:#B91C1C']];
+  const list=byT.filter(c=>S.cf==='전체'||c.status===S.cf||(G[S.cf]||[]).includes(c.status));
+  const tnames=[...new Set(trainers.map(x=>x.name).concat(mine.map(tn).filter(Boolean)))];
+  const rows=list.map((c,i)=>{const t=typeOf(c),late=c.status==='응답 대기'&&c.trainer_id&&hoursSince(c.assigned_at)>=24;
+    return `<button class="orow${S.selC===c.id?' on':''}" data-a="selC" data-v="${c.id}"><span style="color:#8A8074">${c.sheet_no||i+1}</span><b>${esc(c.name)}</b><span class="hm">${esc([c.sex,c.age].filter(Boolean).join(' · ')||t.start)}</span><span class="hm">${esc(c.months||'')}</span><span style="${tn(c)?'':'color:#B45309;font-weight:800'}${late?';color:#B91C1C;font-weight:800':''}">${esc(tn(c)||'배정 필요')}</span><span class="hm" style="color:#6B6155">${esc([c.pref_time||whenOf(c.answers).trim(),c.note].filter(Boolean).join(' · '))}${c.lead_id?' · 설문':''}</span><span class="st" style="${SC[c.status]||''}">${c.status}</span><span class="hm">${esc(c.ot1_at||c.first_ot_at||'—')}</span><span class="hm">${esc(c.ot2_at||'—')}</span><span class="hm" style="color:#1F6F5C;font-weight:800">${esc(c.pt_at||'')}</span></button>`}).join('');
+  let side='<div class="card"><p class="sub">목록에서 회원을 골라 주세요.</p></div>';
+  if(C){const t=typeOf(C),can=['미배정','재배정 요청','응답 대기','연락 중'].includes(C.status);
+    side=`<div class="card"><div style="display:flex;justify-content:space-between"><p class="h">${esc(C.name)} · ${esc(C.phone||'')}</p><span class="st" style="${SC[C.status]||''}">${C.status}</span></div>
+    <div class="kv"><b>최초 등록</b><span>${C.reg_y}년 ${C.reg_m}월${C.from_sheet?' · 시트':''}${C.lead_id?' · 설문':''}</span><b>성별·나이</b><span>${esc([C.sex,C.age].filter(Boolean).join(' · ')||'-')}</span><b>등록 월수</b><span>${esc(C.months||'-')}</span><b>운동시간</b><span>${esc(C.pref_time||whenOf(C.answers).trim()||'-')}</span><b>특이사항</b><span>${esc(C.note||'-')}</span>
+    ${C.lead_id?`<b>시작 방식</b><span>${esc(t.start)} · 직원용 ${esc(t.n)}</span>`:''}<b>의학 메모</b><span style="color:#B91C1C">${esc(C.med_memo||'-')}</span><b>응답</b><span>${esc(C.reply||'-')}</span><b>OT1 · OT2 · PT</b><span>${esc(C.ot1_at||C.first_ot_at||'—')} · ${esc(C.ot2_at||'—')} · ${esc(C.pt_at||'—')}</span></div>
     <div style="display:flex;gap:6px"><input id="cmed" type="text" placeholder="의학 메모 고치기" value="${esc(C.med_memo||'')}"><button class="btn g" data-a="setMed">저장</button></div></div>
-    <div class="card"><p class="h">${C.status==='재배정 요청'?'다시 배정 (반송한 트레이너 제외)':can?'담당 트레이너 배정':'배정됨 · '+esc(staffName(C.trainer_id))}</p>
+    <div class="card"><p class="h">진행 바꾸기</p><div style="display:flex;gap:6px"><input id="pdate" type="text" placeholder="날짜 (예: 11/26)" style="max-width:150px"></div>
+    <div class="chips">${['조율 완료'].concat(PROG).map(s=>`<button class="ch${C.status===s?' ac':''}" data-a="prog" data-v="${s}">${s}</button>`).join('')}</div><p class="sub">여기서 바꾸면 WLP가 기준이 돼서, 시트를 다시 불러와도 이 회원의 진행은 덮어쓰지 않아요.</p></div>
+    <div class="card"><p class="h">${C.status==='재배정 요청'?'다시 배정 (반송한 트레이너 제외)':'담당 트레이너 '+(C.trainer_id?'바꾸기':'배정')}${tn(C)&&!C.trainer_id?' · 시트 담당: '+esc(tn(C))+' (직원 계정 없음)':''}</p>
     <div class="trs">${trainers.map(tr=>{const ex=(C.returned_by||[]).includes(tr.user_id),load=S.cases.filter(x=>x.trainer_id===tr.user_id&&['응답 대기','연락 중'].includes(x.status)).length;
-      return `<button class="tr${ex||!can?' no':S.pickT===tr.user_id?' on':''}" data-a="${ex||!can?'noop':'pickT'}" data-v="${tr.user_id}"><b>${esc(tr.name)}${ex?' (반송)':''}</b><span class="sub">진행 ${load}건</span></button>`}).join('')||'<p class="sub">직원·코드 탭에서 트레이너를 먼저 등록해 주세요.</p>'}</div>
+      return `<button class="tr${ex||!can?' no':S.pickT===tr.user_id?' on':''}" data-a="${ex||!can?'noop':'pickT'}" data-v="${tr.user_id}"><b>${esc(tr.name)}${ex?' (반송)':''}</b><span class="sub">진행 ${load}건</span></button>`}).join('')||'<p class="sub">직원 승인 탭에서 트레이너를 먼저 승인해 주세요.</p>'}</div>
     <button class="btn" data-a="assign" ${can&&S.pickT?'':'disabled'}>배정 + 스케줄 조율 요청 보내기</button><p class="sub">트레이너가 WLP 앱(M)에 들어가면 알림이 떠요.</p></div>
-    <div class="card"><p class="h">기록</p>${(C.events||[]).map(e=>`<p class="sub">${md(e.at)} · ${esc(e.action)}${e.note?' · '+esc(e.note):''}</p>`).join('')}</div>`}
-  const stats=trainers.map(tr=>{const mine=S.cases.filter(x=>x.trainer_id===tr.user_id),late=mine.some(x=>x.status==='응답 대기'&&hoursSince(x.assigned_at)>=24);
-    return `<tr><td>${esc(tr.name)}</td><td style="${late?'color:#B91C1C;font-weight:800':''}">${mine.filter(x=>x.status==='응답 대기').length}</td><td>${mine.filter(x=>x.status==='연락 중').length}</td><td>${mine.filter(x=>x.status==='조율 완료').length}</td><td>${S.cases.filter(x=>x.member_id&&x.trainer_id===tr.user_id).length}</td><td>${S.cases.filter(x=>(x.returned_by||[]).includes(tr.user_id)).length}</td></tr>`}).join('');
-  return `<div class="board">${board}</div><div class="two"><div class="main"><div class="card"><p class="h">트레이너별 진행</p><table><tr><th>트레이너</th><th>응답 대기</th><th>연락 중</th><th>조율 완료</th><th>가입 완료</th><th>반송</th></tr>${stats}</table><p class="sub">가입 완료(코드로 가입까지 끝난 회원) ${joined}명은 현황판에서 빠져요.</p></div></div><div class="side">${side}</div></div>`;
+    <div class="card"><p class="h">기록</p>${(C.events||[]).map(e=>`<p class="sub">${md(e.at)} · ${esc(e.action)}${e.note?' · '+esc(e.note):''}</p>`).join('')||'<p class="sub">-</p>'}</div>`}
+  const sheet=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><p class="h">구글 시트 (2026 오티 리스트)</p><p class="sub">${esc(S.sync?'마지막 불러오기 '+S.sync:'아직 불러온 적 없어요')}</p></div>
+    <div style="display:flex;gap:6px">${S.me&&S.me.is_owner?'<button class="btn g" data-a="sheetKey">연결 키 만들기</button>':''}<button class="btn" data-a="sheetSync">시트에서 새로 불러오기</button></div></div>
+    ${S.sheetKey?`<div class="msg">${esc(S.sheetKey)}</div><p class="sub">이 키는 지금 한 번만 보여요. 시트 [WLP] → [연결 키 넣기]에 붙여 넣어 주세요. 새로 만들면 이전 키는 못 써요.</p>`:''}</div>`;
+  return `<div class="ym"><select data-ch="cy">${ys.map(y=>`<option value="${y}"${y===Y?' selected':''}>${y}년</option>`).join('')}</select>${mon}<span style="flex:1"></span>${Y===NOWY&&M===NOWM?'':`<button class="ch" data-a="cnow">이번 달로</button>`}</div>
+  <div class="kk">${K.map(k=>`<button class="kb${S.cf===k[0]?' on':''}" data-a="cf" data-v="${k[0]}"><b style="${k[3]}">${k[2]}</b><span>${k[1]}</span></button>`).join('')}</div>
+  <div class="chips"><span class="sub" style="align-self:center">담당</span>${['전체','미배정'].concat(tnames).map(n=>`<button class="ch${S.ctr===n?' on':''}" data-a="ctr" data-v="${esc(n)}">${esc(n)}</button>`).join('')}<span class="sub" style="margin-left:auto;align-self:center">${list.length}명</span></div>
+  <div class="two"><div class="main"><div class="ol"><div class="orow hd"><span>#</span><span>회원명</span><span class="hm">성별·나이</span><span class="hm">등록 월수</span><span>담당</span><span class="hm">운동시간 · 특이사항</span><span>진행</span><span class="hm">OT1차</span><span class="hm">OT2차</span><span class="hm">PT 등록</span></div>${rows||'<p class="sub" style="padding:20px">이 달에 등록된 OT가 없어요.</p>'}</div>${sheet}</div><div class="side">${side}</div></div>`;
 }
 function vStaff(){
   const own=!!(S.me&&S.me.is_owner),pend=S.reqs.filter(r=>r.status==='대기'),done=S.reqs.filter(r=>r.status!=='대기').slice(0,10);
@@ -256,8 +290,17 @@ document.addEventListener('click',async e=>{
    case 'lstatus':await call('wlp_lead_set_status',{p_id:L.id,p_status:v},()=>{L.status=v});S.ev[L.id]=null;loadEvents(L.id);break;
    case 'copyReport':await copy(document.querySelector('.msg').textContent);await call('wlp_lead_log',{p_id:L.id,p_action:'리포트 발송',p_note:null},()=>{});toast('복사했어요. 카톡/문자에 붙여 넣어 보내 주세요');S.ev[L.id]=null;loadEvents(L.id);break;
    case 'copyMsg':{const t=(MSG[(L.result||{}).k]||'').replace(/\{n\}/g,L.name);await copy(t);await call('wlp_lead_log',{p_id:L.id,p_action:'문자 발송',p_note:t},()=>{if(L.status==='신규')L.status='연락함'});toast('복사했어요');S.ev[L.id]=null;loadEvents(L.id);break}
-   case 'register':await call('wlp_lead_register',{p_id:L.id,p_med:val('med')||null},()=>{L.status='등록';S.cases.unshift({id:Date.now(),lead_id:L.id,name:L.name,phone:L.phone,status:'미배정',trainer_id:null,returned_by:[],result:L.result,answers:L.answers,med_memo:val('med'),events:[{action:'OT 접수',at:new Date().toISOString()}]})});toast('OT 배정 탭에 추가됐어요');break;
+   case 'register':await call('wlp_lead_register',{p_id:L.id,p_med:val('med')||null},()=>{L.status='등록';S.cases.unshift({id:Date.now(),reg_y:NOWY,reg_m:NOWM,lead_id:L.id,name:L.name,phone:L.phone,status:'미배정',trainer_id:null,returned_by:[],result:L.result,answers:L.answers,med_memo:val('med'),events:[{action:'OT 접수',at:new Date().toISOString()}]})});toast('OT 배정 탭에 추가됐어요');break;
    case 'selC':S.selC=+v;S.pickT=null;render();break;
+   case 'cm':S.ym.m=+v;S.cf='전체';S.selC=null;render();break;
+   case 'cnow':S.ym={y:NOWY,m:NOWM};S.cf='전체';S.selC=null;render();break;
+   case 'cf':S.cf=v;render();break;
+   case 'ctr':S.ctr=v;render();break;
+   case 'toCase':{const c=S.cases.find(x=>x.lead_id===+v);S.tab='cases';if(c){S.ym={y:c.reg_y||NOWY,m:c.reg_m||NOWM};S.selC=c.id}S.cf='전체';S.ctr='전체';render();break}
+   case 'prog':{const d=val('pdate').trim();await call('wlp_set_progress',{p_case:C.id,p_status:v,p_date:d||null},()=>{C.status=v;if(d){if(v==='OT1 완료'||v==='조율 완료')C.ot1_at=d;if(v==='OT2 완료')C.ot2_at=d;if(v==='PT 등록')C.pt_at=d}(C.events=C.events||[]).push({action:v,note:d,at:new Date().toISOString()})});break}
+   case 'sheetKey':{if(!confirm('새 연결 키를 만들까요? 시트에 넣어 둔 이전 키는 못 쓰게 돼요.'))break;if(DEMO){S.sheetKey='demo-key-1234';render();break}const r=await sb.rpc('wlp_new_sheet_key');if(r.error){toast(errText(r.error));break}S.sheetKey=r.data;render();break}
+   case 'sheetSync':{const u=CFG.SHEET_SYNC_URL;if(DEMO){toast('시험 모드: 시트는 실제 서버에서만 불러와요');break}if(!u){toast('config.js 에 SHEET_SYNC_URL(시트 Apps Script 웹 앱 주소)을 넣어 주세요');break}
+     b.disabled=true;b.textContent='불러오는 중…';try{const r=await fetch(u);const d=await r.json();toast(d.ok?`새 ${d.new}명 · 갱신 ${d.updated}명 · 앱 기준 유지 ${d.kept}명`:'못 불러왔어요: '+(d.reason||d.error))}catch(e){toast('시트 응답을 못 받았어요. 잠시 뒤 새로고침해 보세요')}await loadAll();break}
    case 'pickT':S.pickT=v;render();break;
    case 'assign':await call('wlp_assign',{p_case:C.id,p_trainer:S.pickT},()=>{C.status='응답 대기';C.trainer_id=S.pickT;C.assigned_at=new Date().toISOString();(C.events=C.events||[]).push({action:'배정',note:staffName(S.pickT),at:new Date().toISOString()})});S.pickT=null;render();break;
    case 'setMed':await call('wlp_set_med',{p_case:C.id,p_med:val('cmed')},()=>{C.med_memo=val('cmed')});break;
@@ -276,7 +319,8 @@ document.addEventListener('click',async e=>{
    case 'purge':{if(DEMO){toast('시험 모드');break}const r=await sb.rpc('wlp_purge_leads');if(r.error)toast(errText(r.error));else{toast(r.data+'건 정리했어요');loadAll()}break}
   }
 });
-document.addEventListener('change',async e=>{if(e.target.dataset.ch==='title'){const id=e.target.dataset.v,s=S.staff.find(x=>x.user_id===id);await call('wlp_set_staff',{p_user:id,p_active:s.active,p_title:e.target.value},()=>{s.title=e.target.value;s.role=e.target.value==='트레이너'?'trainer':'center';if(s.role==='trainer')s.is_owner=false})}});
+document.addEventListener('change',async e=>{if(e.target.dataset.ch==='cy'){S.ym={y:+e.target.value,m:+e.target.value===NOWY?NOWM:12};const ms=S.cases.filter(c=>c.reg_y===S.ym.y).map(c=>c.reg_m);if(ms.length&&!ms.includes(S.ym.m))S.ym.m=Math.max(...ms);S.selC=null;render();return}
+  if(e.target.dataset.ch==='title'){const id=e.target.dataset.v,s=S.staff.find(x=>x.user_id===id);await call('wlp_set_staff',{p_user:id,p_active:s.active,p_title:e.target.value},()=>{s.title=e.target.value;s.role=e.target.value==='트레이너'?'trainer':'center';if(s.role==='trainer')s.is_owner=false})}});
 render();boot();
 </script>
 </body>
