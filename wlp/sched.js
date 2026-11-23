@@ -70,18 +70,25 @@ function vTrSched() {
 }
 function schSheet(x) {
   const isNew = !x.id, sc = SC_(), m0 = Math.floor(x.start_min / 60) * 60;
-  const ots = (S.tr && S.tr.cases || []).filter(c => !['PT 등록', '거절', '연락 안 됨', '취소'].includes(c.status));
-  const names = [...new Set(((S.tr && S.tr.list) || []).map(m => m.name).concat(ots.map(c => c.name)).filter(Boolean))];
+  const otc = schOtCands(), ots = otc.slice(0, 4);
+  const names = [...new Set(((S.tr && S.tr.list) || []).map(m => m.name).concat(otc.map(c => c.name)).filter(Boolean))];
   const f = sc.form || (sc.form = { start: x.start_min, kind: x.kind || 'PT', name: x.member_name || '', ot: x.ot_id || null, memo: x.memo || '' });
   return `<div class="card warm" style="gap:8px"><div class="row" style="justify-content:space-between"><p class="h">${isNew ? '새 일정' : '일정'} · ${schHM(f.start)}</p><button class="link" data-a="schClose">닫기</button></div>
   <div class="row wrapx">${[m0, m0 + 30].map(m => `<button class="chip${f.start === m ? ' on' : ''}" data-a="schStart" data-v="${m}">${schHM(m)}</button>`).join('')}</div>
   <div class="row wrapx">${SCH_KIND.map(k => `<button class="chip${f.kind === k ? ' on' : ''}" data-a="schKind" data-v="${k}">${k}</button>`).join('')}</div>
-  ${/OT/.test(f.kind) && ots.length ? `<p class="sub">내 OT에서 고르기</p><div class="row wrapx">${ots.map(c => `<button class="chip${f.ot === c.id ? ' on' : ''}" data-a="schOt" data-v="${c.id}">${schEsc(c.name)} · ${c.status}</button>`).join('')}</div>` : ''}
+  ${/OT/.test(f.kind) && otc.length ? `<p class="sub">${f.kind === 'OT1' ? '첫 OT 기다리는 분' : 'OT1 끝난 분'} · 최근 2달</p><div class="row wrapx">${ots.map(c => `<button class="chip${f.ot === c.id ? ' on' : ''}" data-a="schOt" data-v="${c.id}">${schEsc(c.name)}${c.status === '조율 완료' ? ' · 조율됨' : ''}</button>`).join('')}</div>${otc.length > 4 ? `<p class="sub" style="font-size:11px">그 밖에 ${otc.length - 4}명은 아래 이름 칸에 치면 나와요.</p>` : ''}` : ''}
   <input id="schName" type="text" list="schNames" placeholder="회원 이름" value="${schEsc(f.name)}"><datalist id="schNames">${names.map(n => `<option value="${schEsc(n)}">`).join('')}</datalist>
   <input id="schMemo" type="text" placeholder="메모 (선택)" value="${schEsc(f.memo)}">
   ${isNew ? '' : `<div class="row wrapx">${['예정', '완료', '노쇼', '취소'].map(s => `<button class="chip${x.status === s ? ' on' : ''}" data-a="schStatus" data-v="${s}">${s}</button>`).join('')}</div>`}
   <div class="row"><button class="btn" style="flex:2" data-a="schSave">${isNew ? '넣기' : '고쳐 저장'}</button>${isNew ? '' : '<button class="btn ghost" style="flex:1;color:#B91C1C" data-a="schDel">지우기</button>'}</div>
   ${!isNew && x.ot_id ? '<p class="sub" style="font-size:11px">OT 연결: 완료를 누르면 OT 현황의 진행도 같이 바뀌어요.</p>' : ''}</div>`;
+}
+// OT1: 아직 첫 OT 전(응답 대기·연락 중·조율 완료) / OT2: OT1 끝난 분. 최근 2달 등록만, 조율된 분 먼저
+function schOtCands() {
+  const f = SC_().form || {}, now = new Date(Date.now() + 9 * 3600e3), cur = now.getUTCFullYear() * 12 + now.getUTCMonth() + 1;
+  const want = f.kind === 'OT2' ? ['OT1 완료'] : ['조율 완료', '연락 중', '응답 대기'];
+  return ((S.tr && S.tr.cases) || []).filter(c => want.includes(c.status) && (!c.reg_y || c.reg_y * 12 + c.reg_m >= cur - 1))
+    .sort((a, b) => want.indexOf(a.status) - want.indexOf(b.status) || (b.id - a.id));
 }
 function schShiftForm(s, center) {
   const opt = (sel, from, to, step, none) => (none ? `<option value=""${sel == null ? ' selected' : ''}>없음</option>` : '') + Array.from({ length: (to - from) / step + 1 }, (_, i) => from + i * step).map(m => `<option value="${m}"${sel === m ? ' selected' : ''}>${schHM(m)}</option>`).join('');
@@ -153,6 +160,7 @@ const SCH_A = {
   schSave: async () => {
     schKeep(); const sc = SC_(), f = sc.form;
     if (!f.name.trim() && ['PT', 'OT1', 'OT2'].includes(f.kind)) { schToast('회원 이름을 넣어 주세요'); return }
+    if (/OT/.test(f.kind) && !f.ot && f.name.trim()) { const m = schOtCands().filter(c => c.name === f.name.trim()); if (m.length === 1) f.ot = m[0].id }
     const row = { start_min: f.start, kind: f.kind, member_name: f.name.trim() || null, ot_id: /OT/.test(f.kind) ? f.ot : null, memo: f.memo.trim() || null };
     if (sc.add) { row.staff_id = schMe(); row.day = sc.day; await schWrite(row, null) } else await schWrite(Object.assign({ id: sc.open }, row), sc.items.find(i => i.id === sc.open));
   },
