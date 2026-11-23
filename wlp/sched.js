@@ -104,9 +104,12 @@ function vCenterSched() {
   sc.wasToday = sc.day === schToday();
   const today = sc.day === schToday(), now = schNowMin(), H = []; for (let h = SCH_H0; h <= SCH_H1; h++) H.push(h);
   const KF = { '전체': () => true, 'PT': x => x.kind === 'PT', 'OT': x => /OT/.test(x.kind), '상담·기타': x => !['PT', 'OT1', 'OT2'].includes(x.kind) };
-  const items = sc.items.filter(KF[sc.kf]), live = items.filter(x => x.status !== '취소');
-  const ids = new Set(sc.staff.map(s => s.user_id)); items.forEach(x => { if (!ids.has(x.staff_id)) { ids.add(x.staff_id); sc.staff.push({ user_id: x.staff_id, name: '(직원)' }) } });
-  const rows = sc.staff.filter(s => s.shift_from != null || items.some(x => x.staff_id === s.user_id) || sc.showAll).map(s => {
+  // 센터 관리자 계정(서버관리자 등)은 근무시간을 정하지 않았으면 한 장에서 뺌 (그 계정 일정도 숫자에서 뺌)
+  const hide = new Set(sc.staff.filter(s => s.role === 'center' && s.shift_from == null).map(s => s.user_id));
+  const staff = sc.staff.filter(s => !hide.has(s.user_id));
+  const items = sc.items.filter(x => !hide.has(x.staff_id)).filter(KF[sc.kf]), live = items.filter(x => x.status !== '취소');
+  const ids = new Set(sc.staff.map(s => s.user_id)); items.forEach(x => { if (!ids.has(x.staff_id)) { ids.add(x.staff_id); const s = { user_id: x.staff_id, name: '(직원)' }; sc.staff.push(s); staff.push(s) } });
+  const rows = staff.filter(s => s.shift_from != null || items.some(x => x.staff_id === s.user_id) || sc.showAll).map(s => {
     const mine = items.filter(x => x.staff_id === s.user_id);
     return `<tr><th class="nm"><button class="link" data-a="schShiftOf" data-v="${s.user_id}" style="text-align:left">${schEsc(s.name)}</button><span>${s.shift_from != null ? (s.shift_from < 720 ? '오전 ' : '오후 ') + schHM(s.shift_from).slice(0, 2) + '~' + schHM(s.shift_to).slice(0, 2) : '근무 미설정'}</span><span>${mine.filter(x => x.status !== '취소').length}건</span></th>${H.map(h => {
       const m0 = h * 60, on = s.shift_from != null && m0 >= s.shift_from && m0 < s.shift_to, brk = s.break_at === m0, here = mine.filter(x => x.start_min >= m0 && x.start_min < m0 + 60);
@@ -114,14 +117,14 @@ function vCenterSched() {
     }).join('')}</tr>`
   }).join('');
   const per = H.map(h => live.filter(x => x.start_min >= h * 60 && x.start_min < h * 60 + 60).length), mx = Math.max(0, ...per);
-  const on = sc.staff.filter(s => s.shift_from != null), none = on.filter(s => !sc.items.some(x => x.staff_id === s.user_id));
+  const on = staff.filter(s => s.shift_from != null), none = on.filter(s => !sc.items.some(x => x.staff_id === s.user_id));
   const cnt = k => items.filter(x => x.status === k).length;
   const shiftOf = sc.shiftOf && sc.staff.find(s => s.user_id === sc.shiftOf);
   return `<div class="schbar noprint"><button class="ch" data-a="schDay" data-v="-1">◀</button><b style="font-size:16px;min-width:150px;text-align:center">${schLabel(sc.day)}</b><button class="ch" data-a="schDay" data-v="1">▶</button>
     ${today ? '<span class="sub">오늘</span>' : '<button class="ch" data-a="schToday">오늘로</button>'}<input type="date" data-ch="schDate" value="${sc.day}" style="width:auto;min-height:36px">
     <span style="flex:1"></span>${Object.keys(KF).map(k => `<button class="ch${sc.kf === k ? ' on' : ''}" data-a="schKf" data-v="${k}">${k}</button>`).join('')}
     <button class="ch" data-a="schRefresh">새로고침</button><button class="btn" data-a="schPrint">인쇄 (A4 가로)</button></div>
-  <div class="kk noprint" style="grid-template-columns:repeat(6,minmax(0,1fr))">${[['수업', live.length, ''], ['완료', cnt('완료'), 'color:#1F6F5C'], ['노쇼', cnt('노쇼'), 'color:#B91C1C'], ['취소', cnt('취소'), 'color:#6B6155'],
+  <div class="kk schk noprint">${[['수업', live.length, ''], ['완료', cnt('완료'), 'color:#1F6F5C'], ['노쇼', cnt('노쇼'), 'color:#B91C1C'], ['취소', cnt('취소'), 'color:#6B6155'],
     ['가장 붐비는 시간', mx ? H.filter((h, i) => per[i] === mx).map(h => h + '시').join('·') + ' · ' + mx + '건' : '-', 'font-size:15px'], ['스케줄 안 쓴 선생님', none.length ? none.map(s => s.name).join(', ') : '없음', 'font-size:13px;' + (none.length ? 'color:#B45309' : '')]]
     .map(k => `<div class="kb"><b style="${k[2]}">${schEsc(k[1])}</b><span>${k[0]}</span></div>`).join('')}</div>
   ${shiftOf ? `<div class="noprint">${schShiftForm(shiftOf, true)}</div>` : ''}
