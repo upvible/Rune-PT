@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="./config.js"></script>
 <script src="./rec.js"></script>
+<script src="./sched.js"></script>
 <style>
 :root{--dk:#1C1712;--dk2:#25201A;--dk3:#3A2F23;--ln:#4A3F34;--dt:#F5EFE6;--dm:#B9AE9F;--dm2:#8F8476;--am:#F0B85C;
 --bg:#FBF8F3;--pn:#fff;--bd:#EDE6DA;--tx:#1F1A14;--mu:#6B6155;--ac:#B45309;--acs:#FDECC8;--ac2:#7C3D06;--bad:#B91C1C;--ok:#1F6F5C;--tr:#2B241D}
@@ -58,6 +59,13 @@ label.l{font-size:12px;color:var(--mu);font-weight:700}
 .demo{background:#2B241D;color:#F0B85C;font-size:11px;padding:6px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .demo button{min-height:28px;border-radius:8px;border:1px solid #5A4E42;background:transparent;color:#E8E1D6;font-size:11px;padding:0 8px}
 .demo button.on{background:#F0B85C;color:#2B241D;border-color:#F0B85C;font-weight:800}
+/* 일일 스케줄 */
+.schr{display:grid;grid-template-columns:44px minmax(0,1fr);gap:6px;align-items:center;padding:6px 2px;border-bottom:1px solid #F3EEE6}
+.schr.now{background:#FFF7E8;border-radius:8px}.schr.now .scht{color:var(--ac);font-weight:900}
+.scht{font-size:12px;color:var(--mu)}.schc{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.schi{min-height:36px;border-radius:10px;border:1px solid #E3D9CA;background:#fff;font-size:13px;padding:0 10px;text-align:left}
+.schi.완료{background:#DCFCE7;border-color:#BBF7D0}.schi.노쇼{background:#FDECEC;border-color:#F5C2C2;color:#B91C1C}.schi.취소{text-decoration:line-through;color:#9CA3AF}
+.schadd{min-height:36px;min-width:36px;border-radius:10px;border:1px dashed #D8CCBA;background:none;color:var(--mu);font-size:16px;margin-left:auto}
 /* 운동 기록 */
 .srow{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,1fr) 44px 44px;gap:6px;align-items:center}
 .srow.hd{font-size:10px;color:var(--mu);text-align:center}
@@ -479,7 +487,7 @@ async function loadDetail(id){
 function vTrainer(){
   const t=S.tr;
   const head=`<div class="tbar"><div class="row" style="justify-content:space-between"><b style="font-size:15px">WLP 관리 · ${esc(S.staffName||'')} ${esc(S.title||'')}</b><button class="link" style="color:#E8E1D6" data-a="toMap">여정 지도 ▸</button></div>
-  <div class="tabs"><button class="tab${t.tab==='ot'?' on':''}" data-a="trTab" data-v="ot">OT 배정${S.newCases?' '+S.newCases:''}</button><button class="tab${t.tab==='members'?' on':''}" data-a="trTab" data-v="members">회원</button><button class="tab${t.tab==='codes'?' on':''}" data-a="trTab" data-v="codes">가입 코드</button></div></div>`;
+  <div class="tabs"><button class="tab${t.tab==='ot'?' on':''}" data-a="trTab" data-v="ot">OT 배정${S.newCases?' '+S.newCases:''}</button><button class="tab${t.tab==='members'?' on':''}" data-a="trTab" data-v="members">회원</button><button class="tab${t.tab==='sched'?' on':''}" data-a="trTab" data-v="sched">스케줄</button><button class="tab${t.tab==='codes'?' on':''}" data-a="trTab" data-v="codes">가입 코드</button></div></div>`;
   const links=`<div class="row"><a class="btn" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--ok)" href="./ot.html">OT 판정 · 코드 발급</a><a class="btn ghost" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="${S.role==='center'?'./center.html':(LEGACY?RUNE:'./center.html')}">${S.role==='center'?'센터 화면':(LEGACY?'룬 PT 기록 앱':'센터 화면')}</a></div>`;
   if(t.err)return head+`<div class="wrap"><div class="card"><p class="sub">${esc(t.err)}</p></div>${links}</div>`;
   if(!t.list)return head+`<div class="wrap"><p class="sub">불러오는 중…</p></div>`;
@@ -489,6 +497,7 @@ function vTrainer(){
       return `<div class="fb"><span><b>${esc(x.code)}</b> · ${esc(x.name||'')} · ${x.kind==='staff'?'직원':'여정 '+x.start_stage}</span><span class="row" style="gap:6px"><span class="sub">${st}</span>${!x.used_at&&!x.canceled_at?`<button class="btn ghost sm" data-a="cancelCode" data-v="${esc(x.code)}">취소</button>`:''}</span></div>`}).join(''):'<p class="sub">아직 없어요. OT 판정 화면에서 발급해요.</p>'}</div></div>`;
   }
   if(t.tab==='ot')return head+vTrOt();
+  if(t.tab==='sched')return head+vTrSched();
   if(t.sel)return head+vTrDetail();
   const q=t.q.trim();
   const list=t.list.filter(x=>!q||(x.name||'').includes(q));
@@ -673,6 +682,7 @@ document.addEventListener('click',async e=>{
   };
   if(A[a]){e.preventDefault();await A[a]()}
   else if(typeof RA!=='undefined'&&RA[a]){e.preventDefault();await RA[a](b,v)}
+  else if(typeof SCH_A!=='undefined'&&SCH_A[a]){e.preventDefault();await SCH_A[a](b,v)}
 });
 if(!DEMO)window.addEventListener('load',()=>{try{sb&&sb.auth.onAuthStateChange((ev,s)=>{if(ev==='SIGNED_IN'&&s&&!S.uid){S.uid=s.user.id;loadMe()}})}catch(e){}});
 render();boot();
