@@ -1,0 +1,14 @@
+{
+  "name": "WLP · Workout Life Program",
+  "short_name": "WLP",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "minimal-ui",
+  "background_color": "#2B241D",
+  "theme_color": "#2B241D",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
