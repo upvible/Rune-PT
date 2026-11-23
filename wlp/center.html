@@ -205,7 +205,7 @@ function render(){
   if(S.scr==='deny'){app.innerHTML=`<div class="center"><p class="h">센터 관리자(점장·부점장) 계정이 아니에요</p><p class="sub"><a href="./index.html">WLP 앱</a>에서 '직원 승인 요청'을 보내고 총관리자 승인을 기다려 주세요. 트레이너는 WLP 앱의 M에서 일해요.</p><button class="btn g" data-a="logout">로그아웃</button></div>`;return}
   if(S.scr==='bootstrap'){app.innerHTML=`<div class="center"><p class="h">첫 총관리자 등록</p><p class="sub">아직 총관리자가 없어요. 지금 로그인한 계정을 첫 총관리자로 등록해요(한 번만). 점장님·부점장님은 그다음에 WLP 앱에서 직원 승인 요청을 보내면, 승인할 때 총관리자 권한이 함께 붙어요.</p><input id="bn" type="text" placeholder="이름"><input id="bt" type="text" placeholder="직책 (예: 총괄 관리자)" value="총괄 관리자"><button class="btn" data-a="bootstrap">이 계정을 총관리자로 등록</button></div>`;return}
   const tabs=`<div class="tabs">${[['leads','잠재회원'],['cases','OT 현황'],['sched','일일 스케줄'],['staff','직원 승인'+(S.reqs.filter(r=>r.status==='대기').length?' '+S.reqs.filter(r=>r.status==='대기').length:'')]].map(([k,l])=>`<button class="tab${S.tab===k?' on':''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
-  app.innerHTML=d+`<div class="top"><b>WLP</b><span style="font-size:12px;color:#B9AE9F">${esc(S.me&&S.me.title||'센터 관리자')} · ${esc(S.me&&S.me.staff_name)}${S.me&&S.me.is_owner?' · 총관리자':''}</span><span class="sp"></span>${tabs}<a href="./survey.html?mode=tablet" style="color:#F0B85C;font-size:12px">태블릿 설문</a><a href="./index.html" style="color:#F0B85C;font-size:12px">WLP 앱</a></div><div class="wrap">${S.tab==='leads'?vLeads():S.tab==='cases'?vCases():S.tab==='sched'?vCenterSched():vStaff()}</div>`;
+  app.innerHTML=d+`<div class="top"><b>WLP</b><span style="font-size:12px;color:#B9AE9F">${esc(S.me&&S.me.title||'센터 관리자')} · ${esc(S.me&&S.me.staff_name)}${S.me&&S.me.is_owner?' · 총관리자':''}</span><span class="sp"></span>${tabs}<a href="./survey.html?mode=tablet" style="color:#F0B85C;font-size:12px">태블릿 설문</a><a href="./index.html" style="color:#F0B85C;font-size:12px">WLP 앱</a><button data-a="logout" style="background:none;border:0;color:#B9AE9F;font-size:12px;text-decoration:underline;cursor:pointer">로그아웃</button></div><div class="wrap">${S.tab==='leads'?vLeads():S.tab==='cases'?vCases():S.tab==='sched'?vCenterSched():vStaff()}</div>`;
 }
 function vLeads(){
   const now=kst(Date.now()).slice(0,7),m=S.leads.filter(l=>kst(l.created_at).slice(0,7)===now),reg=m.filter(l=>l.status==='등록').length;
@@ -303,8 +303,8 @@ document.addEventListener('click',async e=>{
   const L=S.leads.find(x=>x.id===S.selL),C=S.cases.find(x=>x.id===S.selC);
   if(typeof SCH_A!=='undefined'&&SCH_A[a]){await SCH_A[a](b,v);return}
   switch(a){
-   case 'login':sb.auth.signInWithOAuth({provider:v,options:{redirectTo:BASE+'center.html'}});break;
-   case 'logout':await sb.auth.signOut();location.reload();break;
+   case 'login':sb.auth.signInWithOAuth({provider:v,options:{redirectTo:BASE+'center.html',queryParams:v==='kakao'?{prompt:'login'}:{prompt:'select_account'}}});break;
+   case 'logout':try{await sb.auth.signOut({scope:'local'})}catch(e){}try{localStorage.removeItem('wlp-auth')}catch(e){}location.reload();break;
    case 'bootstrap':{const r=await sb.rpc('wlp_bootstrap_center',{p_name:val('bn'),p_title:val('bt')||'총괄 관리자'});if(r.error)toast(errText(r.error));else if(r.data==='ok')location.reload();else toast('이미 센터 관리자가 있어요');break}
    case 'tab':S.tab=v;render();break;
    case 'lf':S.lf=v;render();break;
