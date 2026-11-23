@@ -168,7 +168,7 @@ async function loadAll(){
   const [l,c,s,k,q]=await Promise.all([sb.from('wlp_leads').select('*').order('created_at',{ascending:false}).limit(500),sb.rpc('wlp_cases'),sb.rpc('wlp_staff_list'),sb.rpc('wlp_my_codes'),sb.rpc('wlp_staff_requests_list')]);
   if(l.error){toast(errText(l.error));return}
   S.leads=l.data||[];S.cases=c.data||[];try{const g=await sb.from('wlp_settings').select('value').eq('key','sheet_last_sync').maybeSingle();S.sync=(g.data&&g.data.value)||''}catch(e){}
-  S.staff=s.data||[];S.codes=k.data||[];S.reqs=q.error?[]:(q.data||[]);render();
+  S.staff=s.data||[];S.codes=k.data||[];S.reqs=q.error?[]:(q.data||[]);try{const d=await sb.rpc('wlp_cases_deleted');S.deleted=d.error?[]:(d.data||[])}catch(e){S.deleted=[]}render();
 }
 async function loadEvents(id){if(DEMO){S.ev[id]=S.ev[id]||[{action:'설문 제출',created_at:new Date().toISOString()}];render();return}
   const r=await sb.from('wlp_lead_events').select('*').eq('lead_id',id).order('created_at');S.ev[id]=r.data||[];render()}
@@ -239,10 +239,13 @@ function vCases(){
     <div class="trs">${trainers.map(tr=>{const ex=(C.returned_by||[]).includes(tr.user_id),load=S.cases.filter(x=>x.trainer_id===tr.user_id&&['응답 대기','연락 중'].includes(x.status)).length;
       return `<button class="tr${ex||!can?' no':S.pickT===tr.user_id?' on':''}" data-a="${ex||!can?'noop':'pickT'}" data-v="${tr.user_id}"><b>${esc(tr.name)}${ex?' (반송)':''}</b><span class="sub">진행 ${load}건</span></button>`}).join('')||'<p class="sub">직원 승인 탭에서 트레이너를 먼저 승인해 주세요.</p>'}</div>
     <button class="btn" data-a="assign" ${can&&S.pickT?'':'disabled'}>배정 + 스케줄 조율 요청 보내기</button><p class="sub">트레이너가 WLP 앱(M)에 들어가면 알림이 떠요.</p></div>
-    <div class="card"><p class="h">기록</p>${(C.events||[]).map(e=>`<p class="sub">${md(e.at)} · ${esc(e.action)}${e.note?' · '+esc(e.note):''}</p>`).join('')||'<p class="sub">-</p>'}</div>`}
-  const sheet=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><p class="h">구글 시트 (2026 오티 리스트)</p><p class="sub">${esc(S.sync?'마지막 불러오기 '+S.sync:'아직 불러온 적 없어요')}</p></div>
-    <div style="display:flex;gap:6px">${S.me&&S.me.is_owner?'<button class="btn g" data-a="sheetKey">연결 키 만들기</button>':''}<button class="btn" data-a="sheetSync">시트에서 새로 불러오기</button></div></div>
-    ${S.sheetKey?`<div class="msg">${esc(S.sheetKey)}</div><p class="sub">이 키는 지금 한 번만 보여요. 시트 [WLP] → [연결 키 넣기]에 붙여 넣어 주세요. 새로 만들면 이전 키는 못 써요.</p>`:''}</div>`;
+    <div class="card"><p class="h">기록</p><button class="btn g" style="align-self:flex-start;color:#B91C1C" data-a="delCase">이 OT 삭제</button>${(C.events||[]).map(e=>`<p class="sub">${md(e.at)} · ${esc(e.action)}${e.note?' · '+esc(e.note):''}</p>`).join('')||'<p class="sub">-</p>'}</div>`}
+  const dl=(S.deleted||[]).filter(d=>d.reg_y===Y&&d.reg_m===M);
+  const delCard=dl.length?`<div class="card"><button class="link" style="align-self:flex-start;background:none;border:0;color:#6B6155;font-size:13px;padding:0" data-a="showDel">${S.showDel?'▾':'▸'} 이 달 삭제한 항목 ${dl.length}명</button>${S.showDel?dl.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-top:1px solid #F3EEE6"><span>${esc(d.name)} · ${esc(d.trainer_name||'')} · 삭제 전 ${esc(d.del_prev||'')} · ${md(d.deleted_at)}</span><button class="btn g" style="min-height:32px" data-a="restoreCase" data-v="${d.id}">복구</button></div>`).join(''):''}</div>`:'';
+  const sheet=delCard+`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><p class="h">구글 시트 (2026 오티 리스트)</p><p class="sub">${esc(S.sync?'마지막 불러오기 '+S.sync:'아직 불러온 적 없어요')}</p></div>
+    <div style="display:flex;gap:6px">${S.me&&S.me.is_owner?'<button class="btn g" data-a="sheetKey">연결 키 만들기</button>':''}<button class="btn" data-a="sheetSync">지금 시트와 맞추기</button></div></div>
+    <p class="sub">앱에서 바꾼 배정·진행, 앱에서 등록한 새 회원, 삭제 표시는 시트에 먼저 쓰고, 그다음 시트에서 고친 내용을 가져와요. 둘 다 바뀌었으면 앱이 기준이에요. 시트 행은 지우지 않아요.</p>
+    ${S.sheetKey?`<div style="display:flex;gap:6px;align-items:center"><div class="msg" style="flex:1;font-family:monospace;user-select:all">${esc(S.sheetKey)}</div><button class="btn" data-a="copyKey">복사</button></div><p class="sub">이 키는 지금 한 번만 보여요. 시트 [WLP] → [연결 키 넣기]에 붙여 넣어 주세요. 새로 만들면 이전 키는 못 써요.</p>`:''}</div>`;
   return `<div class="ym"><select data-ch="cy">${ys.map(y=>`<option value="${y}"${y===Y?' selected':''}>${y}년</option>`).join('')}</select>${mon}<span style="flex:1"></span>${Y===NOWY&&M===NOWM?'':`<button class="ch" data-a="cnow">이번 달로</button>`}</div>
   <div class="kk">${K.map(k=>`<button class="kb${S.cf===k[0]?' on':''}" data-a="cf" data-v="${k[0]}"><b style="${k[3]}">${k[2]}</b><span>${k[1]}</span></button>`).join('')}</div>
   <div class="chips"><span class="sub" style="align-self:center">담당</span>${['전체','미배정'].concat(tnames).map(n=>`<button class="ch${S.ctr===n?' on':''}" data-a="ctr" data-v="${esc(n)}">${esc(n)}</button>`).join('')}<span class="sub" style="margin-left:auto;align-self:center">${list.length}명</span></div>
@@ -253,12 +256,13 @@ function vStaff(){
   const reqRow=r=>{const can=r.want_role!=='center'||own;const adm=r.want_role==='center';return `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.title)}</td><td>${esc(r.phone||'')}</td><td>${md(r.created_at)}</td><td>${can?`<button class="btn" style="min-height:34px" data-a="approve" data-v="${r.id}">승인</button> <button class="btn g" style="min-height:34px" data-a="reject" data-v="${r.id}">거절</button>`:'<span class="sub">총관리자만 승인</span>'}${adm&&can?'<br><span class="sub">승인하면 총관리자 권한도 함께</span>':''}</td></tr>`};
   const staffRow=s=>{const me=S.me&&S.me.uid===s.user_id,lock=(s.role==='center'||s.is_owner)&&!own;
     return `<tr style="${s.active?'':'opacity:.5'}"><td><b>${esc(s.name)}</b>${s.is_owner?' <span class="st" style="background:#2B241D;color:#F0B85C">총관리자</span>':''}</td>
-    <td>${lock||me||s.title==='총괄 관리자'?esc(s.title||''):`<select data-ch="title" data-v="${s.user_id}" style="min-height:34px;padding:2px 8px">${['트레이너'].concat(own?['부점장','점장']:[]).map(x=>`<option${x===s.title?' selected':''}>${x}</option>`).join('')}</select>`}</td><td>${esc(s.phone||'')}</td><td>${s.active?'사용 중':'중지'}</td>
+    <td>${lock||me||s.title==='총괄 관리자'?esc(s.title||''):`<select data-ch="title" data-v="${s.user_id}" style="min-height:34px;padding:2px 8px">${['트레이너'].concat(own?['부점장','점장']:[]).map(x=>`<option${x===s.title?' selected':''}>${x}</option>`).join('')}</select>`}</td><td>${esc(s.phone||'')}</td><td><div style="display:flex;gap:4px"><input type="text" id="sn_${s.user_id}" value="${esc(s.sheet_name||'')}" placeholder="예: 성경" style="min-height:34px;max-width:110px;padding:4px 8px"><button class="btn g" style="min-height:34px" data-a="setSheetName" data-v="${s.user_id}">저장</button></div></td><td>${s.active?'사용 중':'중지'}</td>
     <td>${lock||me?(me?'<span class="sub">내 계정</span>':''):`<button class="btn g" style="min-height:34px" data-a="toggleStaff" data-v="${s.user_id}">${s.active?'사용 중지':'다시 사용'}</button>`}${own&&!me&&s.role==='center'&&s.active?` <button class="btn g" style="min-height:34px" data-a="toggleAdmin" data-v="${s.user_id}">${s.is_owner?'총관리자 빼기':'총관리자 주기'}</button>`:''}</td></tr>`};
   return `<div class="two"><div class="main">
   <div class="card" style="border:1.5px solid #B45309"><p class="h">승인 대기 ${pend.length}명</p><p class="sub">직원이 WLP 앱에서 카카오 로그인 → '직원 승인 요청'을 보내면 여기에 떠요. 트레이너는 센터 관리자 누구나, 점장·부점장은 총관리자만 승인해요.</p>
   ${pend.length?`<table><tr><th>이름</th><th>직책</th><th>연락처</th><th>요청일</th><th></th></tr>${pend.map(reqRow).join('')}</table>`:'<p class="sub">대기 중인 요청이 없어요.</p>'}</div>
-  <div class="card"><p class="h">직원 ${S.staff.filter(s=>s.active).length}명</p><table><tr><th>이름</th><th>직책</th><th>연락처</th><th>상태</th><th></th></tr>${S.staff.map(staffRow).join('')}</table>
+  <div class="card"><p class="h">직원 ${S.staff.filter(s=>s.active).length}명</p><table><tr><th>이름</th><th>직책</th><th>연락처</th><th>시트 이름</th><th>상태</th><th></th></tr>${S.staff.map(staffRow).join('')}</table>
+  <p class="sub"><b>시트 이름</b>: 2026 오티 리스트의 '담당' 칸에 적는 이름이에요(예: 위성경 → 성경). 저장하면 시트에서 그 이름으로 들어온 OT가 이 계정에 바로 연결돼요. 시트에 다시 쓸 때도 이 이름으로 써요.</p>
   <p class="sub">사용 중지하면 그 계정은 바로 직원 기능을 못 써요(기록은 남아요). 총관리자는 여러 명 둘 수 있고, 마지막 한 명은 빼거나 중지할 수 없어요. 내 계정은 스스로 중지할 수 없어요.</p></div>
   ${done.length?`<div class="card"><p class="h">처리한 요청</p>${done.map(r=>`<p class="sub">${md(r.decided_at||r.created_at)} · ${esc(r.name)} ${esc(r.title)} · ${r.status}${r.note?' · '+esc(r.note):''}</p>`).join('')}</div>`:''}
   <div class="card"><p class="h">발급한 코드</p><table><tr><th>코드</th><th>종류</th><th>이름</th><th>상태</th><th></th></tr>${S.codes.map(c=>{const st=c.canceled_at?'취소됨':c.used_at?'사용됨 '+md(c.used_at):new Date(c.expires_at)<new Date()?'만료됨':'대기 · '+md(c.expires_at)+'까지';
@@ -298,9 +302,17 @@ document.addEventListener('click',async e=>{
    case 'ctr':S.ctr=v;render();break;
    case 'toCase':{const c=S.cases.find(x=>x.lead_id===+v);S.tab='cases';if(c){S.ym={y:c.reg_y||NOWY,m:c.reg_m||NOWM};S.selC=c.id}S.cf='전체';S.ctr='전체';render();break}
    case 'prog':{const d=val('pdate').trim();await call('wlp_set_progress',{p_case:C.id,p_status:v,p_date:d||null},()=>{C.status=v;if(d){if(v==='OT1 완료'||v==='조율 완료')C.ot1_at=d;if(v==='OT2 완료')C.ot2_at=d;if(v==='PT 등록')C.pt_at=d}(C.events=C.events||[]).push({action:v,note:d,at:new Date().toISOString()})});break}
+   case 'setSheetName':{const nm=val('sn_'+v).trim();if(DEMO){const s=S.staff.find(x=>x.user_id===v);s.sheet_name=nm;toast('시험 모드: 화면에만 반영');render();break}
+     const r=await sb.rpc('wlp_set_sheet_name',{p_staff:v,p_name:nm});if(r.error||(r.data&&r.data.ok===false)){toast(r.error?errText(r.error):'저장하지 못했어요');break}toast(nm?`저장했어요 · OT ${r.data.linked}건을 이 계정에 연결했어요`:'시트 이름을 지웠어요');await loadAll();break}
+   case 'delCase':{if(!confirm(C.name+'님 OT를 삭제할까요? 시트 행은 그대로 두고 WLP 진행 칸에 "삭제됨"으로 표시해요. 아래 "삭제한 항목"에서 복구할 수 있어요.'))break;
+     if(DEMO){(S.deleted=S.deleted||[]).unshift({id:C.id,name:C.name,reg_y:C.reg_y,reg_m:C.reg_m,del_prev:C.status,deleted_at:new Date().toISOString(),trainer_name:C.trainer_name});S.cases=S.cases.filter(x=>x.id!==C.id);S.selC=null;render();break}
+     const r=await sb.rpc('wlp_case_delete',{p_case:C.id});if(r.error){toast(errText(r.error));break}S.selC=null;toast('삭제했어요');await loadAll();break}
+   case 'restoreCase':{if(DEMO){toast('시험 모드에서는 복구를 보여 주지 않아요');break}const r=await sb.rpc('wlp_case_restore',{p_case:+v});if(r.error){toast(errText(r.error));break}toast('복구했어요');await loadAll();break}
+   case 'showDel':S.showDel=!S.showDel;render();break;
+   case 'copyKey':try{await navigator.clipboard.writeText(S.sheetKey);toast('복사했어요. 시트 WLP 메뉴 → 연결 키 넣기에 붙여 넣어 주세요')}catch(e){toast('복사가 안 되면 키 글자를 눌러 전체 선택 후 복사해 주세요')}break;
    case 'sheetKey':{if(!confirm('새 연결 키를 만들까요? 시트에 넣어 둔 이전 키는 못 쓰게 돼요.'))break;if(DEMO){S.sheetKey='demo-key-1234';render();break}const r=await sb.rpc('wlp_new_sheet_key');if(r.error){toast(errText(r.error));break}S.sheetKey=r.data;render();break}
    case 'sheetSync':{const u=CFG.SHEET_SYNC_URL;if(DEMO){toast('시험 모드: 시트는 실제 서버에서만 불러와요');break}if(!u){toast('config.js 에 SHEET_SYNC_URL(시트 Apps Script 웹 앱 주소)을 넣어 주세요');break}
-     b.disabled=true;b.textContent='불러오는 중…';try{const r=await fetch(u);const d=await r.json();toast(d.ok?`새 ${d.new}명 · 갱신 ${d.updated}명 · 앱 기준 유지 ${d.kept}명`:'못 불러왔어요: '+(d.reason||d.error))}catch(e){toast('시트 응답을 못 받았어요. 잠시 뒤 새로고침해 보세요')}await loadAll();break}
+     b.disabled=true;b.textContent='불러오는 중…';try{const r=await fetch(u);const d=await r.json();toast(d.ok?`앱→시트 ${d.wrote}줄 고침 · ${d.added}줄 추가 / 시트→앱 새 ${d.new} · 갱신 ${d.updated}`:'못 불러왔어요: '+(d.reason||d.error))}catch(e){toast('시트 응답을 못 받았어요. 잠시 뒤 새로고침해 보세요')}await loadAll();break}
    case 'pickT':S.pickT=v;render();break;
    case 'assign':await call('wlp_assign',{p_case:C.id,p_trainer:S.pickT},()=>{C.status='응답 대기';C.trainer_id=S.pickT;C.assigned_at=new Date().toISOString();(C.events=C.events||[]).push({action:'배정',note:staffName(S.pickT),at:new Date().toISOString()})});S.pickT=null;render();break;
    case 'setMed':await call('wlp_set_med',{p_case:C.id,p_med:val('cmed')},()=>{C.med_memo=val('cmed')});break;
