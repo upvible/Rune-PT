@@ -488,13 +488,13 @@ function vTrainer(){
   const t=S.tr;
   const head=`<div class="tbar"><div class="row" style="justify-content:space-between"><b style="font-size:15px">WLP 관리 · ${esc(S.staffName||'')} ${esc(S.title||'')}</b><span class="row" style="gap:12px"><button class="link" style="color:#E8E1D6" data-a="toMap">여정 지도 ▸</button><button class="link" style="color:#B9AE9F" data-a="logout">로그아웃</button></span></div>
   <div class="tabs"><button class="tab${t.tab==='ot'?' on':''}" data-a="trTab" data-v="ot">OT 배정${S.newCases?' '+S.newCases:''}</button><button class="tab${t.tab==='members'?' on':''}" data-a="trTab" data-v="members">회원</button><button class="tab${t.tab==='sched'?' on':''}" data-a="trTab" data-v="sched">스케줄</button><button class="tab${t.tab==='codes'?' on':''}" data-a="trTab" data-v="codes">가입 코드</button></div></div>`;
-  const links=`<div class="row"><a class="btn" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--ok)" href="./ot.html">OT 판정 · 코드 발급</a><a class="btn ghost" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="${S.role==='center'?'./center.html':(LEGACY?RUNE:'./center.html')}">${S.role==='center'?'센터 화면':(LEGACY?'룬 PT 기록 앱':'센터 화면')}</a></div>`;
+  const links=`<div class="row"><a class="btn" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--ok)" href="./pre.html">OT 마법사 · 가입 코드</a><a class="btn ghost" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="${S.role==='center'?'./center.html':(LEGACY?RUNE:'./center.html')}">${S.role==='center'?'센터 화면':(LEGACY?'룬 PT 기록 앱':'센터 화면')}</a></div>`;
   if(t.err)return head+`<div class="wrap"><div class="card"><p class="sub">${esc(t.err)}</p></div>${links}</div>`;
   if(!t.list)return head+`<div class="wrap"><p class="sub">불러오는 중…</p></div>`;
   if(t.tab==='codes'){
     const inv=t.invites||[];
     return head+`<div class="wrap">${links}<div class="card"><p class="h">내가 발급한 코드</p>${inv.length?inv.map(x=>{const st=x.canceled_at?'취소됨':x.used_at?'사용됨 '+x.used_at.slice(5,10).replace('-','/'):new Date(x.expires_at)<new Date()?'만료됨':'대기 · '+x.expires_at.slice(5,10).replace('-','/')+'까지';
-      return `<div class="fb"><span><b>${esc(x.code)}</b> · ${esc(x.name||'')} · ${x.kind==='staff'?'직원':'여정 '+x.start_stage}</span><span class="row" style="gap:6px"><span class="sub">${st}</span>${!x.used_at&&!x.canceled_at?`<button class="btn ghost sm" data-a="cancelCode" data-v="${esc(x.code)}">취소</button>`:''}</span></div>`}).join(''):'<p class="sub">아직 없어요. OT 판정 화면에서 발급해요.</p>'}</div></div>`;
+      return `<div class="fb"><span><b>${esc(x.code)}</b> · ${esc(x.name||'')} · ${x.kind==='staff'?'직원':'여정 '+x.start_stage}</span><span class="row" style="gap:6px"><span class="sub">${st}</span>${!x.used_at&&!x.canceled_at?`<button class="btn ghost sm" data-a="cancelCode" data-v="${esc(x.code)}">취소</button>`:''}</span></div>`}).join(''):'<p class="sub">아직 없어요. OT 마법사에서 발급해요.</p>'}</div></div>`;
   }
   if(t.tab==='ot')return head+vTrOt();
   if(t.tab==='sched')return head+vTrSched();
@@ -530,7 +530,7 @@ function vTrOt(){
   <p class="sub"><b style="color:var(--tx)">방향</b> ${esc((a.dir||[]).join(' · ')||'-')} · <b style="color:var(--tx)">망설임</b> ${esc((a.hard||[]).join(' · ')||'-')}</p>
   ${c.med_memo?`<p class="sub" style="color:var(--bad)"><b>의학 메모</b> ${esc(c.med_memo)}</p>`:''}
   <p class="sub"><b style="color:var(--tx)">등록 대화</b> ${esc(tp.reg||'-')}</p><p class="sub"><b style="color:var(--tx)">주의</b> ${esc(tp.warn||'-')}</p></div>
-  ${c.status==='조율 완료'?`<div class="card"><p class="h">조율 완료 · ${esc(c.first_ot_at||'')}</p><p class="sub">OT 때 판정 도구로 다시 판정하고, 결과 화면에서 가입 코드를 발급해요.</p><a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--ok)" href="./ot.html?case=${c.id}&name=${encodeURIComponent(c.name)}">OT 판정 · 가입 코드 발급</a></div>`:''}
+  ${c.status==='조율 완료'?`<div class="card"><p class="h">조율 완료 · ${esc(c.first_ot_at||'')}</p><p class="sub">OT 때 OT 마법사(사전 설문 17문항)를 돌리고, 결과 화면에서 바로 가입 코드를 발급해요.</p><a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--ok)" href="./pre.html?case=${c.id}&name=${encodeURIComponent(c.name)}">OT 마법사 실행</a></div>`:''}
   <div class="card"><p class="h">진행 기록</p><p class="sub">OT1 ${esc(c.ot1_at||c.first_ot_at||'—')} · OT2 ${esc(c.ot2_at||'—')} · PT ${esc(c.pt_at||'—')}</p>
   <input id="trPd" type="text" placeholder="날짜 (예: 11/26)"><div class="row wrapx">${['OT1 완료','OT2 완료','PT 등록','연락 안 됨','거절'].map(s=>`<button class="chip${c.status===s?' on':''}" data-a="trProg" data-v="${s}">${s}</button>`).join('')}</div></div>
   ${['응답 대기','연락 중','조율 완료'].includes(c.status)?'':'<!--'}
@@ -582,7 +582,7 @@ function vTrDetail(){
   const row=k=>`<div class="n6">${STEPS.map(v=>`<button class="n${u[k]===v?(k==='vas'&&v>=4?' red':' on'):''}" data-a="trUi" data-k="${k}" data-v="${v}">${v}</button>`).join('')}</div>`;
   const z=zoneOf(u.pd,u.se,u.vas||0);
   const ot=d.ot;
-  const otTxt=ot?`<div class="row wrapx" style="gap:6px"><div class="pill"><b>3축 유형</b>${esc(ot.type_name||'-')}</div><div class="pill"><b>마음 상태</b>${esc((ot.result&&ot.result.zone)||'-')}</div><div class="pill"><b>변화 단계</b>${esc((ot.result&&ot.result.stageName)||'-')}</div><div class="pill"><b>판정 시작</b>여정 ${esc(ot.start_stage)}</div></div>${ot.result&&ot.result.memo&&ot.result.memo.med?`<p class="sub" style="color:var(--bad)">의학적 특이사항: ${esc(ot.result.memo.med)}</p>`:''}`:'<p class="sub">OT 판정 기록이 없어요 (코드 없이 지정된 회원).</p>';
+  const otTxt=ot?`<div class="row wrapx" style="gap:6px"><div class="pill"><b>판정 유형</b>${esc(ot.type_name||'-')}</div><div class="pill"><b>마음 상태</b>${esc((ot.result&&ot.result.zone)||'-')}</div><div class="pill"><b>변화 단계</b>${esc((ot.result&&ot.result.stageName)||'-')}</div><div class="pill"><b>판정 시작</b>여정 ${esc(ot.start_stage)}</div></div>${ot.result&&ot.result.memo&&ot.result.memo.med?`<p class="sub" style="color:var(--bad)">의학적 특이사항: ${esc(ot.result.memo.med)}</p>`:''}`:'<p class="sub">OT 판정 기록이 없어요 (코드 없이 지정된 회원).</p>';
   return `<div class="wrap"><button class="link" style="align-self:flex-start" data-a="trBack">◀ 회원 목록</button>
   <div class="card"><p class="h">${esc(m.name)} · 지금 구간</p><div class="row" style="gap:5px">${stBtns}</div><p class="sub">회원 화면에는 구간 이론 이름이 보이지 않아요(“${J[st].name}”로만). 구간을 내려도 승인한 여정은 그대로예요.</p></div>
   <div class="card"><p class="h">여정 접근 승인</p><p class="sub">${PAST_OK[st]?'이 구간은 지나온 여정을 다시 볼 수 있어요.':'이 구간은 자기 여정만 열려요.'} 다른 여정은 여기서 승인해요.</p><div class="row" style="gap:5px">${accBtns}</div>
