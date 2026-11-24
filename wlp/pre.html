@@ -150,11 +150,16 @@ pre{background:var(--dark);color:#f0e8dc;padding:14px;border-radius:12px;font-si
 'use strict';
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const C='①②③④⑤⑥⑦⑧⑨';
-const PARTS={1:'PART 1 · 지금의 나',2:'PART 2 · 몸 상태',3:'PART 3 · 생활 환경',4:'PART 4 · 내가 운동하는 진짜 이유'};
-const GOALS=['체지방 감량','근육·몸라인(탄력)','통증 해결·바른 자세','체력·지구력','건강 수치 개선(혈압·혈당 등)','스트레스 해소·활력','운동 수행능력(무게·기록)','나이 들어도 혼자 걸을 수 있는 근력'];
+const PARTS={1:'PART 1 · 지금의 나',2:'PART 2 · 몸 상태',3:'PART 3 · 생활 환경',4:'PART 4 · 내가 운동하는 진짜 이유',5:'PART 5 · 내 생활의 즐거움'};
+const GOALS=['체지방 감량','근육·몸라인(탄력)','통증 해결·바른 자세','체력·지구력','건강 수치 개선(혈압·혈당 등)','스트레스 해소·활력','운동 수행능력(무게·기록)','나이 들어도 혼자 걸을 수 있는 근력','지금 상태 유지(더 나빠지지 않기)'];
 const FREQ=['0회','1~2회','3~4회','5회 이상'],FREQV=[0,1.5,3.5,5];
+const HOBBY=['노래교실·합창','춤·댄스','그림·서예','공방·만들기(도자기·목공·뜨개)','독서·글쓰기','악기 연주','사진·영상','여행·나들이','등산·산책','텃밭·원예','요리·베이킹','종교 모임·봉사','수영·목욕','손주·가족 돌보기','바둑·게임','없음'];
+const HMAP=['호흡·횡격막·바른 자세 (노래할 때 숨 받쳐 주는 힘)','균형·하체·리듬','어깨·등·앉은 자세','어깨·손힘·앉은 자세','목·등 자세','어깨·손목·앉은 자세','하체·균형 (오래 서 있기)','하체·지구력 (오래 걷기)','하체·지구력·무릎','허리·쪼그려 앉았다 일어나기','손목·서 있는 자세','하체·지구력 (오래 서 있기)','어깨·호흡','바닥에서 일어나기·들어 올리기','목·등 자세',''];
+const BODYX=['목소리가 갈라지거나 숨이 짧다','구부정한 자세','걸음걸이·균형','잠이 얕다','화장실이 자주 급하다','손힘이 약하다(병뚜껑·장바구니)','바닥·의자에서 일어나기가 힘들다','없음'];
+const BMAP=['횡격막·호흡 (목소리 자체 개선은 약속하지 않기 · 숨 받쳐 주는 힘까지만)','등·코어·가슴 열기','하체·균형','저녁 가벼운 운동·호흡','골반저 — 회원이 먼저 꺼낼 때만 조심스럽게','악력·팔','하체·일어나기 연습',''];
+const WORRY=['심장·숨이 차는 것','넘어지는 것','관절이 아픈 것','다음 날 몸살','다른 사람 시선','잘 못 따라 할까 봐','없음'];
 const Q=[
- {id:'q1',p:1,t:'single',title:'지금 운동에 대한 내 마음과 가장 가까운 것은?',opts:['솔직히 꼭 해야 하는지 잘 모르겠다. 권유받거나 등록해서 왔다','해야 하는 건 알지만, 꾸준히 할 자신은 아직 없다','이번엔 제대로 해보려고 마음먹었다','이미 꾸준히 하고 있고, 더 잘하고 싶다','운동은 내 삶의 일부다. 한 단계 더 올라가고 싶다']},
+ {id:'q1',p:1,t:'single',title:'지금 운동에 대한 내 마음과 가장 가까운 것은?',opts:['솔직히 꼭 해야 하는지 잘 모르겠다. 권유받거나 등록해서 왔다','해야 하는 건 알지만, 꾸준히 할 자신은 아직 없다','이번엔 제대로 해보려고 마음먹었다','이미 꾸준히 하고 있고, 더 잘하고 싶다','운동은 내 삶의 일부다. 한 단계 더 올라가고 싶다','운동은 꾸준히 하고 싶지만, 지금 정도면 괜찮다. 나빠지지만 않으면 된다']},
  {id:'q2',p:1,t:'single',title:'지금까지 운동 경험은?',opts:['거의 없다','여러 번 시작했지만 3개월을 넘기기 어려웠다','3~12개월 해본 적 있다','1년 이상 꾸준히 했다(또는 하고 있다)']},
  {id:'q3',p:1,t:'multi',max:2,none:6,title:'운동이나 관리가 멈췄던 가장 큰 이유는?',hint:'최대 2개',opts:['시간·일정이 안 맞아서','혼자서는 뭘 해야 할지 몰라서','해도 변화가 안 보여서','통증이나 부상 때문에','지루하거나 재미가 없어서','의지가 오래 가지 않아서','해당 없음(멈춘 적 없음)']},
  {id:'q4',p:1,t:'text',title:'운동하려는 이유를 내 말로 한 줄 적어주세요.',hint:'예: "살은 안 쪘는데 몸이 흐물흐물해요", "계단만 올라도 힘들어요"'},
@@ -168,20 +173,25 @@ const Q=[
  {id:'q12',p:3,t:'single',title:'운동을 배울 때 나에게 더 편한 방식은?',opts:['차분하게 하나씩 설명해주는 방식','밝고 에너지 있게 함께 해주는 방식','원리와 수치로 설명해주는 방식','확실하게 끌어주고 밀어주는 방식']},
  {id:'q13',p:4,t:'single',title:'이번에 운동을 시작하게 된 계기에 가장 가까운 것은?',opts:['거울·사진·옷이 마음에 안 들어서','건강검진 결과나 병원에서 들은 말 때문에','통증이 일상을 불편하게 해서','가족이나 주변 사람의 건강 문제를 보고','결혼·여행·촬영 등 중요한 일정이 있어서','체력이 떨어져 일이나 육아가 힘들어서','나이가 들수록 지금 안 하면 안 될 것 같아서','스트레스나 마음을 관리하고 싶어서','더 강해지고 기록을 올리고 싶어서']},
  {id:'q14',p:4,t:'rank',title:'원하는 것 TOP 3를 순서대로 눌러주세요.',hint:'가장 원하는 것부터 차례로 3개. 다시 누르면 빠져요.',opts:GOALS},
- {id:'q15',p:4,t:'multi',none:7,title:'이 목표를 위해 지금까지 해본 것을 모두 골라주세요.',opts:['혼자 헬스','유튜브·홈트','PT','필라테스·요가','달리기·구기종목','식단 조절·다이어트','병원·도수치료','아직 해본 것 없음']},
- {id:'q16',p:4,t:'single',title:'6개월 뒤에도 지금과 똑같다면, 가장 아쉬울 것은?',opts:['입고 싶은 옷, 내 모습에 대한 자신감','더 나빠질 수 있는 건강 수치나 늘어날 약','더 심해질 수 있는 통증','가족·아이와 함께 할 체력과 시간','일에서의 집중력과 성과','나이 들어 혼자 움직이는 힘','또 포기한 나 자신에 대한 실망','딱히 없다 / 잘 모르겠다']},
+ {id:'q15',p:4,t:'multi',none:10,title:'이 목표를 위해 지금까지 해본 것을 모두 골라주세요.',opts:['혼자 헬스','유튜브·홈트','PT','필라테스·요가','달리기·구기종목','식단 조절·다이어트','병원·도수치료','수영·아쿠아로빅','걷기·등산','댄스·탁구·게이트볼 등 생활체육','아직 해본 것 없음']},
+ {id:'q16',p:4,t:'single',title:'6개월 뒤에도 지금과 똑같다면, 가장 아쉬울 것은?',opts:['입고 싶은 옷, 내 모습에 대한 자신감','더 나빠질 수 있는 건강 수치나 늘어날 약','더 심해질 수 있는 통증','가족·아이와 함께 할 체력과 시간','일에서의 집중력과 성과','나이 들어 혼자 움직이는 힘','또 포기한 나 자신에 대한 실망','지금 할 수 있는 걸 계속 못 하게 되는 것','딱히 없다 / 잘 모르겠다']},
  {id:'q17',p:4,t:'single',title:'앞으로 어떤 방식으로 도움받고 싶나요?',opts:['루틴만 받고 혼자 해보고 싶다','혼자 하되, 가끔 점검을 받고 싶다','정기적으로 1:1 코칭을 받고 싶다','아직 모르겠다. 오늘 체험해보고 정하고 싶다']},
- {id:'note',p:4,t:'text',opt:true,title:'(선택) 담당 트레이너가 꼭 알아줬으면 하는 것 한 줄',hint:'없으면 비워두고 완료를 눌러주세요.'}
+ {id:'q18',p:5,t:'multi',none:HOBBY.length-1,title:'요즘 즐겨 하는 취미나 모임을 모두 골라주세요.',hint:'운동과 상관없어도 괜찮아요. 수업을 회원님 생활에 맞추는 데 써요.',opts:HOBBY},
+ {id:'q19',p:5,t:'multi',none:HOBBY.length-1,txt:'q19t',title:'예전엔 즐겼는데, 요즘 몸 때문에 줄었거나 못 하게 된 것이 있나요?',hint:'있다면 아래에 사연을 한 줄 적어 주세요. (선택)',opts:HOBBY},
+ {id:'q20',p:5,t:'multi',none:7,title:'운동과 상관없어 보여도, 내 몸에서 아쉬운 것을 골라주세요.',opts:BODYX},
+ {id:'q21',p:5,t:'multi',none:6,title:'운동할 때 가장 걱정되는 것은?',hint:'걱정되는 걸 알아야 첫 수업을 안심하고 시작할 수 있어요.',opts:WORRY},
+ {id:'note',p:5,t:'text',opt:true,title:'(선택) 담당 트레이너가 꼭 알아줬으면 하는 것 한 줄',hint:'없으면 비워두고 완료를 눌러주세요.'}
 ];
 const PRESETS=[
  {name:'장형준',age:31,sex:'남',job:'학원 강사',sub:'기존 카드 예시 · 야간형',a:{q1:2,q2:1,q3:[0,1],q4:'살은 안 쪘는데 몸이 흐물흐물해요. 탄력만 좀요.',q5:[7],q5s:[],q6:{parts:[7],deg:null},q7:[0,1],q8:{s:14,e:23,sl:3},q9:1,q10:{r:[3,1,2],m:1},q11:{s:[0,1],c:3},q12:2,q13:5,q14:[1,0,3],q15:[0,1],q16:4,q17:3,note:''}},
  {name:'박정희',age:47,sex:'여',job:'회계사무원',sub:'통증형 · 섬세형',a:{q1:2,q2:1,q3:[3,0],q4:'허리가 아파서 오래 못 앉아 있어요.',q5:[6],q5s:[2],q6:{parts:[3,4],deg:2},q7:[0,3],q8:{s:9,e:18,sl:1},q9:0,q10:{r:[0,1,1],m:2},q11:{s:[3,5],c:2},q12:0,q13:2,q14:[2,3,0],q15:[6,3],q16:2,q17:2,note:'예전에 PT 받다가 허리를 다친 적이 있어요.'}},
- {name:'이준서',age:24,sex:'남',job:'대학생',sub:'안주형 · 식습관',a:{q1:0,q2:0,q3:[5],q4:'부모님이 끊어주셔서 왔어요.',q5:[7],q5s:[],q6:{parts:[7],deg:null},q7:[1],q8:{s:10,e:16,sl:3},q9:0,q10:{r:[2,2,3],m:3},q11:{s:[2],c:1},q12:1,q13:0,q14:[0,1,5],q15:[7],q16:7,q17:3,note:''}},
- {name:'최유나',age:35,sex:'여',job:'간호사(3교대)',sub:'성취발전형 · 교대근무',a:{q1:3,q2:3,q3:[4],q4:'하프 마라톤 기록을 줄이고 데드리프트를 제대로 배우고 싶어요.',q5:[7],q5s:[],q6:{parts:[5],deg:0},q7:[0],q8:{s:7,e:15,sl:1},q9:4,q10:{r:[1,1,1],m:3},q11:{s:[0,2,5],c:3},q12:2,q13:8,q14:[6,1,3],q15:[0,4,1],q16:4,q17:2,note:'근무표가 2주 단위로 바뀌어요.'}}
+ {name:'이준서',age:24,sex:'남',job:'대학생',sub:'안주형 · 식습관',a:{q1:0,q2:0,q3:[5],q4:'부모님이 끊어주셔서 왔어요.',q5:[7],q5s:[],q6:{parts:[7],deg:null},q7:[1],q8:{s:10,e:16,sl:3},q9:0,q10:{r:[2,2,3],m:3},q11:{s:[2],c:1},q12:1,q13:0,q14:[0,1,5],q15:[10],q16:8,q17:3,note:''}},
+ {name:'최유나',age:35,sex:'여',job:'간호사(3교대)',sub:'성취발전형 · 교대근무',a:{q1:3,q2:3,q3:[4],q4:'하프 마라톤 기록을 줄이고 데드리프트를 제대로 배우고 싶어요.',q5:[7],q5s:[],q6:{parts:[5],deg:0},q7:[0],q8:{s:7,e:15,sl:1},q9:4,q10:{r:[1,1,1],m:3},q11:{s:[0,2,5],c:3},q12:2,q13:8,q14:[6,1,3],q15:[0,4,1],q16:4,q17:2,note:'근무표가 2주 단위로 바뀌어요.'}},
+ {name:'김순자',age:82,sex:'여',job:'은퇴',sub:'유지·안전형 · 심장 이력 · 노래',a:{q1:5,q2:1,q3:[1],q4:'건강하게 지금처럼만 지내고 싶어요.',q5:[0,5],q5s:[],q6:{parts:[5],deg:0},q7:[3],q8:{s:9,e:12,sl:0},q9:3,q10:{r:[0,0,1],m:2},q11:{s:[0],c:1},q12:0,q13:6,q14:[8,7,3],q15:[7,8],q16:7,q17:3,q18:[0,13],q19:[0],q19t:'성대가 안 좋아져서 이제 노래를 못 불러요.',q20:[0],q21:[0,1],note:'몇 년 전 심장 스텐트 시술을 했어요.'}}
 ];
 
 let S={step:-1,info:{name:'',age:'',sex:'',job:''},a:{},t0:0,elapsed:0,rtab:'member'};
-function blank(){return {q3:[],q5:[],q5s:[],q6:{parts:[],deg:null},q7:[],q8:{s:null,e:null,sl:null},q10:{r:[null,null,null],m:null},q11:{s:[],c:null},q14:[],q15:[]};}
+function blank(){return {q3:[],q5:[],q5s:[],q6:{parts:[],deg:null},q7:[],q8:{s:null,e:null,sl:null},q10:{r:[null,null,null],m:null},q11:{s:[],c:null},q14:[],q15:[],q18:[],q19:[],q19t:'',q20:[],q21:[]};}
 S.a=blank();
 let timer=null;
 function startTimer(){S.t0=Date.now();clearInterval(timer);timer=setInterval(()=>{const el=document.getElementById('tm');if(el)el.textContent=mmss(Date.now()-S.t0);},1000);}
@@ -204,6 +214,7 @@ function render(){
   ${body(q)}
   <div class="foot"><button class="btn s" data-a="back">이전</button><button class="btn p" data-a="next" ${answered(q)?'':'disabled'}>${S.step===Q.length-1?'완료하고 결과 보기':'다음'}</button></div></div>`;
   const ti=document.getElementById('ti');if(ti){ti.oninput=()=>{S.a[q.id]=ti.value;document.querySelector('[data-a="next"]').disabled=!answered(q);};ti.onkeydown=e=>{if(e.key==='Enter'&&answered(q))go(1);};setTimeout(()=>ti.focus(),30);}
+  const mt=document.getElementById('mt');if(mt)mt.oninput=()=>{S.a[q.txt]=mt.value;};
   document.querySelectorAll('select[data-sel]').forEach(s=>s.onchange=()=>{S.a.q8[s.dataset.sel]=s.value===''?null:+s.value;render();});
 }
 function body(q){const v=S.a[q.id];
@@ -211,7 +222,8 @@ function body(q){const v=S.a[q.id];
   switch(q.t){
   case 'single':return `<div class="opts ${q.opts.length>5?'two':''}">${q.opts.map((o,i)=>opt(i,o,v===i,`data-single="${i}"`)).join('')}</div>`;
   case 'multi':{let h=`<div class="opts ${q.opts.length>6?'two':''}">${q.opts.map((o,i)=>opt(i,o,v.includes(i),`data-multi="${i}"`,q.max&&v.length>=q.max&&!v.includes(i)&&i!==q.none)).join('')}</div>`;
-    if(q.sub&&v.includes(q.sub.i))h+=`<div class="lbl">지적받은 수치 (모두)</div><div class="chips">${q.sub.opts.map((o,i)=>`<button class="chip ${S.a.q5s.includes(i)?'on':''}" data-q5s="${i}">${o}</button>`).join('')}</div>`;return h;}
+    if(q.sub&&v.includes(q.sub.i))h+=`<div class="lbl">지적받은 수치 (모두)</div><div class="chips">${q.sub.opts.map((o,i)=>`<button class="chip ${S.a.q5s.includes(i)?'on':''}" data-q5s="${i}">${o}</button>`).join('')}</div>`;
+    if(q.txt)h+=`<input class="txt" id="mt" style="margin-top:14px" value="${esc(S.a[q.txt]||'')}" placeholder="예: 성대가 안 좋아져서 노래를 못 불러요" maxlength="80">`;return h;}
   case 'text':return `<input class="txt" id="ti" value="${esc(v||'')}" placeholder="${q.opt?'예: 무릎 수술한 적 있어요':'편하게 적어주세요'}" maxlength="80"><p class="note">${q.opt?'':'정확한 문장보다 떠오르는 대로가 더 좋아요.'}</p>`;
   case 'pain':return `<div class="lbl">부위 (모두)</div><div class="chips">${q.parts.map((o,i)=>`<button class="chip ${v.parts.includes(i)?'on':''}" data-part="${i}">${o}</button>`).join('')}</div>
      ${v.parts.length&&!v.parts.includes(7)?`<div class="lbl">가장 불편한 곳의 정도</div><div class="opts two">${q.deg.map((o,i)=>opt(i,o,v.deg===i,`data-deg="${i}"`)).join('')}</div>`:''}`;
@@ -238,7 +250,7 @@ function intro(){
   <p class="note" style="margin-top:-6px">실제 앱에서는 이름·연락처·나이·성별을 가입 정보에서 자동으로 가져와요.</p>
   <div class="foot" style="margin-top:0;padding-top:6px"><button class="btn p" data-a="start">설문 시작하기</button></div>
   <div class="presets"><b style="font-size:14px">연습용 · 예시 회원으로 바로 결과 보기</b><div class="row">${PRESETS.map((p,k)=>`<button data-preset="${k}">${p.name} · ${p.age}세 ${p.sex}<small>${p.sub}</small></button>`).join('')}</div>
-  <p class="note">예시 회원 결과는 서버에 저장하지 않아요. 예시를 누르면 17문항이 채워진 상태로 결과가 나와요. 결과 화면에서 '답 고쳐보기'로 문항을 바꿔 판정이 어떻게 달라지는지 볼 수 있어요.</p></div></div>`;
+  <p class="note">예시 회원 결과는 서버에 저장하지 않아요. 예시를 누르면 21문항이 채워진 상태로 결과가 나와요. 결과 화면에서 '답 고쳐보기'로 문항을 바꿔 판정이 어떻게 달라지는지 볼 수 있어요.</p></div></div>`;
 }
 
 /* ---------- 판정 ---------- */
@@ -246,23 +258,26 @@ const STAGE=['거부','호기심','첫 몰입','일상','열정'];
 const MSTAGE=['둘러보기','호기심','첫 몰입','일상','열정']; // 회원에게 보이는 이름
 function analyze(){
   const a=S.a,i=S.info;const R={rules:[]};const rule=(area,cond,hit,out)=>R.rules.push({area,cond,hit,out});
-  R.stage=a.q1+1;R.stageName=STAGE[a.q1];
-  rule('단계','Q1 선택지 번호 = WLP 여정 단계',true,`여정 ${C[a.q1]} ${R.stageName}`);
+  R.maintain=a.q1===5;R.si=R.maintain?1:a.q1;
+  R.stage=R.si+1;R.stageName=STAGE[R.si];
+  rule('단계','Q1 ①~⑤ 번호 = WLP 여정 단계',!R.maintain,`여정 ${C[R.si]} ${R.stageName}`);
+  rule('단계','Q1 ⑥ 유지 희망 → 거부가 아니라 ② 호기심에서 시작',R.maintain,'여정 ② 호기심 · 유지·안전형');
   R.retry=a.q1===2&&a.q2===1;rule('단계','Q1 ③ 그리고 Q2 ② → 재도전자',R.retry,'성공 경험 설계 우선');
-  const tried=a.q15.filter(x=>x!==7);
-  const vague=a.q16===7;
-  const anju=(a.q1<=1)&&(a.q17===0||a.q17===3)&&vague;
+  const tried=a.q15.filter(x=>x!==10);
+  const vague=a.q16===8;
+  const anju=!R.maintain&&(a.q1<=1)&&(a.q17===0||a.q17===3)&&vague;
   const rank1=a.q14[0];
-  const ach=(a.q1>=3)||((rank1===1||rank1===6)&&tried.length>=2);
-  R.type=anju?'안주형':ach?'성취발전형':'혼합형';
-  rule('유형','안주형: Q1 ①② + Q17 ①④ + Q16 모호(⑧)',anju,'안주형');
+  const ach=!R.maintain&&((a.q1>=3&&a.q1<=4)||((rank1===1||rank1===6)&&tried.length>=2));
+  R.type=R.maintain?'유지·안전형':anju?'안주형':ach?'성취발전형':'혼합형';
+  rule('유형','유지·안전형: Q1 ⑥ (향상보다 잃지 않기)',R.maintain,'유지·안전형');
+  rule('유형','안주형: Q1 ①② + Q17 ①④ + Q16 모호(⑨)',anju,'안주형');
   rule('유형','성취발전형: Q1 ④⑤ 또는 (Q14 1순위 근육·수행능력 + Q15 2개 이상)',!anju&&ach,'성취발전형');
-  rule('유형','그 외 → 혼합형',!anju&&!ach,'혼합형');
+  rule('유형','그 외 → 혼합형',!R.maintain&&!anju&&!ach,'혼합형');
   const painHi=a.q6.deg===1||a.q6.deg===2;const hosp=a.q15.includes(6);
-  R.ab=(R.type!=='안주형')||(painHi&&hosp)?'A':'B';
+  R.ab=((R.type!=='안주형'&&!R.maintain)||(painHi&&hosp))?'A':'B';
   R.abWhy=R.type!=='안주형'?'의지형':'섬세형(통증 + 병원·도수 경험)';
   rule('클로징','A: 성취발전형·혼합형, 또는 Q6 ②③ + Q15 병원·도수',R.ab==='A',R.ab==='A'?'A · 2회차 클로징 목표':'');
-  rule('클로징','B: 안주형 → 재측정 예약까지만',R.ab==='B','B · 재측정 예약 목표');
+  rule('클로징','B: 안주형·유지·안전형 → 재측정 예약까지만',R.ab==='B','B · 재측정 예약 목표');
   R.flags=[];
   const doc=a.q5.filter(x=>x<=2);if(doc.length){R.flags.push({lv:'r',t:'의사 확인 권고',d:'Q5 '+doc.map(x=>C[x]).join('')+' 해당. 운동 가능 여부를 의사에게 확인받도록 안내(안전 절차로만 설명).'});}
   rule('의학','Q5 ①②③ 중 1개 이상 → 의사 확인 권고',!!doc.length,'의사 확인 권고');
@@ -289,24 +304,39 @@ function analyze(){
   R.style=['차분 설명형','에너지형','근거·데이터형','리드형'][a.q12];
   rule('매칭','Q12 코칭 스타일 → 강사 매칭',true,R.style+' 강사');
   const TRIG=['거울·사진·옷이 마음에 안 들어서','건강검진 결과 때문에','통증이 일상을 불편하게 해서','가족·주변 사람의 건강 문제를 보고','중요한 일정이 있어서','체력이 떨어져 일·육아가 힘들어서','나이 들수록 지금 아니면 안 될 것 같아서','스트레스·마음을 관리하고 싶어서','더 강해지고 기록을 올리고 싶어서'];
-  const LOSS=['내 모습에 대한 자신감','건강 수치와 늘어날 약','더 심해질 통증','가족과 함께할 체력과 시간','일의 집중력과 성과','나이 들어 혼자 움직이는 힘','또 포기한 나에 대한 실망','(아직 떠오르지 않음)'];
+  const LOSS=['내 모습에 대한 자신감','건강 수치와 늘어날 약','더 심해질 통증','가족과 함께할 체력과 시간','일의 집중력과 성과','나이 들어 혼자 움직이는 힘','또 포기한 나에 대한 실망','지금 할 수 있는 걸 계속 못 하게 되는 것','(아직 떠오르지 않음)'];
   R.trigger=TRIG[a.q13];R.goal=GOALS[rank1];R.goals=a.q14.map(x=>GOALS[x]);R.loss=LOSS[a.q16];
   R.sentence=`${R.trigger}, 가장 원하는 건 ‘${R.goal}’, 이대로라면 가장 아쉬운 건 ‘${R.loss}’.`;
   R.signals=[];
-  if(a.q1>=3&&a.q15.includes(2)&&a.q17===0)R.signals.push('이전 PT에 불만이 있었을 가능성 — 확인 질문 2번에서 다룹니다.');
+  if(a.q1>=3&&a.q1<=4&&a.q15.includes(2)&&a.q17===0)R.signals.push('이전 PT에 불만이 있었을 가능성 — 확인 질문 2번에서 다룹니다.');
   if(a.q3.includes(2)&&a.q2===1)R.signals.push("'효과가 안 보여 포기'한 패턴 — 골든아워 3·6개월 예측 그래프가 가장 강하게 작동합니다.");
   if(a.q16===6)R.signals.push("'또 포기한 나'가 가장 아쉬움 — 실패에 민감합니다. 첫 체험은 반드시 '해냈다'로 끝내세요.");
   if(a.q12===2)R.signals.push('원리·수치 선호 — 첫 인사에서 경력과 코칭 방식을 근거 중심으로 짧게 소개하세요.');
   if(R.shift)R.signals.push('교대·불규칙 근무 — 고정 요일보다 근무표 기준 주간 예약이 맞습니다.');
   if(a.q3.includes(3)&&a.q15.includes(2))R.signals.push('통증 때문에 멈춘 적 + PT 경험 — 이전 수업에서 다친 경험이 있는지 조심스럽게 확인하세요.');
+  const NH=HOBBY.length-1;const hob=(a.q18||[]).filter(x=>x!==NH),lost=(a.q19||[]).filter(x=>x!==NH),bx=(a.q20||[]).filter(x=>x!==7),wr=(a.q21||[]).filter(x=>x!==6);
+  R.hobbies=hob.map(x=>HOBBY[x]);R.lost=lost.map(x=>HOBBY[x]);R.lostNote=(a.q19t||'').trim();R.bodyx=bx.map(x=>BODYX[x]);R.worry=wr.map(x=>WORRY[x]);
+  R.links=[...lost.map(x=>({k:'다시 즐기고 싶은 것 · '+HOBBY[x],v:HMAP[x]})),...bx.map(x=>({k:'몸에서 아쉬운 것 · '+BODYX[x],v:BMAP[x]}))];
+  const heart=wr.includes(0)||a.q5.some(x=>x<=1);
+  R.opener=(heart||R.maintain||wr.includes(1))?'“숨 안 차게, 천천히만 할게요. 조금이라도 힘들면 바로 멈춰요.”':'';
+  if(R.maintain)R.signals.push('유지·안전형 — “좋아질 거예요”보다 “지금 할 수 있는 걸 오래 지켜요”로 말하세요. 향상 약속은 위협으로 들려 방어(고집)를 키워요.');
+  if(heart)R.signals.push('심장·숨 걱정 또는 심장 이력 — 첫마디는 안전 약속. 힘쓸 때 숨 참지 않게 “밀 때 ‘하’ 하고 내쉬세요”를 동작마다.');
+  if(lost.length)R.signals.push('잃어버린 즐거움: '+R.lost.join('·')+(R.lostNote?' (“'+R.lostNote+'”)':'')+' — 그 활동에 쓰이는 몸 기능과 연결하면 마음이 열려요. 회복을 약속하지 말고 “도움 되는 힘을 기른다”까지만.');
+  if(bx.includes(0))R.signals.push('목소리·숨 아쉬움 — 횡격막·호흡으로 연결 가능. 목소리 자체는 이비인후과 영역이라고 한 번 짚어 두세요.');
+  if(bx.includes(4))R.signals.push('화장실 아쉬움 — 골반저와 연결되지만 민감한 주제. 회원이 먼저 꺼낼 때만 다루세요.');
+  rule('생활','Q19 잃어버린 즐거움 → 몸 기능과 연결',!!lost.length,R.lost.join('·'));
+  rule('안전','Q21 심장·숨 또는 Q5 ①② → 첫마디 안전 약속 + 숨 참지 않기',heart,'안전 약속');
   // 확인 질문
   const q4=(a.q4||'').trim();
   R.q1=`${q4?`“${q4}”라고 적어주셨고, `:''}6개월 뒤 가장 아쉬울 것으로 ‘${R.loss}’을 고르셨어요. 요즘 어떤 장면에서 그걸 가장 느끼세요?`;
-  if(a.q16===7)R.q1=`${q4?`“${q4}”라고 적어주셨어요. `:''}지금 이대로 6개월이 지나면, 일상에서 어떤 장면이 가장 먼저 불편해질 것 같으세요?`;
+  if(a.q16===8)R.q1=`${q4?`“${q4}”라고 적어주셨어요. `:''}지금 이대로 6개월이 지나면, 일상에서 어떤 장면이 가장 먼저 불편해질 것 같으세요?`;
   const triedN=tried.map(x=>Q[14].opts[x]);const stopN=a.q3.filter(x=>x!==6).map(x=>Q[2].opts[x]);
   R.q2=triedN.length?`예전에 ${triedN.slice(0,2).join(', ')}도 해보셨더라고요. 그때 잘 됐던 건 무엇이고, 어디서 막혔나요?`:stopN.length?`멈췄던 이유로 ‘${stopN[0]}’을 고르셨어요. 어떤 순간에 그렇게 됐나요?`:'지금까지 운동을 시작하지 않았던 가장 큰 이유는 무엇이었을까요?';
   R.q3=`오늘 운동이 끝났을 때 ‘이건 다르다’고 느끼려면 무엇이 있어야 할까요?`;
   R.q3note=a.q17===3?'체험 후 결정 회원 — 이 답이 수업 끝 클로징의 유일한 기준':'목표 '+R.goal+' 기준으로 체험 설계';
+  R.q4='';
+  if(R.maintain){R.q3=R.lost.length?`예전엔 ‘${R.lost[0]}’을 즐기셨다고 하셨어요. 요즘 제일 즐거운 시간은 언제세요? 다시 하고 싶은 게 있다면요?`:'요즘 제일 즐거운 시간은 언제세요? 예전엔 했는데 요즘 못 하시는 건요?';R.q3note='유지·안전형 — 몸 목표 대신 즐거움에서 연결고리 찾기';}
+  else if(R.lost.length){R.q4=`예전엔 ‘${R.lost[0]}’을 즐기셨다고 하셨어요. 다시 하신다면 어떤 모습이면 좋겠어요?`;}
   R.elapsed=S.elapsed;R.code='WLP-'+(R.stage)+String(Math.floor(Math.random()*900+100));
   return R;
 }
@@ -328,12 +358,14 @@ function member(R){
   if(R.recovery)tips.push('요즘 수면·피로 신호가 보여요. 첫 수업은 끝나고 개운한 강도로 할게요.');
   if(R.painMeasure)tips.push(`불편하신 ${a.q6.parts.filter(x=>x!==7).map(x=>Q[5].parts[x]).join('·')}은 첫 수업 전후로 움직임 범위를 재서 변화를 직접 확인해요.`);
   if(R.flags.some(f=>f.t==='의사 확인 권고'))tips.push('건강 체크 항목이 있어, 첫 수업 전에 담당 의사에게 운동 가능 여부를 확인해 주시면 더 안전하게 시작할 수 있어요.');
+  if(R.opener)tips.push('숨이 차지 않는 강도로, 힘쓸 때는 숨을 내쉬면서 천천히 해요. 불편하면 언제든 멈춰요.');
   if(!tips.length)tips.push('지금 생활 리듬이면 원하는 시간대에 바로 시작할 수 있어요.');
   return `<div class="kakao"><div class="who"><i>WLP</i>센터 · WLP 운동 설계</div><div class="bubble">
-   <div class="hd"><small>${esc(i.name||'회원')}님의 운동 설계 리포트</small><b>여정 ${C[a.q1]} ${MSTAGE[a.q1]}</b><div class="journey">${STAGE.map((s,k)=>`<span class="${k<=a.q1?'on':''}"></span>`).join('')}</div></div>
-   <div class="bd"><h5>지금 나의 단계</h5>${STG[a.q1]}
-    <h5>내가 운동하는 진짜 이유</h5>${esc(a.q16===7?`${R.trigger}, 가장 원하는 건 ‘${R.goal}’.`:R.sentence)}${a.q4?`<br><span style="color:var(--mute)">“${esc(a.q4)}”</span>`:''}
+   <div class="hd"><small>${esc(i.name||'회원')}님의 운동 설계 리포트</small><b>여정 ${C[R.si]} ${MSTAGE[R.si]}</b><div class="journey">${STAGE.map((s,k)=>`<span class="${k<=R.si?'on':''}"></span>`).join('')}</div></div>
+   <div class="bd"><h5>지금 나의 단계</h5>${R.maintain?'지금 할 수 있는 것을 오래 지키고 싶은 시기예요. 첫 수업은 숨이 차지 않는 편안한 강도로, 일상에서 쓰는 힘을 함께 확인해요.':STG[a.q1]}
+    <h5>내가 운동하는 진짜 이유</h5>${esc(a.q16===8?`${R.trigger}, 가장 원하는 건 ‘${R.goal}’.`:R.sentence)}${a.q4?`<br><span style="color:var(--mute)">“${esc(a.q4)}”</span>`:''}
     <h5>내가 원하는 것 TOP 3</h5>${R.goals.map((g,k)=>`${k+1}. ${esc(g)}`).join('<br>')}
+    ${(R.hobbies.length||R.lost.length)?`<h5>내 생활의 즐거움</h5>${R.hobbies.length?'즐기는 것: '+esc(R.hobbies.join('·')):''}${R.lost.length?`${R.hobbies.length?'<br>':''}다시 즐기고 싶은 것: ${esc(R.lost.join('·'))} — 거기에 쓰이는 몸의 힘을 수업에서 함께 챙겨요.`:''}`:''}
     <h5>내 생활에 맞춘 포인트</h5><ul>${tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
     <h5>첫 수업에서 할 것</h5>인바디 측정 → 짧은 대화 5분 → 몸으로 직접 체험. 추천 시간대: ${esc(R.when||'상담 시 결정')} · 주 ${['1','2','3','4'][a.q11.c]}회 기준</div>
    <div class="code">${INV.code?esc(INV.code):'WLP-····'}<small>${INV.code?'':'트레이너가 가입 코드를 발급하면 여기에 들어가요 · '}WLP 앱 가입 코드 · 지금 단계의 화면만 열려요</small></div></div></div>
@@ -341,7 +373,7 @@ function member(R){
 }
 function trainer(R){
   const a=S.a,i=S.info;const auto='<span class="auto">설문으로 확인됨</span>';
-  const badge=[`<span class="g">${C[a.q1]} ${R.stageName}</span>`,`<span>${R.type}</span>`,`<span>${R.ab} · ${R.ab==='A'?'2회차 클로징':'재측정 예약'}</span>`,
+  const badge=[`<span class="g">${C[R.si]} ${R.stageName}</span>`,`<span>${R.type}</span>`,`<span>${R.ab} · ${R.ab==='A'?'2회차 클로징':'재측정 예약'}</span>`,
     R.flags.some(f=>f.lv==='r')?`<span class="r">안전 확인 ${R.flags.filter(f=>f.lv==='r').length}</span>`:'<span>안전 플래그 없음</span>',
     R.retry?'<span>재도전자</span>':'',R.night?'<span class="b">야간형</span>':'',R.shift?'<span class="b">교대근무</span>':'',R.foodFirst?'<span class="r">식습관 우선</span>':'',R.recovery?'<span class="r">회복 저하</span>':'',`<span>${R.style}</span>`].join('');
   const fr=a.q10.r.map((x,k)=>Q[9].rows[k].replace(/\(.*\)/,'')+' '+FREQ[x]).join(' · ')+' · 하루 '+Q[9].meals[a.q10.m];
@@ -362,15 +394,21 @@ function trainer(R){
    <dt>가능 시간</dt><dd>${esc(a.q11.s.map(x=>Q[10].slots[x]).join('·'))} · ${Q[10].cnt[a.q11.c]} → 추천: ${esc(R.when)}</dd>
    <dt>목표 TOP 3</dt><dd>${R.goals.map((g,k)=>(k+1)+'. '+esc(g)).join('  ')}</dd>
    <dt>코칭·도움</dt><dd>${esc(Q[11].opts[a.q12])} · ${esc(Q[16].opts[a.q17])}</dd>
+   <dt>취미·즐거움</dt><dd>${esc(R.hobbies.join('·')||'-')}${R.lost.length?` · 줄어든 것: <b>${esc(R.lost.join('·'))}</b>`:''}${R.lostNote?` (“${esc(R.lostNote)}”)`:''}</dd>
+   <dt>몸 아쉬움</dt><dd>${esc(R.bodyx.join('·')||'-')}</dd>
+   <dt>운동 걱정</dt><dd>${esc(R.worry.join('·')||'-')}</dd>
    <dt>인바디</dt><dd style="color:#a99f92">설문 직후 InBody270 측정값이 여기에 붙어요</dd>
    <dt>회원 한 줄</dt><dd>${esc(a.note||'-')}</dd>
   </dl>
   ${R.flags.length?`<h4>안전·주의</h4>${R.flags.map(f=>`<div class="flag ${f.lv==='i'?'info':''}"><b>${esc(f.t)}</b> — ${esc(f.d)}</div>`).join('')}`:''}
   ${R.signals.length?`<h4>주의 신호 조합</h4>${R.signals.map(s=>`<div class="flag info">${esc(s)}</div>`).join('')}`:''}
+  ${R.links.length?`<h4>마음을 여는 연결 고리</h4>${R.links.map(l=>`<div class="q">${esc(l.k)}<small>수업 연결: ${esc(l.v)}</small></div>`).join('')}`:''}
+  ${R.opener?`<h4>첫마디</h4><div class="sent">${esc(R.opener)}<span class="quote">안전 약속으로 시작 · 힘쓸 때 숨 참지 않게</span></div>`:''}
   <h4>오늘의 확인 질문</h4>
   <div class="q">${esc(R.q1)}<small>손실을 장면으로 · Q16·Q4</small></div>
   <div class="q">${esc(R.q2)}<small>노력의 이력 · Q15·Q3</small></div>
-  <div class="q">${esc(R.q3)}<small>오늘의 기준 · Q14·Q17 — ${esc(R.q3note)}</small></div>
+  <div class="q">${esc(R.q3)}<small>${R.maintain?'즐거움에서 찾기 · Q19':'오늘의 기준 · Q14·Q17'} — ${esc(R.q3note)}</small></div>
+  ${R.q4?`<div class="q">${esc(R.q4)}<small>잃어버린 즐거움 · Q19</small></div>`:''}
   <h4>상담 전 자가 점검</h4>
   ${['운동 목적을 회원 표현 그대로 확인했다','과거 운동·다이어트 경험과 그만둔 이유를 확인했다','하루 일과(출퇴근·식사·수면 시간)를 확인했다','식습관(야식·음주·외식 빈도)을 확인했다','통증·부상·검진 지적 사항을 확인했다','주당 실제로 낼 수 있는 운동 횟수를 확인했다'].map(t=>`<label class="ck"><input type="checkbox" checked disabled> ${t} ${auto}</label>`).join('')}
   <label class="ck"><input type="checkbox"> 확인 질문 3개를 했다</label>
@@ -379,7 +417,7 @@ function trainer(R){
   </div>`;
 }
 function logic(R){
-  const out={member:{...S.info},answers:S.a,result:{stage:R.stage,stage_name:R.stageName,type:R.type,ab:R.ab,flags:R.flags.map(f=>f.t),night:R.night,food_first:R.foodFirst,recovery_low:R.recovery,coach_style:R.style,motive:R.sentence,recommend_slot:R.when,code:R.code,elapsed_sec:Math.round(R.elapsed/1000)}};
+  const out={member:{...S.info},answers:S.a,result:{stage:R.stage,stage_name:R.stageName,type:R.type,ab:R.ab,flags:R.flags.map(f=>f.t),night:R.night,food_first:R.foodFirst,recovery_low:R.recovery,coach_style:R.style,motive:R.sentence,recommend_slot:R.when,maintain:R.maintain,hobbies:R.hobbies,lost_joys:R.lost,lost_note:R.lostNote,body_wish:R.bodyx,worry:R.worry,code:R.code,elapsed_sec:Math.round(R.elapsed/1000)}};
   return `<p style="margin:0 0 12px;font-size:14px">설문 문서의 '트레이너용 해석 키'를 그대로 코드로 옮긴 판정이에요. 초록색이 이 회원에게 적용된 규칙이에요.</p>
   <table class="lg"><tr><th>영역</th><th>규칙</th><th>적용</th><th>결과</th></tr>${R.rules.map(r=>`<tr><td>${r.area}</td><td>${esc(r.cond)}</td><td class="${r.hit?'yes':'no'}">${r.hit?'적용':'—'}</td><td>${r.hit?esc(r.out):''}</td></tr>`).join('')}</table>
   <h4 style="margin:20px 0 8px">서버에 저장되는 값 (wlp_save_ot 예시)</h4><pre>${esc(JSON.stringify(out,null,2))}</pre>`;
@@ -396,7 +434,7 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('button,a');if(!t)return;const d=t.dataset;const q=Q[S.step];
   if(t.tagName==='A'){if(t.getAttribute('href')==='#')e.preventDefault();return;}
   if(d.sex){S.info.sex=d.sex;readInfo();render();return;}
-  if(d.preset!=null){INV=freshInv();INV.preset=true;const p=PRESETS[+d.preset];S.info={name:p.name,age:p.age,sex:p.sex,job:p.job};S.a=JSON.parse(JSON.stringify(p.a));S.elapsed=(4*60+20)*1000;S.R=null;S.rtab='trainer';S.step=Q.length;render();window.scrollTo(0,0);return;}
+  if(d.preset!=null){INV=freshInv();INV.preset=true;const p=PRESETS[+d.preset];S.info={name:p.name,age:p.age,sex:p.sex,job:p.job};S.a=Object.assign(blank(),JSON.parse(JSON.stringify(p.a)));S.elapsed=(4*60+20)*1000;S.R=null;S.rtab='trainer';S.step=Q.length;render();window.scrollTo(0,0);return;}
   if(d.a==='start'){INV=freshInv();readInfo();if(!S.info.name){document.getElementById('iname').focus();return;}S.a=blank();startTimer();S.step=0;render();return;}
   if(d.a==='next'){go(1);return;}
   if(d.a==='back'){go(-1);return;}
@@ -451,11 +489,11 @@ async function authInit(){
 function payload(R){
   const a=S.a;
   const med=R.flags.map(f=>f.t+': '+f.d).join(' / ');
-  return {v:'pre-v2',zone:R.type,stageName:R.stageName,stageNo:R.stage,start:INV.stage,chosen:INV.stage,changed:INV.stage!==R.stage,
+  return {v:'pre-v2.1',zone:R.type,stageName:R.stageName,stageNo:R.stage,start:INV.stage,chosen:INV.stage,changed:INV.stage!==R.stage,
     type:R.type,ab:R.ab,night:R.night,shift:R.shift,food_first:R.foodFirst,recovery_low:R.recovery,pain_measure:!!R.painMeasure,
     coach_style:R.style,motive:R.sentence,quote:a.q4||'',goals:R.goals,recommend_slot:R.when,signals:R.signals,
-    questions:[R.q1,R.q2,R.q3],info:{...S.info},answers:a,elapsed_sec:Math.round(R.elapsed/1000),
-    memo:{med,body:'',need:[a.q4?'“'+a.q4+'”':'',R.goals.join(' > ')].filter(Boolean).join(' · ')},note:a.note||''};
+    questions:[R.q1,R.q2,R.q3,R.q4].filter(Boolean),maintain:!!R.maintain,hobbies:R.hobbies,lost_joys:R.lost,lost_note:R.lostNote,body_wish:R.bodyx,worry:R.worry,opener:R.opener,links:R.links,info:{...S.info},answers:a,elapsed_sec:Math.round(R.elapsed/1000),
+    memo:{med,body:R.bodyx.join('·'),need:[a.q4?'“'+a.q4+'”':'',R.goals.join(' > '),R.lost.length?'다시 즐기고 싶은 것: '+R.lost.join('·'):''].filter(Boolean).join(' · ')},note:a.note||''};
 }
 async function autoSave(R){
   if(!sb||!isStaff()||INV.code||INV.preset)return;
