@@ -15,6 +15,7 @@
 <script src="./rec.js"></script>
 <script src="./sched.js"></script>
 <style>
+button,a,input,select{touch-action:manipulation}
 :root{--dk:#1C1712;--dk2:#25201A;--dk3:#3A2F23;--ln:#4A3F34;--dt:#F5EFE6;--dm:#B9AE9F;--dm2:#8F8476;--am:#F0B85C;
 --bg:#FBF8F3;--pn:#fff;--bd:#EDE6DA;--tx:#1F1A14;--mu:#6B6155;--ac:#B45309;--acs:#FDECC8;--ac2:#7C3D06;--bad:#B91C1C;--ok:#1F6F5C;--tr:#2B241D}
 *{box-sizing:border-box}
@@ -89,7 +90,7 @@ input.sin::placeholder{color:#B9AD9C;font-weight:700}
 .add{flex:1;min-height:38px;border-radius:10px;border:1px dashed #D8CCBA;background:none;font-size:12px;color:var(--mu)}
 /* 여정 지도 */
 .map{position:relative;width:100%;max-width:390px;height:560px;margin:0 auto}
-.node{position:absolute;display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;color:inherit;text-align:left}
+.node{position:absolute;display:flex;align-items:center;gap:12px;background:none;border:0;padding:8px;margin:-8px;-webkit-tap-highlight-color:rgba(240,184,92,.25);color:inherit;text-align:left}
 .node.r{flex-direction:row-reverse;text-align:right}
 .orb{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;flex:none}
 .badge{font-size:10px;font-weight:800;border-radius:6px;padding:2px 6px;display:inline-block;margin-top:2px}
@@ -284,13 +285,13 @@ async function addFb(row){
 }
 
 /* ===== 계산 도우미 ===== */
-function topSet(it){const ss=(it.sets||[]).filter(s=>s.done!==false&&s.t!=='W'&&(s.w>0||s.r>0));if(!ss.length)return null;ss.sort((a,b)=>(b.w||0)-(a.w||0)||(b.r||0)-(a.r||0));return ss[0]}
+function topSet(it){const ss=((it&&it.sets)||[]).filter(Boolean).filter(s=>s.done!==false&&s.t!=='W'&&(s.w>0||s.r>0));if(!ss.length)return null;ss.sort((a,b)=>(b.w||0)-(a.w||0)||(b.r||0)-(a.r||0));return ss[0]}
 const fmtSet=s=>s?((s.w>0?s.w+'kg × ':'')+(s.r||0)+'회'):'-';
-const exName=it=>it.nm||it.name||it.id||'종목';
+const exName=it=>(it&&(it.nm||it.name||it.id))||'종목';
 function latestFb(kind){return S.fb.find(f=>f.kind===kind)}
 function todayFb(kind){return S.fb.find(f=>f.kind===kind&&f.session_date===today())}
-function giftSlots(){const g=S.gifts[0];return g&&g.payload&&Array.isArray(g.payload.slots)?g.payload.slots.filter(Boolean):[]}
-function recentExNames(){const set=[];giftSlots().forEach(x=>{const n=exName(x);if(!set.includes(n))set.push(n)});(S.sessions[0]&&S.sessions[0].items||[]).forEach(x=>{const n=exName(x);if(!set.includes(n))set.push(n)});return set}
+function giftSlots(){const g=(S.gifts||[])[0];return g&&g.payload&&Array.isArray(g.payload.slots)?g.payload.slots.filter(x=>x&&typeof x==='object').map(x=>Object.assign({},x,{sets:(Array.isArray(x.sets)?x.sets:[]).filter(s=>s&&typeof s==='object')})):[]}
+function recentExNames(){const set=[];giftSlots().forEach(x=>{const n=exName(x);if(!set.includes(n))set.push(n)});((S.sessions&&S.sessions[0]&&S.sessions[0].items)||[]).filter(Boolean).forEach(x=>{const n=exName(x);if(!set.includes(n))set.push(n)});return set}
 function zoneOf(pd,se,vas){
   if(vas>=4)return {z:'통증 우선',t:'해당 동작 범위·하중을 줄이고 원인부터 확인해요.',bg:'#FDECEC'};
   if(pd==null||se==null)return null;
@@ -310,7 +311,13 @@ function demoBar(){
 function render(){
   const a=document.getElementById('app');
   const f={boot:vBoot,login:vLogin,code:vCode,staffReq:vStaffReq,pending:vPending,joined:vLaunch,launch:vLaunch,home:vHome,rec:vRec,recEdit:vRecEdit,trainer:vTrainer,err:vErr}[S.scr]||vBoot;
-  a.innerHTML=demoBar()+f();
+  if(Array.isArray(S.fb))S.fb.forEach(x=>{if(x&&!x.data)x.data={}});
+  let h;
+  try{h=f()}catch(e){
+    console.error(e);
+    h=`<div class="wrap" style="padding-top:40px"><div class="card"><p class="h">화면을 여는 중 문제가 생겼어요</p><p class="sub">${esc(String(e&&e.message||e))}</p><p class="sub" style="font-size:11px">이 문장을 캡처해서 알려 주시면 바로 고칠게요.</p><button class="btn" data-a="toMap">여정 지도로</button></div></div>`;
+  }
+  a.innerHTML=demoBar()+h;
 }
 const vBoot=()=>`<div class="dark" style="display:flex;align-items:center;justify-content:center"><span style="color:var(--dm)">불러오는 중…</span></div>`;
 const vErr=()=>`<div class="wrap"><div class="card"><p class="h">연결 문제</p><p class="sub">${esc(S.err)}</p><button class="btn" data-a="reload">다시 시도</button></div></div>`;
@@ -685,9 +692,11 @@ document.addEventListener('click',async e=>{
       S.req={status:'대기',name:n,title:ti};S.scr='pending';render()},
     noop:()=>{}
   };
+  try{
   if(A[a]){e.preventDefault();await A[a]()}
   else if(typeof RA!=='undefined'&&RA[a]){e.preventDefault();await RA[a](b,v)}
   else if(typeof SCH_A!=='undefined'&&SCH_A[a]){e.preventDefault();await SCH_A[a](b,v)}
+  }catch(err){console.error(err);toast('문제가 생겼어요: '+String(err&&err.message||err).slice(0,80))}
 });
 if(!DEMO)window.addEventListener('load',()=>{try{sb&&sb.auth.onAuthStateChange((ev,s)=>{if(ev==='SIGNED_IN'&&s&&!S.uid){S.uid=s.user.id;loadMe()}})}catch(e){}});
 render();boot();

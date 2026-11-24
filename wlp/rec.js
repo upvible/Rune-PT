@@ -243,10 +243,11 @@ async function addFbQuiet(row) {
   const r = await sb.from('wlp_feedback').insert(r0).select('*').single(); if (!r.error) S.fb.unshift(r.data);
 }
 // WLP 기록 + 룬 PT 기록(시범 기간 읽기 전용) 합치기. 같은 날짜·회차는 WLP 우선
+const cleanItems = items => (Array.isArray(items) ? items : []).filter(it => it && typeof it === 'object').map(it => Object.assign({}, it, { sets: (Array.isArray(it.sets) ? it.sets : []).filter(s => s && typeof s === 'object') }));
 function mergeSessions() {
-  const wl = (S.wk || []).map(w => ({ session_date: w.session_date, session_no: w.session_no, items: w.items || [], src: w.source }));
+  const wl = (S.wk || []).map(w => ({ session_date: w.session_date, session_no: w.session_no, items: cleanItems(w.items), src: w.source }));
   const key = s => s.session_date + '#' + (s.session_no || 1), seen = new Set(wl.map(key));
-  const legacy = (S.runeSessions || []).filter(s => !seen.has(key(s)));
+  const legacy = (S.runeSessions || []).filter(s => s && s.session_date && !seen.has(key(s))).map(s => Object.assign({}, s, { items: cleanItems(s.items) }));
   S.sessions = wl.concat(legacy).sort((a, b) => a.session_date < b.session_date ? 1 : -1);
 }
 async function loadRec() {
