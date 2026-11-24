@@ -65,6 +65,15 @@ label.l{font-size:12px;color:var(--mu);font-weight:700}
 .demo{background:#2B241D;color:#F0B85C;font-size:11px;padding:6px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .demo button{min-height:28px;border-radius:8px;border:1px solid #5A4E42;background:transparent;color:#E8E1D6;font-size:11px;padding:0 8px}
 .demo button.on{background:#F0B85C;color:#2B241D;border-color:#F0B85C;font-weight:800}
+/* 필승전략 */
+.winb{min-height:54px;border-radius:12px;border:1px solid #E3D9CA;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;color:var(--tx)}
+.winb b{font-size:13px;color:var(--ac)}.winb span{font-size:12px}
+.winb.on{background:#2B241D;border-color:#2B241D}.winb.on b{color:#F0B85C}.winb.on span{color:#fff}
+.winbg{position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.winpop{text-align:left;width:100%;max-width:480px;max-height:86vh;overflow:auto;background:#FBF8F3;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+.wsec{background:#fff;border:1px solid #EDE6DA;border-radius:14px;padding:10px 12px}
+.wk{font-size:13px;font-weight:900;margin:0 0 4px}.wa{margin:0;font-size:15px;font-weight:800;line-height:1.5}
+.wsec ul{margin:0;padding-left:18px;font-size:14px;line-height:1.65}
 /* 일일 스케줄 */
 .schr{display:grid;grid-template-columns:44px minmax(0,1fr);gap:6px;align-items:center;padding:6px 2px;border-bottom:1px solid #F3EEE6}
 .schr.now{background:#FFF7E8;border-radius:8px}.schr.now .scht{color:var(--ac);font-weight:900}
@@ -429,6 +438,45 @@ function home2(){
   ${pdseCard('words')}
   <div class="card"><p class="h">해 봤다 스탬프</p><div class="row wrapx">${Array.from({length:8},(_,i)=>dates[i]?`<span class="stamp ok">${dates[i].slice(5).replace('-','/')}</span>`:'<span class="stamp"></span>').join('')}</div><p class="sub">빈칸은 그냥 빈칸이에요. 율이나 연속 기록은 없어요.</p></div>`;
 }
+
+/* 필승전략: 단계별 레슨 가이드 (트레이너 회원 탭) */
+const WIN={
+ 1:{n:'거부',m:'몸 풀기',a:'“여기 오는 게 싫지는 않다”',
+   b:['체중·인바디·식단 얘기','“꾸준히 하셔야죠” 같은 설득','힘든 동작, 숨찬 강도','출석·연속 기록 확인'],
+   c:['시작 전에 허락 구하기: “오늘 이거 해 봐도 될까요?”','고를 거리 주기: 부위·동작을 회원이 고르게','싫다는 건 바로 빼고 대안 하나만','기분 좋을 때 일찍 끝내기'],
+   d:['‘별로예요’, ‘빼 주세요’가 줄어든다','부르지 않아도 온다','자기 몸 얘기를 먼저 꺼낸다']},
+ 2:{n:'호기심',m:'재미 찾기',a:'“이건 재밌네 + 나도 되네” (재미 발견 · 작은 성공)',
+   b:['출석률·연속 기록','다른 회원과 비교','숫자 여러 개 재기','“이 정도는 기본이에요”'],
+   c:['예상 먼저 묻고 해 보기: “몇 초 버틸 것 같아요?”','재밌어한 동작을 다음 수업 첫 동작으로','하고 싶은 이유를 회원 입으로 말하게','성공한 순간을 바로 짚어 주기'],
+   d:['실제가 예상보다 자주 높다','“다음엔 뭐 해요?”를 먼저 묻는다','좋아하는 동작이 생겼다']},
+ 3:{n:'첫 몰입',m:'첫 몰입',a:'“어렵지만 해냈다, 시간 가는 줄 몰랐다” (몰입 · 성장 체감)',
+   b:['티어·등급 경쟁','레드존·최대 강도','세트마다 RPE 묻기','쉬는 시간 휴대폰'],
+   c:['난도를 실력보다 한 칸 위로 (어려움 6↑ · 자신감 6↑)','세트마다 바로 짧은 피드백','지난번 → 오늘 숫자를 같이 보기','운동 끝 세 질문(어려움·자신감·통증) 챙기기'],
+   d:['★몰입 세트가 꾸준히 나온다','혼자 운동하는 날이 생긴다','주 2회를 스스로 지킨다']},
+ 4:{n:'일상',m:'일상',a:'“선생님 없이도 이어 간다” (자율 · 끊기지 않는 습관)',
+   b:['선생님이 다 정해 주기 (의존이 커짐)','바쁜 주에 “쉬세요”로 끝내기','완벽한 주만 칭찬하기'],
+   c:['도움을 조금씩 줄이기','혼자 하는 날 루틴을 같이 짜기 (헬스장·집·출장)','“바쁘면 15분만” 대비책 미리 정하기','다음 목표와 길은 회원이 고르게'],
+   d:['바쁜 주에도 15분 버전으로 끊기지 않는다','스스로 목표를 올린다','성적표를 가족·친구와 나눈다']},
+ 5:{n:'열정',m:'나만의 무대',a:'“운동이 곧 나다, 그리고 오래 간다” (정체성 · 지속 · 다치지 않기)',
+   b:['연속 출석 배지·외부 보상 강조','쉬는 주 없는 계획','통증을 참고 하는 분위기','선생님이 일방적으로 과제 주기'],
+   c:['12주 계획을 함께 설계 (쉬는 주 포함)','과사용·통증 신호를 먼저 챙기기','도전 세트는 원할 때만','다른 회원을 돕는 역할 주기'],
+   d:['회복 주를 지킨다','분기마다 스스로 회고한다','처음 온 회원에게 경험을 나눈다']}
+};
+function winBar(){
+  const o=S.tr.win;
+  return `<div class="card" style="gap:8px;padding:12px"><p class="h" style="font-size:14px">필승전략 <span class="sub" style="font-weight:400">단계별 레슨 가이드</span></p>
+  <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px">${[1,2,3,4,5].map(n=>`<button class="winb${o===n?' on':''}" data-a="winOpen" data-v="${n}"><b>lv${n}</b><span>${WIN[n].n}</span></button>`).join('')}</div></div>
+  ${o?winPop(o):''}`;
+}
+function winPop(n){
+  const w=WIN[n],sec=(k,t,arr,c)=>`<div class="wsec"><p class="wk" style="color:${c}">${k} · ${t}</p>${Array.isArray(arr)?`<ul>${arr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<p class="wa">${esc(arr)}</p>`}</div>`;
+  return `<div class="winbg" data-a="winClose"><div class="winpop" data-a="winStay">
+  <div class="row" style="justify-content:space-between;align-items:center"><p class="h" style="font-size:17px">필승전략 lv${n} ${w.n}</p><button class="link" data-a="winClose" style="font-size:15px">닫기 ✕</button></div>
+  <p class="sub">회원 화면 이름: 여정 ${n} ${w.m}</p>
+  ${sec('A','레슨 목표',w.a,'#B45309')}${sec('B','피할 것',w.b,'#B91C1C')}${sec('C','수업에서',w.c,'#1D4ED8')}${sec('D','다음 목표 (넘어가는 신호)',w.d,'#1F6F5C')}
+  <div class="row" style="gap:6px">${n>1?`<button class="btn ghost sm" style="flex:1" data-a="winOpen" data-v="${n-1}">◀ lv${n-1}</button>`:'<span style="flex:1"></span>'}${n<5?`<button class="btn ghost sm" style="flex:1" data-a="winOpen" data-v="${n+1}">lv${n+1} ▶</button>`:'<span style="flex:1"></span>'}</div>
+  </div></div>`;
+}
 function recBtn(){return `<button class="btn" data-a="openRec" style="min-height:52px;font-size:15px">오늘 운동 기록하기</button>`}
 function home3(){
   const s0=S.sessions[0];let rows='<p class="sub">아직 운동 기록이 없어요.</p>';
@@ -514,6 +562,7 @@ function vTrainer(){
   const q=t.q.trim();
   const list=t.list.filter(x=>!q||(x.name||'').includes(q));
   return head+`<div class="wrap">${links}<input id="trq" type="text" placeholder="회원 이름 검색" value="${esc(t.q)}" data-in="trq">
+  ${winBar()}
   <div class="card"><p class="h">여정 회원 ${list.length}명</p>${list.length?list.map(x=>`<button class="mrow" data-a="trSel" data-v="${x.member_id}"><span><b>${esc(x.name)}</b><br><span class="sub">여정 ${x.stage} · ${J[x.stage].name}${(x.approved||[]).length?' · 승인 '+x.approved.join(','):''}</span></span><span class="sub">${x.last_feedback?'최근 기록 '+String(x.last_feedback).slice(5).replace('-','/'):''} ▸</span></button>`).join(''):'<p class="sub">가입 코드로 들어온 회원이 여기에 보여요.</p>'}</div>
   ${(t.others||[]).length?`<div class="card"><p class="h">여정 미지정 가입 회원</p><p class="sub">코드 없이 이미 가입한 회원은 여기서 여정을 정해 줘요.</p>${t.others.slice(0,30).map(x=>`<div class="fb"><span>${esc(x.name||'회원')}</span><span class="row" style="gap:4px">${[1,2,3,4,5].map(n=>`<button class="btn ghost sm" style="min-width:34px;padding:0" data-a="assign" data-m="${x.id}" data-v="${n}">${n}</button>`).join('')}</span></div>`).join('')}</div>`:''}</div>`;
 }
@@ -671,6 +720,9 @@ document.addEventListener('click',async e=>{
     goTrainerOt:()=>{S.scr='trainer';S.tr.tab='ot';S.tr.sel=null;render();loadTrainer()},
     openCase:()=>{S.tr.openCase=+v;S.tr.rk=null;S.tr.ropt=null;render();window.scrollTo(0,0)},
     closeCase:()=>{S.tr.openCase=null;render()},
+    winOpen:()=>{S.tr.win=+v;render()},
+    winClose:()=>{S.tr.win=null;render()},
+    winStay:()=>{},
     trYm:()=>{S.tr.ym={y:Math.floor(+v/100),m:+v%100};S.tr.of='전체';render()},
     trOf:()=>{S.tr.of=v;render()},
     trProg:async()=>{const c=S.tr.cases.find(x=>x.id===S.tr.openCase),d=val('trPd').trim();
