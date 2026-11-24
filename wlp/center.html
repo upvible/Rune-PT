@@ -50,9 +50,9 @@ input[type=text],textarea,select{width:100%;min-height:42px;border-radius:10px;b
 .kb{background:#fff;border:1px solid #EDE6DA;border-radius:12px;padding:8px 12px;text-align:left;display:flex;flex-direction:column;color:#1F1A14}
 .kb.on{border-color:#B45309;background:#FFF7E8}.kb b{font-size:20px;font-weight:900}.kb span{font-size:11px;color:#6B6155}
 .ol{background:#fff;border:1px solid #EDE6DA;border-radius:14px;overflow:auto;max-height:640px}
-.orow{display:grid;grid-template-columns:34px 76px 64px 60px 68px minmax(0,1fr) 84px 64px 64px 60px;gap:6px;align-items:center;padding:8px 10px;border:0;border-bottom:1px solid #F0EAE0;background:#fff;font-size:12px;text-align:left;width:100%;color:#1F1A14}
+.orow{display:grid;grid-template-columns:34px 76px 78px 64px 60px 68px minmax(0,1fr) 84px 64px 64px 60px;gap:6px;align-items:center;padding:8px 10px;border:0;border-bottom:1px solid #F0EAE0;background:#fff;font-size:12px;text-align:left;width:100%;color:#1F1A14}
 .orow.on{background:#FFF7E8}.orow.hd{font-size:11px;color:#6B6155;font-weight:800;background:#F4F2EE;cursor:default;position:sticky;top:0;z-index:1}
-@media(max-width:900px){.kk{grid-template-columns:repeat(3,minmax(0,1fr))}.orow{grid-template-columns:30px minmax(0,1fr) 64px 84px}.orow .hm{display:none}}
+@media(max-width:900px){.kk{grid-template-columns:repeat(3,minmax(0,1fr))}.orow{grid-template-columns:30px minmax(0,1fr) 78px 64px 84px}.orow .hm{display:none}}
 .schk{grid-template-columns:repeat(6,minmax(0,1fr))}@media(max-width:900px){.schk{grid-template-columns:repeat(3,minmax(0,1fr))}.schk .kb b{font-size:16px}}
 .schbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid #EDE6DA;border-radius:14px;padding:8px 10px}
 .schsheet{background:#fff;border:1px solid #EDE6DA;border-radius:14px;padding:12px}
@@ -168,6 +168,7 @@ function demo(){
   S.cases.forEach((c,i)=>{c.reg_y=NOWY;c.reg_m=NOWM;c.sheet_no=i+1});
   const TRN=['이규','지원','성경','진용','동주','범운'],NM=['김','이','박','최','정','강','조','윤'];
   for(let k=0;k<40;k++){const m=((NOWM-1-(k%4))+12)%12+1,y=m>NOWM?NOWY-1:NOWY,st=['OT1 완료','OT2 완료','PT 등록','연락 안 됨','거절','응답 대기','조율 완료'][k%7];S.cases.push({id:100+k,name:NM[k%8]+'OO',phone:'010'+(20000000+k),status:st,trainer_id:null,trainer_name:TRN[k%6],returned_by:[],reg_y:y,reg_m:m,sheet_no:k+1,sex:k%2?'여':'남',age:20+k,months:'3개월',pref_time:k%2?'오전':'오후 7:00',note:k%5?'':'문화센터',ot1_at:['OT1 완료','OT2 완료','PT 등록','조율 완료'].includes(st)?m+'/'+(3+k%20):'',ot2_at:['OT2 완료','PT 등록'].includes(st)?m+'/'+(8+k%18):'',pt_at:st==='PT 등록'?m+'/'+(12+k%15):'',from_sheet:true,events:[]})}
+  S.cases.forEach((c,i)=>{if(i%3)c.judged_stage=1+i%5,c.judged_type='혼합형 · A',c.judged_at=new Date().toISOString()});
   S.sync='시험 모드 예시 데이터';
   S.codes=[{code:'WLP-7K2Q',kind:'member',name:'최OO',start_stage:3,expires_at:new Date(Date.now()+5*864e5).toISOString(),used_at:null,canceled_at:null}];
   S.scr='app';
@@ -232,6 +233,22 @@ function vLeads(){
   <div class="card"><p class="h">유형별 등록 전환 (이번 달)</p><table><tr><th>유형</th><th>회원에게 보인 이름</th><th>설문</th><th>등록</th><th>전환</th></tr>${byType}</table></div></div>
   <div class="side">${side}</div></div>`;
 }
+const JN=['','거부','호기심','첫 몰입','일상','열정'],JC=['','#57534E','#7C3AED','#1D4ED8','#B45309','#1F6F5C'];
+function jChip(c){if(!c.judged_stage)return '<span class="sub" style="font-size:11px">미판정</span>';const s=c.judged_stage,cur=c.cur_stage&&c.cur_stage!==s?` <span class="sub" style="font-size:10px">→ 지금 lv${c.cur_stage}</span>`:'';return `<span><span class="st" style="background:${JC[s]};color:#fff">lv${s} ${JN[s]}</span>${cur}</span>`}
+function statsCard(){
+  const st=S.stats;if(!st)return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><p class="h">여정별 통계 · ${S.ym.y}년</p><p class="sub">여정별 PT 등록률 · 선생님별 강한 여정 · 여정별 3개월 활동 추이</p></div><button class="btn g" data-a="loadStats">통계 보기</button></div></div>`;
+  const pct=v=>v==null?'-':v+'%';
+  const t1=st.stage.map(r=>`<tr><td><span class="st" style="background:${JC[r.stage]};color:#fff">lv${r.stage} ${JN[r.stage]}</span></td><td>${r.cases}</td><td>${r.ot_done}</td><td>${r.pt}</td><td><b>${pct(r.pt_rate)}</b></td></tr>`).join('')||'<tr><td colspan="5">판정된 OT가 아직 없어요</td></tr>';
+  const trs=[...new Set(st.trainer.map(r=>r.trainer))];
+  const t2=trs.map(n=>{const best=st.trainer.filter(r=>r.trainer===n&&r.cases>=3).sort((a,b)=>(b.pt_rate||0)-(a.pt_rate||0))[0];return `<tr><td><b>${esc(n)}</b></td>${[1,2,3,4,5].map(s=>{const r=st.trainer.find(x=>x.trainer===n&&x.stage===s);return `<td style="${best&&best.stage===s?'background:#FFF7E8;font-weight:800':''}">${r?pct(r.pt_rate)+` <span class="sub" style="font-size:10px">(${r.pt}/${r.cases})</span>`:'-'}</td>`}).join('')}</tr>`}).join('')||'<tr><td colspan="6">-</td></tr>';
+  const bands=[[0,3,'1달'],[4,7,'2달'],[8,12,'3달']];
+  const t3=[1,2,3,4,5].map(s=>{const rs=st.att.filter(r=>r.stage===s);if(!rs.length)return '';const m=Math.max(...rs.map(r=>r.members));return `<tr><td><span class="st" style="background:${JC[s]};color:#fff">lv${s} ${JN[s]}</span></td><td>${m}</td>${bands.map(([a,b])=>{const x=rs.filter(r=>r.week>=a&&r.week<=b);return `<td>${x.length?(x.reduce((q,r)=>q+ +r.avg_days,0)/x.length).toFixed(1)+'일':'-'}</td>`}).join('')}</tr>`}).join('')||'<tr><td colspan="5">앱 가입 회원의 기록이 쌓이면 보여요</td></tr>';
+  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><p class="h">여정별 통계 · ${S.ym.y}년 (최초 등록 월 기준)</p><button class="btn g" data-a="loadStats">새로고침</button></div>
+  <p class="h" style="font-size:13px">여정별 PT 등록률</p><table><tr><th>판정 여정</th><th>OT 건</th><th>OT 진행</th><th>PT 등록</th><th>등록률</th></tr>${t1}</table>
+  <p class="h" style="font-size:13px">선생님 × 여정 등록률 <span class="sub" style="font-weight:400">노란 칸 = 그 선생님이 가장 강한 여정 (3건 이상)</span></p><table><tr><th>선생님</th>${[1,2,3,4,5].map(s=>`<th>lv${s}</th>`).join('')}</tr>${t2}</table>
+  <p class="h" style="font-size:13px">여정별 3개월 활동 추이 <span class="sub" style="font-weight:400">판정 후 한 주에 운동한 날 (WLP 운동 기록 + 스케줄 완료 기준)</span></p><table><tr><th>판정 여정</th><th>회원</th><th>첫 1달</th><th>2달째</th><th>3달째</th></tr>${t3}</table>
+  <p class="sub">헬스장 출입 기록은 아직 연결 전이라 앱 기록으로 셉니다. 출입 기록을 연결하면 같은 표에 합쳐져요.</p></div>`;
+}
 function vCases(){
   const C=S.cases.find(x=>x.id===S.selC)||null,trainers=S.staff.filter(x=>x.active&&(x.role==='trainer'||x.role==='center'));
   const tn=c=>c.trainer_id?staffName(c.trainer_id):(c.trainer_name||'');
@@ -242,14 +259,14 @@ function vCases(){
   const byT=S.ctr==='전체'?mine:S.ctr==='미배정'?mine.filter(c=>!tn(c)):mine.filter(c=>tn(c)===S.ctr);
   const cnt=f=>byT.filter(f).length,pt=cnt(c=>c.status==='PT 등록');
   const K=[['전체',(Y===NOWY&&M===NOWM?'이번 달':M+'월')+' 등록',byT.length,''],['미배정','미배정',cnt(c=>c.status==='미배정'),''],['진행 중','배정·연락·조율',cnt(c=>G['진행 중'].includes(c.status)),'color:#1D4ED8'],['OT 완료','OT 1회 이상',cnt(c=>G['OT 완료'].includes(c.status)),'color:#854D0E'],['PT 등록','PT 등록 '+(byT.length?Math.round(pt/byT.length*100):0)+'%',pt,'color:#1F6F5C'],['연락 안 됨','연락 안 됨',cnt(c=>c.status==='연락 안 됨'),'color:#7A3418'],['거절','거절',cnt(c=>c.status==='거절'),'color:#B91C1C']];
-  const list=byT.filter(c=>S.cf==='전체'||c.status===S.cf||(G[S.cf]||[]).includes(c.status));
+  const list=byT.filter(c=>S.cf==='전체'||c.status===S.cf||(G[S.cf]||[]).includes(c.status)).filter(c=>!S.cj||S.cj==='전체'||(S.cj==='미판정'?!c.judged_stage:c.judged_stage===+S.cj));
   const tnames=[...new Set(trainers.map(x=>x.name).concat(mine.map(tn).filter(Boolean)))];
   const rows=list.map((c,i)=>{const t=typeOf(c),late=c.status==='응답 대기'&&c.trainer_id&&hoursSince(c.assigned_at)>=24;
-    return `<button class="orow${S.selC===c.id?' on':''}" data-a="selC" data-v="${c.id}"><span style="color:#8A8074">${c.sheet_no||i+1}</span><b>${esc(c.name)}</b><span class="hm">${esc([c.sex,c.age].filter(Boolean).join(' · ')||t.start)}</span><span class="hm">${esc(c.months||'')}</span><span style="${tn(c)?'':'color:#B45309;font-weight:800'}${late?';color:#B91C1C;font-weight:800':''}">${esc(tn(c)||'배정 필요')}</span><span class="hm" style="color:#6B6155">${esc([c.pref_time||whenOf(c.answers).trim(),c.note].filter(Boolean).join(' · '))}${c.lead_id?' · 설문':''}</span><span class="st" style="${SC[c.status]||''}">${c.status}</span><span class="hm">${esc(c.ot1_at||c.first_ot_at||'—')}</span><span class="hm">${esc(c.ot2_at||'—')}</span><span class="hm" style="color:#1F6F5C;font-weight:800">${esc(c.pt_at||'')}</span></button>`}).join('');
+    return `<button class="orow${S.selC===c.id?' on':''}" data-a="selC" data-v="${c.id}"><span style="color:#8A8074">${c.sheet_no||i+1}</span><b>${esc(c.name)}</b>${jChip(c)}<span class="hm">${esc([c.sex,c.age].filter(Boolean).join(' · ')||t.start)}</span><span class="hm">${esc(c.months||'')}</span><span style="${tn(c)?'':'color:#B45309;font-weight:800'}${late?';color:#B91C1C;font-weight:800':''}">${esc(tn(c)||'배정 필요')}</span><span class="hm" style="color:#6B6155">${esc([c.pref_time||whenOf(c.answers).trim(),c.note].filter(Boolean).join(' · '))}${c.lead_id?' · 설문':''}</span><span class="st" style="${SC[c.status]||''}">${c.status}</span><span class="hm">${esc(c.ot1_at||c.first_ot_at||'—')}</span><span class="hm">${esc(c.ot2_at||'—')}</span><span class="hm" style="color:#1F6F5C;font-weight:800">${esc(c.pt_at||'')}</span></button>`}).join('');
   let side='<div class="card"><p class="sub">목록에서 회원을 골라 주세요.</p></div>';
   if(C){const t=typeOf(C),can=['미배정','재배정 요청','응답 대기','연락 중'].includes(C.status);
     side=`<div class="card"><div style="display:flex;justify-content:space-between"><p class="h">${esc(C.name)} · ${esc(C.phone||'')}</p><span class="st" style="${SC[C.status]||''}">${C.status}</span></div>
-    <div class="kv"><b>최초 등록</b><span>${C.reg_y}년 ${C.reg_m}월${C.from_sheet?' · 시트':''}${C.lead_id?' · 설문':''}</span><b>성별·나이</b><span>${esc([C.sex,C.age].filter(Boolean).join(' · ')||'-')}</span><b>등록 월수</b><span>${esc(C.months||'-')}</span><b>운동시간</b><span>${esc(C.pref_time||whenOf(C.answers).trim()||'-')}</span><b>특이사항</b><span>${esc(C.note||'-')}</span>
+    <div class="kv"><b>판정 여정</b><span>${C.judged_stage?`lv${C.judged_stage} ${JN[C.judged_stage]} · ${esc(C.judged_type||'')} · ${md(C.judged_at)}`:'아직 판정 전 (OT 마법사 결과가 나오면 자동으로 들어와요)'}${C.cur_stage?` · 앱 지금 lv${C.cur_stage}`:''}</span><b>최초 등록</b><span>${C.reg_y}년 ${C.reg_m}월${C.from_sheet?' · 시트':''}${C.lead_id?' · 설문':''}</span><b>성별·나이</b><span>${esc([C.sex,C.age].filter(Boolean).join(' · ')||'-')}</span><b>등록 월수</b><span>${esc(C.months||'-')}</span><b>운동시간</b><span>${esc(C.pref_time||whenOf(C.answers).trim()||'-')}</span><b>특이사항</b><span>${esc(C.note||'-')}</span>
     ${C.lead_id?`<b>시작 방식</b><span>${esc(t.start)} · 직원용 ${esc(t.n)}</span>`:''}<b>의학 메모</b><span style="color:#B91C1C">${esc(C.med_memo||'-')}</span><b>응답</b><span>${esc(C.reply||'-')}</span><b>OT1 · OT2 · PT</b><span>${esc(C.ot1_at||C.first_ot_at||'—')} · ${esc(C.ot2_at||'—')} · ${esc(C.pt_at||'—')}</span></div>
     <div style="display:flex;gap:6px"><input id="cmed" type="text" placeholder="의학 메모 고치기" value="${esc(C.med_memo||'')}"><button class="btn g" data-a="setMed">저장</button></div></div>
     <div class="card"><p class="h">진행 바꾸기</p><div style="display:flex;gap:6px"><input id="pdate" type="text" placeholder="날짜 (예: 11/26)" style="max-width:150px"></div>
@@ -261,14 +278,15 @@ function vCases(){
     <div class="card"><p class="h">기록</p><button class="btn g" style="align-self:flex-start;color:#B91C1C" data-a="delCase">이 OT 삭제</button>${(C.events||[]).map(e=>`<p class="sub">${md(e.at)} · ${esc(e.action)}${e.note?' · '+esc(e.note):''}</p>`).join('')||'<p class="sub">-</p>'}</div>`}
   const dl=(S.deleted||[]).filter(d=>d.reg_y===Y&&d.reg_m===M);
   const delCard=dl.length?`<div class="card"><button class="link" style="align-self:flex-start;background:none;border:0;color:#6B6155;font-size:13px;padding:0" data-a="showDel">${S.showDel?'▾':'▸'} 이 달 삭제한 항목 ${dl.length}명</button>${S.showDel?dl.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-top:1px solid #F3EEE6"><span>${esc(d.name)} · ${esc(d.trainer_name||'')} · 삭제 전 ${esc(d.del_prev||'')} · ${md(d.deleted_at)}</span><button class="btn g" style="min-height:32px" data-a="restoreCase" data-v="${d.id}">복구</button></div>`).join(''):''}</div>`:'';
-  const sheet=delCard+`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><p class="h">구글 시트 (2026 오티 리스트)</p><p class="sub">${esc(S.sync?'마지막 불러오기 '+S.sync:'아직 불러온 적 없어요')}</p></div>
+  const sheet=delCard+statsCard()+`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><p class="h">구글 시트 (2026 오티 리스트)</p><p class="sub">${esc(S.sync?'마지막 불러오기 '+S.sync:'아직 불러온 적 없어요')}</p></div>
     <div style="display:flex;gap:6px">${S.me&&S.me.is_owner?'<button class="btn g" data-a="sheetKey">연결 키 만들기</button>':''}<button class="btn" data-a="sheetSync">지금 시트와 맞추기</button></div></div>
     <p class="sub">앱에서 바꾼 배정·진행, 앱에서 등록한 새 회원, 삭제 표시는 시트에 먼저 쓰고, 그다음 시트에서 고친 내용을 가져와요. 둘 다 바뀌었으면 앱이 기준이에요. 시트 행은 지우지 않아요.</p>
     ${S.sheetKey?`<div style="display:flex;gap:6px;align-items:center"><div class="msg" style="flex:1;font-family:monospace;user-select:all">${esc(S.sheetKey)}</div><button class="btn" data-a="copyKey">복사</button></div><p class="sub">이 키는 지금 한 번만 보여요. 시트 [WLP] → [연결 키 넣기]에 붙여 넣어 주세요. 새로 만들면 이전 키는 못 써요.</p>`:''}</div>`;
   return `<div class="ym"><select data-ch="cy">${ys.map(y=>`<option value="${y}"${y===Y?' selected':''}>${y}년</option>`).join('')}</select>${mon}<span style="flex:1"></span>${Y===NOWY&&M===NOWM?'':`<button class="ch" data-a="cnow">이번 달로</button>`}</div>
   <div class="kk">${K.map(k=>`<button class="kb${S.cf===k[0]?' on':''}" data-a="cf" data-v="${k[0]}"><b style="${k[3]}">${k[2]}</b><span>${k[1]}</span></button>`).join('')}</div>
   <div class="chips"><span class="sub" style="align-self:center">담당</span>${['전체','미배정'].concat(tnames).map(n=>`<button class="ch${S.ctr===n?' on':''}" data-a="ctr" data-v="${esc(n)}">${esc(n)}</button>`).join('')}<span class="sub" style="margin-left:auto;align-self:center">${list.length}명</span></div>
-  <div class="two"><div class="main"><div class="ol"><div class="orow hd"><span>#</span><span>회원명</span><span class="hm">성별·나이</span><span class="hm">등록 월수</span><span>담당</span><span class="hm">운동시간 · 특이사항</span><span>진행</span><span class="hm">OT1차</span><span class="hm">OT2차</span><span class="hm">PT 등록</span></div>${rows||'<p class="sub" style="padding:20px">이 달에 등록된 OT가 없어요.</p>'}</div>${sheet}</div><div class="side">${side}</div></div>`;
+  <div class="chips"><span class="sub" style="align-self:center">여정</span>${['전체','1','2','3','4','5','미판정'].map(k=>`<button class="ch${(S.cj||'전체')===k?' on':''}" data-a="cj" data-v="${k}">${/\d/.test(k)?'lv'+k+' '+JN[+k]+' '+mine.filter(c=>c.judged_stage===+k).length:k==='미판정'?'미판정 '+mine.filter(c=>!c.judged_stage).length:k}</button>`).join('')}</div>
+  <div class="two"><div class="main"><div class="ol"><div class="orow hd"><span>#</span><span>회원명</span><span>여정</span><span class="hm">성별·나이</span><span class="hm">등록 월수</span><span>담당</span><span class="hm">운동시간 · 특이사항</span><span>진행</span><span class="hm">OT1차</span><span class="hm">OT2차</span><span class="hm">PT 등록</span></div>${rows||'<p class="sub" style="padding:20px">이 달에 등록된 OT가 없어요.</p>'}</div>${sheet}</div><div class="side">${side}</div></div>`;
 }
 function vStaff(){
   const own=!!(S.me&&S.me.is_owner),pend=S.reqs.filter(r=>r.status==='대기'),done=S.reqs.filter(r=>r.status!=='대기').slice(0,10);
@@ -321,6 +339,11 @@ document.addEventListener('click',async e=>{
    case 'cnow':S.ym={y:NOWY,m:NOWM};S.cf='전체';S.selC=null;render();break;
    case 'cf':S.cf=v;render();break;
    case 'ctr':S.ctr=v;render();break;
+   case 'cj':S.cj=v;render();break;
+   case 'loadStats':{const y=S.ym.y,f=y+'-01-01',to=y+'-12-31';
+     if(DEMO){S.stats={stage:[{stage:1,cases:6,ot_done:3,pt:1,pt_rate:16.7},{stage:2,cases:9,ot_done:7,pt:3,pt_rate:33.3},{stage:3,cases:5,ot_done:5,pt:3,pt_rate:60}],trainer:[{trainer:'위성경',stage:2,cases:4,pt:2,pt_rate:50},{trainer:'위성경',stage:3,cases:3,pt:2,pt_rate:66.7},{trainer:'김이규',stage:1,cases:3,pt:1,pt_rate:33.3}],att:[{stage:2,week:0,members:3,avg_days:1.7},{stage:2,week:5,members:3,avg_days:1.3},{stage:3,week:0,members:2,avg_days:2.5},{stage:3,week:9,members:2,avg_days:2.0}]};render();break}
+     const [a,b2,c2]=await Promise.all([sb.rpc('wlp_stats_stage',{p_from:f,p_to:to}),sb.rpc('wlp_stats_trainer_stage',{p_from:f,p_to:to}),sb.rpc('wlp_stats_attendance',{p_from:f,p_to:to})]);
+     if(a.error||b2.error||c2.error){toast(errText(a.error||b2.error||c2.error));break}S.stats={stage:a.data||[],trainer:b2.data||[],att:c2.data||[]};render();break}
    case 'toCase':{const c=S.cases.find(x=>x.lead_id===+v);S.tab='cases';if(c){S.ym={y:c.reg_y||NOWY,m:c.reg_m||NOWM};S.selC=c.id}S.cf='전체';S.ctr='전체';render();break}
    case 'prog':{const d=val('pdate').trim();await call('wlp_set_progress',{p_case:C.id,p_status:v,p_date:d||null},()=>{C.status=v;if(d){if(v==='OT1 완료'||v==='조율 완료')C.ot1_at=d;if(v==='OT2 완료')C.ot2_at=d;if(v==='PT 등록')C.pt_at=d}(C.events=C.events||[]).push({action:v,note:d,at:new Date().toISOString()})});break}
    case 'jToggle':{const s=S.staff.find(x=>x.user_id===v),n=+b.dataset.n,cur=s.journey_open||[],nx=cur.includes(n)?cur.filter(x=>x!==n):cur.concat([n]).sort();
@@ -356,7 +379,7 @@ document.addEventListener('click',async e=>{
    case 'purge':{if(DEMO){toast('시험 모드');break}const r=await sb.rpc('wlp_purge_leads');if(r.error)toast(errText(r.error));else{toast(r.data+'건 정리했어요');loadAll()}break}
   }
 });
-document.addEventListener('change',async e=>{if(e.target.dataset.ch==='cy'){S.ym={y:+e.target.value,m:+e.target.value===NOWY?NOWM:12};const ms=S.cases.filter(c=>c.reg_y===S.ym.y).map(c=>c.reg_m);if(ms.length&&!ms.includes(S.ym.m))S.ym.m=Math.max(...ms);S.selC=null;render();return}
+document.addEventListener('change',async e=>{if(e.target.dataset.ch==='cy'){S.stats=null;S.ym={y:+e.target.value,m:+e.target.value===NOWY?NOWM:12};const ms=S.cases.filter(c=>c.reg_y===S.ym.y).map(c=>c.reg_m);if(ms.length&&!ms.includes(S.ym.m))S.ym.m=Math.max(...ms);S.selC=null;render();return}
   if(e.target.dataset.ch==='title'){const id=e.target.dataset.v,s=S.staff.find(x=>x.user_id===id);await call('wlp_set_staff',{p_user:id,p_active:s.active,p_title:e.target.value},()=>{s.title=e.target.value;s.role=e.target.value==='트레이너'?'trainer':'center';if(s.role==='trainer')s.is_owner=false})}});
 render();boot();
 </script>

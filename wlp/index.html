@@ -326,7 +326,9 @@ function render(){
     console.error(e);
     h=`<div class="wrap" style="padding-top:40px"><div class="card"><p class="h">화면을 여는 중 문제가 생겼어요</p><p class="sub">${esc(String(e&&e.message||e))}</p><p class="sub" style="font-size:11px">이 문장을 캡처해서 알려 주시면 바로 고칠게요.</p><button class="btn" data-a="toMap">여정 지도로</button></div></div>`;
   }
-  a.innerHTML=demoBar()+h;
+  const html=demoBar()+h;
+  if(html===S._lastHtml&&a.innerHTML)return;
+  S._lastHtml=html;a.innerHTML=html;
 }
 const vBoot=()=>`<div class="dark" style="display:flex;align-items:center;justify-content:center"><span style="color:var(--dm)">불러오는 중…</span></div>`;
 const vErr=()=>`<div class="wrap"><div class="card"><p class="h">연결 문제</p><p class="sub">${esc(S.err)}</p><button class="btn" data-a="reload">다시 시도</button></div></div>`;
@@ -384,7 +386,8 @@ function vLaunch(){
       <span style="font-size:11px;color:${open?'#B9AE9F':'#8F8476'}">${open?J[n].sub:'트레이너·센터 승인 시 열려요'}</span>${badge}</span></button>`}).join('');
   const toastJoined=S.scr==='joined'?`<div style="margin:0 16px;border-radius:16px;background:#F0B85C;color:#1C1712;padding:14px 16px;display:flex;align-items:center;gap:12px"><div style="flex:1"><b style="font-size:15px">첫 여정이 열렸어요</b><div style="font-size:12px">“${J[st].name}”를 눌러 시작해 보세요. 다음 여정은 트레이너와 함께 열려요.</div></div><button data-a="closeJoined" aria-label="닫기" style="width:44px;height:44px;border-radius:12px;border:0;background:rgba(28,23,18,.12);font-size:18px;font-weight:900">×</button></div>`:'';
   const noStage=!st?`<p style="text-align:center;color:var(--dm);font-size:13px;margin:0 24px">${esc(S.staffName||'')} ${esc(S.title||'')} · 직원 계정이에요. 회원 관리·OT·스케줄은 아래 M에서 해요.</p>`:'';
-  const otBadge=isStaff()&&S.newCases?`<button data-a="goTrainerOt" style="margin:12px 16px 0;border:0;border-radius:16px;background:#F0B85C;color:#1C1712;padding:14px 16px;font-weight:800;font-size:14px;text-align:left">새 OT 배정 ${S.newCases}건 · 회원 정보 확인 후 스케줄을 조율해 주세요 ▸</button>`:'';
+  let otHid=0;try{otHid=+(sessionStorage.getItem('wlp-ot-hide')||0)}catch(e){}
+  const otBadge=isStaff()&&S.newCases&&S.newCases>otHid?`<div style="margin:12px 16px 0;display:flex;gap:6px;align-items:stretch"><button data-a="goTrainerOt" style="flex:1;border:0;border-radius:16px;background:#F0B85C;color:#1C1712;padding:14px 16px;font-weight:800;font-size:14px;text-align:left">새 OT 배정 ${S.newCases}건 · 확인하고 스케줄 조율하기 ▸</button><button data-a="otHide" aria-label="OT 알림 닫기" style="flex:none;width:52px;border:1px solid #5A4E42;border-radius:16px;background:transparent;color:#E8E1D6;font-size:20px">✕</button></div>`:'';
   return `<div class="dark" style="display:flex;flex-direction:column">
   <div style="padding:30px 24px 0;display:flex;flex-direction:column;align-items:center;gap:6px">${logo()}<span style="font-size:22px;font-weight:900;letter-spacing:.06em">WLP</span><span style="font-size:13px;color:var(--dm)">${isStaff()&&!st?'직원 계정':'회원님의 여정'}</span></div>
   ${toastJoined}${otBadge}${noStage}
@@ -556,7 +559,7 @@ function vTrainer(){
     return head+`<div class="wrap">${links}<div class="card"><p class="h">내가 발급한 코드</p>${inv.length?inv.map(x=>{const st=x.canceled_at?'취소됨':x.used_at?'사용됨 '+x.used_at.slice(5,10).replace('-','/'):new Date(x.expires_at)<new Date()?'만료됨':'대기 · '+x.expires_at.slice(5,10).replace('-','/')+'까지';
       return `<div class="fb"><span><b>${esc(x.code)}</b> · ${esc(x.name||'')} · ${x.kind==='staff'?'직원':'여정 '+x.start_stage}</span><span class="row" style="gap:6px"><span class="sub">${st}</span>${!x.used_at&&!x.canceled_at?`<button class="btn ghost sm" data-a="cancelCode" data-v="${esc(x.code)}">취소</button>`:''}</span></div>`}).join(''):'<p class="sub">아직 없어요. OT 마법사에서 발급해요.</p>'}</div></div>`;
   }
-  if(t.tab==='ot')return head+vTrOt();
+  if(t.tab==='ot')return head+vTrOt()+(t.win?winPop(t.win):'');
   if(t.tab==='sched')return head+vTrSched();
   if(t.sel)return head+vTrDetail();
   const q=t.q.trim();
@@ -580,12 +583,13 @@ function vTrOt(){
     <div class="row" style="gap:6px;overflow-x:auto;padding-bottom:2px">${yms.map(v=>{const y=Math.floor(v/100),m=v%100,n=cs.filter(x=>(x.reg_y||NY)*100+(x.reg_m||NM)===v).length;return `<button class="chip${v===cur?' on':''}" style="flex:none" data-a="trYm" data-v="${v}">${y!==NY?String(y).slice(2)+'년 ':''}${m}월${n?' '+n:''}</button>`}).join('')}</div>
     <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">${Object.keys(F).map(k=>`<button class="st${t.of===k?' on':''}" data-a="trOf" data-v="${k}"><b>${mon.filter(F[k]).length}</b>${k}</button>`).join('')}</div>
     ${shown.length?shown.map(x=>{const tp=OTA.T8[(x.result||{}).k]||{},late=x.status==='응답 대기'&&hrs(x.assigned_at)>=24;
-      return `<button class="mrow" data-a="openCase" data-v="${x.id}"><span><b>${esc(x.name)}</b><br><span class="sub">${esc(tp.start||'')} · 희망 ${esc(((x.answers||{}).days||[]).join('·'))} ${esc(((x.answers||{}).slots||[]).join('·'))}</span><br><span class="sub" style="${late?'color:#B91C1C;font-weight:800':''}">${late?hrs(x.assigned_at)+'시간째 응답 대기':['OT1 완료','OT2 완료','PT 등록'].includes(x.status)?'OT1 '+esc(x.ot1_at||x.first_ot_at||'—')+' · OT2 '+esc(x.ot2_at||'—')+(x.pt_at?' · PT '+esc(x.pt_at):''):esc(x.reply||(x.from_sheet?(x.pref_time||'')+(x.note?' · '+x.note:''):'새 배정'))}</span></span><span class="tag" style="${SC[x.status]||''}">${x.status}</span></button>`}).join(''):'<div class="card"><p class="sub">이 달에 배정된 OT가 없어요.</p></div>'}</div>`;
+      return `<button class="mrow" data-a="openCase" data-v="${x.id}"><span><b>${esc(x.name)}</b>${x.judged_stage?` <span class="tag" style="background:${['','#57534E','#7C3AED','#1D4ED8','#B45309','#1F6F5C'][x.judged_stage]};color:#fff">lv${x.judged_stage} ${['','거부','호기심','첫 몰입','일상','열정'][x.judged_stage]}</span>`:''}<br><span class="sub">${esc(tp.start||'')} · 희망 ${esc(((x.answers||{}).days||[]).join('·'))} ${esc(((x.answers||{}).slots||[]).join('·'))}</span><br><span class="sub" style="${late?'color:#B91C1C;font-weight:800':''}">${late?hrs(x.assigned_at)+'시간째 응답 대기':['OT1 완료','OT2 완료','PT 등록'].includes(x.status)?'OT1 '+esc(x.ot1_at||x.first_ot_at||'—')+' · OT2 '+esc(x.ot2_at||'—')+(x.pt_at?' · PT '+esc(x.pt_at):''):esc(x.reply||(x.from_sheet?(x.pref_time||'')+(x.note?' · '+x.note:''):'새 배정'))}</span></span><span class="tag" style="${SC[x.status]||''}">${x.status}</span></button>`}).join(''):'<div class="card"><p class="sub">이 달에 배정된 OT가 없어요.</p></div>'}</div>`;
   }
   const tp=OTA.T8[(c.result||{}).k]||{},a=c.answers||{},opt=(list)=>list.map(l=>`<button class="chip${t.ropt===l?' on':''}" data-a="ropt" data-v="${esc(l)}">${esc(l)}</button>`).join('');
   const ready=t.rk==='contact'||((t.rk==='done'||t.rk==='back')&&t.ropt);
   return `<div class="wrap"><button class="link" style="align-self:flex-start" data-a="closeCase">◀ 목록</button>
   <div class="card warm"><p class="sub" style="color:var(--ac2)"><b>센터 메시지</b></p><p style="margin:0;font-size:14px;line-height:1.6">${esc(c.name)} 회원님 OT 배정합니다. 희망 시간은 ${esc((a.days||[]).join('·'))} ${esc((a.slots||[]).join('·'))}이에요. 회원 정보 확인 후 스케줄을 조율해 주세요.</p></div>
+  ${c.judged_stage?`<div class="card" style="padding:10px 14px;flex-direction:row;justify-content:space-between;align-items:center"><span><b>판정 여정 lv${c.judged_stage} ${['','거부','호기심','첫 몰입','일상','열정'][c.judged_stage]}</b> <span class="sub">${esc(c.judged_type||'')}</span></span><button class="btn ghost sm" data-a="winOpen" data-v="${c.judged_stage}">필승전략</button></div>`:''}
   <div class="card"><p class="h">${esc(c.name)} · <a href="tel:${esc(c.phone||'')}">${esc(c.phone||'')}</a></p>
   <p class="sub"><b style="color:var(--tx)">시작 방식</b> ${esc(tp.start||'-')} (${esc(tp.n||'-')}) · 설문 시작 여정 ${esc((c.result||{}).start||'-')}</p>
   <p class="sub"><b style="color:var(--tx)">방향</b> ${esc((a.dir||[]).join(' · ')||'-')} · <b style="color:var(--tx)">망설임</b> ${esc((a.hard||[]).join(' · ')||'-')}</p>
@@ -680,8 +684,20 @@ async function trAddFb(row){
 document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.in;if(k==='trq'){S.tr.q=e.target.value;const p=e.target.selectionStart;render();const el=document.getElementById('trq');if(el){el.focus();el.setSelectionRange(p,p)}}if(k==='tex')S.tr.ui.ex=e.target.value;if(k==='otAt'){S.tr.ropt=e.target.value;const b=document.querySelector('[data-a=sendReply]');if(b)b.disabled=!e.target.value.trim()}});
 document.addEventListener('change',e=>{if(e.target.id==='pex')S.ui.pex=e.target.value});
 document.addEventListener('input',e=>{if(e.target.id==='sname'||e.target.id==='sphone')S.ui[e.target.id]=e.target.value});
+let _down=null;
+document.addEventListener('pointerdown',e=>{const x=e.target.closest&&e.target.closest('[data-a]');_down=x?{el:x,a:x.dataset.a,v:x.dataset.v,t:Date.now()}:null},true);
+// 손가락을 누르는 사이 화면이 다시 그려져(예: OT 알림 도착) 버튼이 바뀌면 브라우저가 클릭을 버림 → 같은 버튼을 찾아 대신 눌러 줌
+document.addEventListener('pointerup',e=>{
+  const d=_down;if(!d||document.contains(d.el)||Date.now()-d.t>800)return;
+  const q='[data-a="'+d.a+'"]'+(d.v!=null?'[data-v="'+String(d.v).replace(/"/g,'\\"')+'"]':'');
+  const nb=document.querySelector(q),under=document.elementFromPoint(e.clientX,e.clientY),u=under&&under.closest&&under.closest('[data-a]');
+  if(nb&&u===nb){_down=null;setTimeout(()=>nb.click(),0)}
+},true);
 document.addEventListener('click',async e=>{
-  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v,val=id=>(document.getElementById(id)||{}).value||'';
+  let b=e.target.closest('[data-a]');
+  if(!b&&_down&&Date.now()-_down.t<800){const q='[data-a="'+_down.a+'"]'+(_down.v!=null?'[data-v="'+String(_down.v).replace(/"/g,'\\"')+'"]':'');b=document.querySelector(q)}
+  _down=null;
+  if(!b)return;const a=b.dataset.a,v=b.dataset.v,val=id=>(document.getElementById(id)||{}).value||'';
   const A={
     reload:()=>location.reload(),
     login:()=>{if(!sb){toast('로그인은 upvible.github.io 주소에서만 동작해요');return}sb.auth.signInWithOAuth({provider:v,options:{redirectTo:BASE+'index.html'+(S.code?'?code='+encodeURIComponent(S.code):''),queryParams:v==='kakao'?{prompt:'login'}:{prompt:'select_account'}}}).then(r=>{if(r.error)toast('로그인을 시작하지 못했어요: '+r.error.message)})},
@@ -720,6 +736,7 @@ document.addEventListener('click',async e=>{
     goTrainerOt:()=>{S.scr='trainer';S.tr.tab='ot';S.tr.sel=null;render();loadTrainer()},
     openCase:()=>{S.tr.openCase=+v;S.tr.rk=null;S.tr.ropt=null;render();window.scrollTo(0,0)},
     closeCase:()=>{S.tr.openCase=null;render()},
+    otHide:()=>{try{sessionStorage.setItem('wlp-ot-hide',String(S.newCases||0))}catch(e){}render()},
     winOpen:()=>{S.tr.win=+v;render()},
     winClose:()=>{S.tr.win=null;render()},
     winStay:()=>{},
