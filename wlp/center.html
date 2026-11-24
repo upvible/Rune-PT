@@ -69,6 +69,8 @@ input[type=text],textarea,select{width:100%;min-height:42px;border-radius:10px;b
 .schg tr.sum td,.schg tr.sum th{height:26px;text-align:center;font-weight:900;vertical-align:middle;background:#F4F2EE}
 @media print{@page{size:A4 landscape;margin:8mm}body{background:#fff}.top,.demo,.noprint,.toast{display:none!important}.wrap{padding:0!important;max-width:none!important}
  .schsheet{border:0;padding:0}.schg{min-width:0}.schg th,.schg td{font-size:9px;height:34px}.schg td.on{background:#FDF0DA!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.schg td.brk{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.jl{width:34px;height:34px;border-radius:9px;border:1px solid #D8CCBA;background:#fff;font-weight:800;font-size:13px;color:#8A8074;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.jl.on{background:#2B241D;border-color:#2B241D;color:#F0B85C}span.jl{cursor:default}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2B241D;color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;z-index:9}
 .demo{background:#1C1712;color:#F0B85C;font-size:11px;padding:6px 20px}
 .center{max-width:420px;margin:80px auto;padding:0 20px;display:flex;flex-direction:column;gap:10px;text-align:center}
@@ -273,12 +275,13 @@ function vStaff(){
   const reqRow=r=>{const can=r.want_role!=='center'||own;const adm=r.want_role==='center';return `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.title)}</td><td>${esc(r.phone||'')}</td><td>${md(r.created_at)}</td><td>${can?`<button class="btn" style="min-height:34px" data-a="approve" data-v="${r.id}">승인</button> <button class="btn g" style="min-height:34px" data-a="reject" data-v="${r.id}">거절</button>`:'<span class="sub">총관리자만 승인</span>'}${adm&&can?'<br><span class="sub">승인하면 총관리자 권한도 함께</span>':''}</td></tr>`};
   const staffRow=s=>{const me=S.me&&S.me.uid===s.user_id,lock=(s.role==='center'||s.is_owner)&&!own;
     return `<tr style="${s.active?'':'opacity:.5'}"><td><b>${esc(s.name)}</b>${s.is_owner?' <span class="st" style="background:#2B241D;color:#F0B85C">총관리자</span>':''}</td>
-    <td>${lock||me||s.title==='총괄 관리자'?esc(s.title||''):`<select data-ch="title" data-v="${s.user_id}" style="min-height:34px;padding:2px 8px">${['트레이너'].concat(own?['부점장','점장']:[]).map(x=>`<option${x===s.title?' selected':''}>${x}</option>`).join('')}</select>`}</td><td>${esc(s.phone||'')}</td><td><div style="display:flex;gap:4px"><input type="text" id="sn_${s.user_id}" value="${esc(s.sheet_name||'')}" placeholder="예: 성경" style="min-height:34px;max-width:110px;padding:4px 8px"><button class="btn g" style="min-height:34px" data-a="setSheetName" data-v="${s.user_id}">저장</button></div></td><td>${s.active?'사용 중':'중지'}</td>
+    <td>${lock||me||s.title==='총괄 관리자'?esc(s.title||''):`<select data-ch="title" data-v="${s.user_id}" style="min-height:34px;padding:2px 8px">${['트레이너'].concat(own?['부점장','점장']:[]).map(x=>`<option${x===s.title?' selected':''}>${x}</option>`).join('')}</select>`}</td><td>${esc(s.phone||'')}</td><td><div style="display:flex;gap:4px"><input type="text" id="sn_${s.user_id}" value="${esc(s.sheet_name||'')}" placeholder="예: 성경" style="min-height:34px;max-width:110px;padding:4px 8px"><button class="btn g" style="min-height:34px" data-a="setSheetName" data-v="${s.user_id}">저장</button></div></td><td><div style="display:flex;gap:3px">${[1,2,3,4,5].map(n=>{const on=(s.journey_open||[]).includes(n);return own?`<button class="jl${on?' on':''}" data-a="jToggle" data-v="${s.user_id}" data-n="${n}" aria-label="여정 ${n} ${on?'닫기':'열기'}">${n}</button>`:`<span class="jl${on?' on':''}">${n}</span>`}).join('')}</div></td><td>${s.active?'사용 중':'중지'}</td>
     <td>${lock||me?(me?'<span class="sub">내 계정</span>':''):`<button class="btn g" style="min-height:34px" data-a="toggleStaff" data-v="${s.user_id}">${s.active?'사용 중지':'다시 사용'}</button>`}${own&&!me&&s.role==='center'&&s.active?` <button class="btn g" style="min-height:34px" data-a="toggleAdmin" data-v="${s.user_id}">${s.is_owner?'총관리자 빼기':'총관리자 주기'}</button>`:''}</td></tr>`};
   return `<div class="two"><div class="main">
   <div class="card" style="border:1.5px solid #B45309"><p class="h">승인 대기 ${pend.length}명</p><p class="sub">직원이 WLP 앱에서 카카오 로그인 → '직원 승인 요청'을 보내면 여기에 떠요. 트레이너는 센터 관리자 누구나, 점장·부점장은 총관리자만 승인해요.</p>
   ${pend.length?`<table><tr><th>이름</th><th>직책</th><th>연락처</th><th>요청일</th><th></th></tr>${pend.map(reqRow).join('')}</table>`:'<p class="sub">대기 중인 요청이 없어요.</p>'}</div>
-  <div class="card"><p class="h">직원 ${S.staff.filter(s=>s.active).length}명</p><table><tr><th>이름</th><th>직책</th><th>연락처</th><th>시트 이름</th><th>상태</th><th></th></tr>${S.staff.map(staffRow).join('')}</table>
+  <div class="card"><p class="h">직원 ${S.staff.filter(s=>s.active).length}명</p><table><tr><th>이름</th><th>직책</th><th>연락처</th><th>시트 이름</th><th>여정 열기</th><th>상태</th><th></th></tr>${S.staff.map(staffRow).join('')}</table>
+  <p class="sub"><b>여정 열기</b>: 번호를 누르면 그 직원의 WLP 앱에서 해당 여정(1~5) 회원 화면이 열리고, 다시 누르면 닫혀요. 총관리자만 바꿀 수 있어요. 직원이 앱을 다시 열면 바로 반영돼요.</p>
   <p class="sub"><b>시트 이름</b>: 2026 오티 리스트의 '담당' 칸에 적는 이름이에요(예: 위성경 → 성경). 저장하면 시트에서 그 이름으로 들어온 OT가 이 계정에 바로 연결돼요. 시트에 다시 쓸 때도 이 이름으로 써요.</p>
   <p class="sub">사용 중지하면 그 계정은 바로 직원 기능을 못 써요(기록은 남아요). 총관리자는 여러 명 둘 수 있고, 마지막 한 명은 빼거나 중지할 수 없어요. 내 계정은 스스로 중지할 수 없어요.</p></div>
   ${done.length?`<div class="card"><p class="h">처리한 요청</p>${done.map(r=>`<p class="sub">${md(r.decided_at||r.created_at)} · ${esc(r.name)} ${esc(r.title)} · ${r.status}${r.note?' · '+esc(r.note):''}</p>`).join('')}</div>`:''}
@@ -320,6 +323,10 @@ document.addEventListener('click',async e=>{
    case 'ctr':S.ctr=v;render();break;
    case 'toCase':{const c=S.cases.find(x=>x.lead_id===+v);S.tab='cases';if(c){S.ym={y:c.reg_y||NOWY,m:c.reg_m||NOWM};S.selC=c.id}S.cf='전체';S.ctr='전체';render();break}
    case 'prog':{const d=val('pdate').trim();await call('wlp_set_progress',{p_case:C.id,p_status:v,p_date:d||null},()=>{C.status=v;if(d){if(v==='OT1 완료'||v==='조율 완료')C.ot1_at=d;if(v==='OT2 완료')C.ot2_at=d;if(v==='PT 등록')C.pt_at=d}(C.events=C.events||[]).push({action:v,note:d,at:new Date().toISOString()})});break}
+   case 'jToggle':{const s=S.staff.find(x=>x.user_id===v),n=+b.dataset.n,cur=s.journey_open||[],nx=cur.includes(n)?cur.filter(x=>x!==n):cur.concat([n]).sort();
+     if(DEMO){s.journey_open=nx;render();break}
+     const r=await sb.rpc('wlp_set_staff_journey',{p_staff:v,p_levels:nx});if(r.error||(r.data&&r.data.ok===false)){toast(r.error?errText(r.error):r.data.reason||'바꾸지 못했어요');break}
+     s.journey_open=nx;toast(`${s.name} · 여정 ${n} ${nx.includes(n)?'열었어요':'닫았어요'}`);render();break}
    case 'setSheetName':{const nm=val('sn_'+v).trim();if(DEMO){const s=S.staff.find(x=>x.user_id===v);s.sheet_name=nm;toast('시험 모드: 화면에만 반영');render();break}
      const r=await sb.rpc('wlp_set_sheet_name',{p_staff:v,p_name:nm});if(r.error||(r.data&&r.data.ok===false)){toast(r.error?errText(r.error):'저장하지 못했어요');break}toast(nm?`저장했어요 · OT ${r.data.linked}건을 이 계정에 연결했어요`:'시트 이름을 지웠어요');await loadAll();break}
    case 'delCase':{if(!confirm(C.name+'님 OT를 삭제할까요? 시트 행은 그대로 두고 WLP 진행 칸에 "삭제됨"으로 표시해요. 아래 "삭제한 항목"에서 복구할 수 있어요.'))break;

@@ -188,7 +188,7 @@ const STEPS=[0,2,4,6,8,10];
 
 /* ===== 상태 ===== */
 let sb=null;
-const S={scr:'boot',uid:null,role:'member',stage:null,approved:[],view:null,code:'',codeMsg:'',busy:false,
+const S={scr:'boot',uid:null,role:'member',stage:null,approved:[],staffOpen:[],gifts:[],sessions:[],runeSessions:[],wk:[],fb:[],view:null,code:'',codeMsg:'',busy:false,
   gifts:[],sessions:[],fb:[],ui:{},
   tr:{tab:'members',list:null,others:null,q:'',sel:null,detail:null,invites:null,cases:null,openCase:null,rk:null,ropt:null,ui:{pd:null,se:null,vas:0,talk:'change',role:'trainer',ex:'',exs:[]}}};
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -198,8 +198,8 @@ const sbErr=e=>/function|does not exist|schema cache|relation/i.test((e&&e.messa
 const isStaff=()=>S.role==='center'||S.role==='trainer';
 
 /* ===== 접근 규칙 ===== */
-function isOpen(n){const st=S.stage;if(!st)return isStaff();return n===st||S.approved.includes(n)||(PAST_OK[st]&&n<st)}
-function openKind(n){const st=S.stage;if(!st&&isStaff())return 'staff';if(n===st)return 'own';if(S.approved.includes(n))return 'appr';if(PAST_OK[st]&&n<st)return 'past';return 'lock'}
+function isOpen(n){const st=S.stage;if(!st)return isStaff()&&S.staffOpen.includes(n);return n===st||S.approved.includes(n)||(PAST_OK[st]&&n<st)}
+function openKind(n){const st=S.stage;if(!st&&isStaff())return S.staffOpen.includes(n)?'appr':'lock';if(n===st)return 'own';if(S.approved.includes(n))return 'appr';if(PAST_OK[st]&&n<st)return 'past';return 'lock'}
 
 /* ===== 시험 모드 데이터 ===== */
 function demoData(){
@@ -232,7 +232,7 @@ function demoDetail(id){
 async function boot(){
   const c=QS.get('code');if(c){S.code=c.toUpperCase();try{localStorage.setItem('wlp-code',S.code)}catch(e){}}
   else{try{S.code=localStorage.getItem('wlp-code')||''}catch(e){}}
-  if(DEMO){S.uid='demo';S.role='center';S.staffName='센터 관리자(시험)';loadCasesBadge();S.stage=Number(QS.get('stage'))||2;S.approved=[];demoData();S.scr='launch';render();return}
+  if(DEMO){S.staffOpen=[3,4];S.uid='demo';S.role='center';S.staffName='센터 관리자(시험)';loadCasesBadge();S.stage=Number(QS.get('stage'))||2;S.approved=[];demoData();S.scr='launch';render();return}
   try{sb=window.supabase.createClient(CFG.SB_URL,CFG.SB_KEY,{auth:{storageKey:'wlp-auth'}})}catch(e){S.scr='login';render();return}
   const {data}=await sb.auth.getSession();
   if(!data||!data.session){S.scr='login';render();return}
@@ -243,7 +243,7 @@ async function loadMe(){
   if(r.error){S.scr='err';S.err=sbErr(r.error);render();return}
   S.role=(r.data&&r.data.role)||'member';S.staffName=r.data&&r.data.staff_name;S.title=r.data&&r.data.title;S.isOwner=r.data&&r.data.is_owner;S.centerExists=r.data&&r.data.center_exists;S.req=r.data&&r.data.request;
   S.stage=r.data&&r.data.stage||null;S.approved=(r.data&&r.data.approved)||[];
-  if(isStaff())loadCasesBadge();
+  if(isStaff()){loadCasesBadge();try{const j=await sb.rpc('wlp_my_journey');S.staffOpen=(!j.error&&j.data)||[]}catch(e){S.staffOpen=[]}}
   if(!S.stage){S.scr=isStaff()?'launch':(S.req&&S.req.status==='대기'?'pending':'code');render();if(isStaff())loadMemberData();if(S.code&&!isStaff()&&S.scr==='code')redeem();return}
   try{localStorage.removeItem('wlp-code')}catch(e){}
   S.scr='launch';render();loadMemberData();
@@ -256,10 +256,10 @@ async function loadMemberData(){
       const [g,s]=await Promise.all([
         sb.from('routine_gifts').select('id,gift_date,title,payload,created_at').eq('member_id',S.uid).order('created_at',{ascending:false}).limit(5),
         sb.from('workout_sessions').select('session_date,session_no,items').eq('member_id',S.uid).order('session_date',{ascending:false}).limit(60)]);
-      S.gifts=g.data||[];S.runeSessions=s.data||[];
+      S.gifts=(g&&g.data)||[];S.runeSessions=(s&&s.data)||[];
     }
     await loadRec();mergeSessions();
-  }catch(e){}
+  }catch(e){S.gifts=S.gifts||[];S.runeSessions=S.runeSessions||[];S.fb=S.fb||[];try{mergeSessions()}catch(_){}}
   render();
 }
 async function redeem(){
@@ -357,23 +357,23 @@ function vLaunch(){
   const st=S.stage;
   const pos=[null,[90,500],[290,400],[100,300],[290,200],[130,90]];
   const nodes=[1,2,3,4,5].map(n=>{
-    const k=(st||isStaff())?openKind(n):'lock',isCur=n===st,open=k!=='lock',size=isCur?76:56,[cx,cy]=pos[n],right=cx>200;
+    const k=(st||isStaff())?openKind(n):'lock',isCur=n===st,open=k!=='lock',size=isCur?76:open?66:56,[cx,cy]=pos[n],right=cx>200;
     const orb=isCur?'background:#F0B85C;color:#1C1712;box-shadow:0 0 0 6px rgba(240,184,92,.22),0 0 28px rgba(240,184,92,.45)':open?'background:#3A2F23;color:#F0B85C;border:2px solid #F0B85C':'background:#25201A;border:2px dashed #4A3F34';
     const p=(right?`right:${390-cx-size/2}px;`:`left:${cx-size/2}px;`)+`top:${cy-size/2}px`;
-    const badge=isCur?`<span class="badge" style="color:#1C1712;background:#F0B85C">내 여정</span>`:k==='appr'?`<span class="badge" style="color:#F0B85C;border:1px solid #F0B85C">승인됨</span>`:k==='staff'?`<span class="badge" style="color:#F0B85C;border:1px solid #F0B85C">직원 체험</span>`:k==='past'?`<span class="badge" style="color:#B9AE9F;border:1px solid #4A3F34">지나온 여정</span>`:'';
+    const badge=isCur?`<span class="badge" style="color:#1C1712;background:#F0B85C">내 여정</span>`:k==='appr'?`<span class="badge" style="color:#F0B85C;border:1px solid #F0B85C">승인됨</span>`:k==='past'?`<span class="badge" style="color:#B9AE9F;border:1px solid #4A3F34">지나온 여정</span>`:'';
     const lock=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8F8476" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`;
     return `<button class="node${right?' r':''}" style="${p}" data-a="${open?'openStage':'locked'}" data-v="${n}" aria-label="여정 ${n} ${J[n].name}${open?'':' (잠김)'}">
       <span class="orb" style="width:${size}px;height:${size}px;font-size:${isCur?28:20}px;${orb}">${open?n:lock}</span>
       <span style="display:flex;flex-direction:column;gap:2px;${right?'align-items:flex-end':''}"><span style="font-size:${isCur?16:14}px;font-weight:${isCur?900:700};color:${open?'#F5EFE6':'#8F8476'}">여정 ${n} · ${J[n].name}</span>
       <span style="font-size:11px;color:${open?'#B9AE9F':'#8F8476'}">${open?J[n].sub:'트레이너·센터 승인 시 열려요'}</span>${badge}</span></button>`}).join('');
   const toastJoined=S.scr==='joined'?`<div style="margin:0 16px;border-radius:16px;background:#F0B85C;color:#1C1712;padding:14px 16px;display:flex;align-items:center;gap:12px"><div style="flex:1"><b style="font-size:15px">첫 여정이 열렸어요</b><div style="font-size:12px">“${J[st].name}”를 눌러 시작해 보세요. 다음 여정은 트레이너와 함께 열려요.</div></div><button data-a="closeJoined" aria-label="닫기" style="width:44px;height:44px;border-radius:12px;border:0;background:rgba(28,23,18,.12);font-size:18px;font-weight:900">×</button></div>`:'';
-  const noStage=!st?`<p style="text-align:center;color:var(--dm);font-size:13px;margin:0 24px">${esc(S.staffName||'')} ${esc(S.title||'')} · 직원 계정이에요. 여정 1~5를 눌러 회원 화면을 직접 써 보고, 회원 관리·OT·스케줄은 아래 M에서 해요.</p>`:'';
+  const noStage=!st?`<p style="text-align:center;color:var(--dm);font-size:13px;margin:0 24px">${esc(S.staffName||'')} ${esc(S.title||'')} · 직원 계정이에요. 회원 관리·OT·스케줄은 아래 M에서 해요.</p>`:'';
   const otBadge=isStaff()&&S.newCases?`<button data-a="goTrainerOt" style="margin:12px 16px 0;border:0;border-radius:16px;background:#F0B85C;color:#1C1712;padding:14px 16px;font-weight:800;font-size:14px;text-align:left">새 OT 배정 ${S.newCases}건 · 회원 정보 확인 후 스케줄을 조율해 주세요 ▸</button>`:'';
   return `<div class="dark" style="display:flex;flex-direction:column">
   <div style="padding:30px 24px 0;display:flex;flex-direction:column;align-items:center;gap:6px">${logo()}<span style="font-size:22px;font-weight:900;letter-spacing:.06em">WLP</span><span style="font-size:13px;color:var(--dm)">${isStaff()&&!st?'직원 계정':'회원님의 여정'}</span></div>
   ${toastJoined}${otBadge}${noStage}
   <div class="map"><svg width="390" height="560" viewBox="0 0 390 560" style="position:absolute;left:0;top:0" aria-hidden="true"><path d="M90 500 C 170 500, 300 470, 290 400 S 110 360, 100 300 S 280 250, 290 200 S 150 120, 130 90" fill="none" stroke="#4A3F34" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/></svg>${nodes}</div>
-  <p style="margin:0 24px 10px;font-size:11px;color:var(--dm2);text-align:center;line-height:1.5">${!st&&isStaff()?'직원 계정은 다섯 여정을 모두 써 볼 수 있어요. 운동 기록·느낌 기록은 내 계정에만 저장되고, 회원 목록에는 나오지 않아요.':(PAST_OK[st]?'내 여정과 지나온 여정이 열려 있어요.':'내 여정만 열려 있어요.')+' 다른 여정은 트레이너나 센터가 승인하면 열려요.'}</p>
+  <p style="margin:0 24px 10px;font-size:11px;color:var(--dm2);text-align:center;line-height:1.5">${!st&&isStaff()?(S.staffOpen.length?'총괄관리자가 열어 준 여정만 열려요. 기록은 내 계정에만 저장되고 회원 목록에는 나오지 않아요.':'아직 열린 여정이 없어요. 총괄관리자가 센터 화면 → 직원 승인에서 열어 줄 수 있어요.'):(PAST_OK[st]?'내 여정과 지나온 여정이 열려 있어요.':'내 여정만 열려 있어요.')+' 다른 여정은 트레이너나 센터가 승인하면 열려요.'}</p>
   <div class="row" style="justify-content:space-between;padding:0 20px 26px"><button class="link" style="color:var(--dm2)" data-a="logout">로그아웃</button>
   <button data-a="goTrainer" aria-label="관리자 (트레이너 전용)" style="width:44px;height:44px;border-radius:12px;border:1px solid #4A3F34;background:transparent;color:#8F8476;font-size:16px;font-weight:900">M</button></div></div>`;
 }
