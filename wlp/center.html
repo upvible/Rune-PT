@@ -269,6 +269,9 @@ function vCases(){
     <div class="kv"><b>판정 여정</b><span>${C.judged_stage?`lv${C.judged_stage} ${JN[C.judged_stage]} · ${esc(C.judged_type||'')} · ${md(C.judged_at)}`:'아직 판정 전 (OT 마법사 결과가 나오면 자동으로 들어와요)'}${C.cur_stage?` · 앱 지금 lv${C.cur_stage}`:''}</span><b>최초 등록</b><span>${C.reg_y}년 ${C.reg_m}월${C.from_sheet?' · 시트':''}${C.lead_id?' · 설문':''}</span><b>성별·나이</b><span>${esc([C.sex,C.age].filter(Boolean).join(' · ')||'-')}</span><b>등록 월수</b><span>${esc(C.months||'-')}</span><b>운동시간</b><span>${esc(C.pref_time||whenOf(C.answers).trim()||'-')}</span><b>특이사항</b><span>${esc(C.note||'-')}</span>
     ${C.lead_id?`<b>시작 방식</b><span>${esc(t.start)} · 직원용 ${esc(t.n)}</span>`:''}<b>의학 메모</b><span style="color:#B91C1C">${esc(C.med_memo||'-')}</span><b>응답</b><span>${esc(C.reply||'-')}</span><b>OT1 · OT2 · PT</b><span>${esc(C.ot1_at||C.first_ot_at||'—')} · ${esc(C.ot2_at||'—')} · ${esc(C.pt_at||'—')}</span></div>
     <div style="display:flex;gap:6px"><input id="cmed" type="text" placeholder="의학 메모 고치기" value="${esc(C.med_memo||'')}"><button class="btn g" data-a="setMed">저장</button></div></div>
+    <div class="card"><p class="h">여정 바꾸기 <span class="sub" style="font-weight:400">회원 분류를 직접 고쳐요</span></p>
+    <div class="chips">${[1,2,3,4,5].map(n=>`<button class="ch${C.judged_stage===n?' on':''}" data-a="setJ" data-v="${n}" style="${C.judged_stage===n?`background:${JC[n]};border-color:${JC[n]};color:#fff`:''}">lv${n} ${JN[n]}</button>`).join('')}<button class="ch${!C.judged_stage?' on':''}" data-a="setJ" data-v="0">미판정</button></div>
+    <p class="sub">OT 마법사 결과와 다르게 보이면 여기서 바꿔요. 바꾼 내용은 기록에 남고, 시트 'WLP 여정' 칸과 통계에도 반영돼요.</p></div>
     <div class="card"><p class="h">진행 바꾸기</p><div style="display:flex;gap:6px"><input id="pdate" type="text" placeholder="날짜 (예: 11/26)" style="max-width:150px"></div>
     <div class="chips">${['조율 완료'].concat(PROG).map(s=>`<button class="ch${C.status===s?' ac':''}" data-a="prog" data-v="${s}">${s}</button>`).join('')}</div><p class="sub">여기서 바꾸면 WLP가 기준이 돼서, 시트를 다시 불러와도 이 회원의 진행은 덮어쓰지 않아요.</p></div>
     <div class="card"><p class="h">${C.status==='재배정 요청'?'다시 배정 (반송한 트레이너 제외)':'담당 트레이너 '+(C.trainer_id?'바꾸기':'배정')}${tn(C)&&!C.trainer_id?' · 시트 담당: '+esc(tn(C))+' (직원 계정 없음)':''}</p>
@@ -340,6 +343,10 @@ document.addEventListener('click',async e=>{
    case 'cf':S.cf=v;render();break;
    case 'ctr':S.ctr=v;render();break;
    case 'cj':S.cj=v;render();break;
+   case 'setJ':{const n=+v||null;if(C.judged_stage===n)break;
+     const apply=()=>{const nm=['','거부','호기심','첫 몰입','일상','열정'];(C.events=C.events||[]).push({action:'여정 수정',note:(C.judged_stage?'lv'+C.judged_stage+' '+nm[C.judged_stage]:'미판정')+' → '+(n?'lv'+n+' '+nm[n]:'미판정'),at:new Date().toISOString()});C.judged_stage=n;C.judged_type=n?((C.judged_type||'').replace(/\s*·?\s*직접 수정$/,'')?(C.judged_type||'').replace(/\s*·?\s*직접 수정$/,'')+' · 직접 수정':'직접 수정'):null;C.judged_at=new Date().toISOString();S.stats=null};
+     if(DEMO){apply();render();break}
+     const r=await sb.rpc('wlp_set_judged',{p_case:C.id,p_stage:n});if(r.error||(r.data&&r.data.ok===false)){toast(r.error?errText(r.error):r.data.reason);break}apply();toast(n?'lv'+n+'로 바꿨어요':'미판정으로 바꿨어요');render();break}
    case 'loadStats':{const y=S.ym.y,f=y+'-01-01',to=y+'-12-31';
      if(DEMO){S.stats={stage:[{stage:1,cases:6,ot_done:3,pt:1,pt_rate:16.7},{stage:2,cases:9,ot_done:7,pt:3,pt_rate:33.3},{stage:3,cases:5,ot_done:5,pt:3,pt_rate:60}],trainer:[{trainer:'위성경',stage:2,cases:4,pt:2,pt_rate:50},{trainer:'위성경',stage:3,cases:3,pt:2,pt_rate:66.7},{trainer:'김이규',stage:1,cases:3,pt:1,pt_rate:33.3}],att:[{stage:2,week:0,members:3,avg_days:1.7},{stage:2,week:5,members:3,avg_days:1.3},{stage:3,week:0,members:2,avg_days:2.5},{stage:3,week:9,members:2,avg_days:2.0}]};render();break}
      const [a,b2,c2]=await Promise.all([sb.rpc('wlp_stats_stage',{p_from:f,p_to:to}),sb.rpc('wlp_stats_trainer_stage',{p_from:f,p_to:to}),sb.rpc('wlp_stats_attendance',{p_from:f,p_to:to})]);

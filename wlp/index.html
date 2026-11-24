@@ -443,6 +443,7 @@ function home2(){
 }
 
 /* 필승전략: 단계별 레슨 가이드 (트레이너 회원 탭) */
+const JNM=['','거부','호기심','첫 몰입','일상','열정'];
 const WIN={
  1:{n:'거부',m:'몸 풀기',a:'“여기 오는 게 싫지는 않다”',
    b:['체중·인바디·식단 얘기','“꾸준히 하셔야죠” 같은 설득','힘든 동작, 숨찬 강도','출석·연속 기록 확인'],
@@ -589,7 +590,9 @@ function vTrOt(){
   const ready=t.rk==='contact'||((t.rk==='done'||t.rk==='back')&&t.ropt);
   return `<div class="wrap"><button class="link" style="align-self:flex-start" data-a="closeCase">◀ 목록</button>
   <div class="card warm"><p class="sub" style="color:var(--ac2)"><b>센터 메시지</b></p><p style="margin:0;font-size:14px;line-height:1.6">${esc(c.name)} 회원님 OT 배정합니다. 희망 시간은 ${esc((a.days||[]).join('·'))} ${esc((a.slots||[]).join('·'))}이에요. 회원 정보 확인 후 스케줄을 조율해 주세요.</p></div>
-  ${c.judged_stage?`<div class="card" style="padding:10px 14px;flex-direction:row;justify-content:space-between;align-items:center"><span><b>판정 여정 lv${c.judged_stage} ${['','거부','호기심','첫 몰입','일상','열정'][c.judged_stage]}</b> <span class="sub">${esc(c.judged_type||'')}</span></span><button class="btn ghost sm" data-a="winOpen" data-v="${c.judged_stage}">필승전략</button></div>`:''}
+  <div class="card" style="padding:10px 14px;gap:8px"><div class="row" style="justify-content:space-between;align-items:center"><span><b>${c.judged_stage?`판정 여정 lv${c.judged_stage} ${JNM[c.judged_stage]}`:'판정 여정 · 아직 없음'}</b> <span class="sub">${esc(c.judged_type||'')}</span></span>${c.judged_stage?`<button class="btn ghost sm" data-a="winOpen" data-v="${c.judged_stage}">필승전략</button>`:''}</div>
+  <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px">${[1,2,3,4,5].map(n=>`<button class="winb${c.judged_stage===n?' on':''}" style="min-height:44px" data-a="trSetJ" data-v="${n}"><b>lv${n}</b><span style="font-size:10px">${JNM[n]}</span></button>`).join('')}</div>
+  <p class="sub" style="font-size:11px">회원 분류가 다르면 눌러서 바꿔요. 다시 누르면 미판정으로 돌아가요.</p></div>
   <div class="card"><p class="h">${esc(c.name)} · <a href="tel:${esc(c.phone||'')}">${esc(c.phone||'')}</a></p>
   <p class="sub"><b style="color:var(--tx)">시작 방식</b> ${esc(tp.start||'-')} (${esc(tp.n||'-')}) · 설문 시작 여정 ${esc((c.result||{}).start||'-')}</p>
   <p class="sub"><b style="color:var(--tx)">방향</b> ${esc((a.dir||[]).join(' · ')||'-')} · <b style="color:var(--tx)">망설임</b> ${esc((a.hard||[]).join(' · ')||'-')}</p>
@@ -737,6 +740,9 @@ document.addEventListener('click',async e=>{
     openCase:()=>{S.tr.openCase=+v;S.tr.rk=null;S.tr.ropt=null;render();window.scrollTo(0,0)},
     closeCase:()=>{S.tr.openCase=null;render()},
     otHide:()=>{try{sessionStorage.setItem('wlp-ot-hide',String(S.newCases||0))}catch(e){}render()},
+    trSetJ:async()=>{const c=S.tr.cases.find(x=>x.id===S.tr.openCase);if(!c)return;const n=c.judged_stage===+v?null:+v;
+      if(!DEMO){const r=await sb.rpc('wlp_set_judged',{p_case:c.id,p_stage:n});if(r.error||(r.data&&r.data.ok===false)){toast(r.error?sbErr(r.error):r.data.reason);return}}
+      c.judged_stage=n;c.judged_type=n?'직접 수정':null;toast(n?'lv'+n+' '+JNM[n]+'(으)로 바꿨어요':'미판정으로 바꿨어요');render()},
     winOpen:()=>{S.tr.win=+v;render()},
     winClose:()=>{S.tr.win=null;render()},
     winStay:()=>{},
