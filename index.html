@@ -1650,7 +1650,7 @@ function fieldBlock(d){
   if(world)return HEAD+SEGM+SEGP+FLD+BTN+INP+'<div id="fqr">'+fqHTML(d)+'</div>'+NOTE+WARN+RT+'</div>';
   /* 개인/수업 기록: 담기·검색 → 운동 순서 → 최근 운동 → 맨 아래 미니맵 */
   const sq=FQ.trim()?fqHTML(d):'',rc=FQ.trim()?'':fqHTML(d);
-  return HEAD+BTN+INP+(ADM.cur?lastRev():'')+'<div id="fqr">'+sq+'</div>'+WARN+RT+'<div id="fqrec">'+rc+'</div>'+`<details${ADM.cur?' open':''} style="margin-top:14px"><summary class="h2" style="font-size:14px;cursor:pointer">🗺 ${ADM.cur?'미니맵 · 오늘 산책로 분포':'숲 지도 보기 <small class="mu">(선택) · '+P0.t+' 레이더 '+new Set(route.map(r=>fxIdx(EX[r.x.id],ph))).size+'/'+n+'영역</small>'}</summary>`+SEGM+SEGP+FLD+'</details></div>'}
+  return HEAD+BTN+INP+(ADM.cur?lastRev():'')+'<div id="fqr">'+sq+'</div>'+WARN+RT+'<div id="fqrec">'+rc+'</div>'+`<details${ADM.cur?' open':''} style="margin-top:14px"><summary class="h2" style="font-size:14px;cursor:pointer">🗺 ${ADM.cur?'미니맵 · 오늘 산책로 분포':'숲 지도 보기 <small class="mu">(선택) · '+P0.t+' 레이더 '+new Set(route.map(r=>fxIdx(EX[r.x.id],ph))).size+'/'+n+'영역</small>'}</summary>`+SEGM+SEGP+FLD+'</details></div>'+(ADM.cur&&rscMem()?pathRadarHTML(rscMem().id):'')}
 /* ---- 회원 월드맵 관리창 ---- */
 function fCore(o,ph,sel){
   const P0=PHS[ph],n=P0.ax.length,lu=o.lu[ph];
