@@ -1556,7 +1556,11 @@ function planFor(id){
   return pl.sets.slice(0,3).map(s=>({t:'M',w:s.w,r:s.r,pr:s.pr,done:false,tmp:1}));
 }
 /* 지난번 웜업 습관 이어받기: 지난 기록의 웜업/첫 본세트 비율을 오늘 첫 본세트 무게에 곱해요 (값은 흐리게 제안, 직접 고치거나 체크하면 확정) */
-function mkSets(id){const a=mkSets0(id);try{if(isCar(id)||ADM.cur)return a;const pv=prevOf(id);if(!pv)return a;
+/* 지난 기록 세트 1개 → 오늘 세트(회색 임시값). F(실패)는 메인으로 */
+function setFrom(q,t){const n={t:t||(q.t==='W'?'W':'M'),w:+q.w||0,r:+q.r||0,done:false,tmp:1};if(q.lr){n.lr=1;n.w2=+q.w2||0;n.r2=+q.r2||0}if(q.v)n.v=q.v;if(q.car)n.car=q.car;return n}
+function prevCopy(id){const pv=prevOf(id);if(!pv||!pv.sets)return null;const a=pv.sets.filter(q=>+q.w>0||+q.r>0||q.v).map(q=>setFrom(q));return a.length?a:null}
+function mkSets(id){try{let p=null;if(!ADM.cur&&!isCar(id)){try{p=planFor(id)}catch(e){}}if(!p){const c=prevCopy(id);if(c)return c}}catch(e){}
+  const a=mkSets0(id);try{if(isCar(id)||ADM.cur)return a;const pv=prevOf(id);if(!pv)return a;
   const pw=pv.sets.find(q=>q.t==='W'&&+q.w>0&&(q.done||!q.tmp)),pm=pv.sets.find(q=>q.t==='M'&&+q.w>0);
   const w0=a.find(q=>q.t==='W'),m0=a.find(q=>q.t==='M');
   if(pw&&pm&&w0&&m0&&!w0.lr&&!pw.lr){w0.w=Math.abs(m0.w-pm.w)/pm.w<=.15?+pw.w:rnd(m0.w*(+pw.w/+pm.w));if(+pw.r>0)w0.r=+pw.r}}catch(e){}
@@ -1655,11 +1659,16 @@ function fieldBlock(d){
   const lvi=fLvInfo(route.length);
   const who=ADM.cur?'수업 라인업':'내 라인업';
   const empty=!toks.length?`<div class="mu" style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:0 22%">${world?'라인업이 비어 있어요. “+ 운동 올리기”로 종목을 올려 보세요':'오늘 산책로가 비어 있어요. “+ 운동 담기”로 첫 운동을 고르세요'}</div>`:'';
-  const HEAD=`<div class="pn"><div class="row"><div class="h2">${world?(ADM.cur?'라인업 편집 · 월드맵':'내 라인업 · 월드맵'):(ADM.cur?'오늘 수업':'오늘 운동')}</div><span class="mu">${P0.t} 레이더 · ${route.length}/${fMax()}</span></div>`,SEGM=`<div class="fseg" role="group" aria-label="지도 보기"><button class="${world?'':'on'}" data-act="fmode" data-v="mini">미니맵 · 오늘 산책로</button><button class="${world?'on':''}" data-act="fmode" data-v="world">월드맵 · 전체 라인업</button></div>`,SEGP=`<div class="fseg" role="group" aria-label="레이더"><span class="mu" style="align-self:center">레이더</span>${Object.keys(PHS).map(k=>`<button class="${ph===k?'on':''}" data-act="fphase" data-v="${k}">${PHS[k].t}</button>`).join('')}</div>`,FLD=`<div class="fld${ed?' ed':''}" id="fld"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="fam" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#c26a00"/></marker></defs>${rings}${spokes}${arrows}</svg>${labs}${tk}${empty}</div>`,BTN=`<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px">${world?`<button class="btn ghost sm" data-act="fadd" data-lu="1">+ 운동 올리기</button><button class="btn ghost sm" data-act="fedit">${FE?'편집 끝내기':'배치 편집'}</button>`:`<button class="btn sm" data-act="fadd">+ 운동 담기</button>`}${world&&FE&&FSEL&&pos[FSEL]?`<button class="btn ghost sm" data-act="frm" data-id="${FSEL}">라인업에서 제외</button>`:''}</div>`,INP=`<input type="search" id="fq" placeholder="${world?'운동 검색해서 라인업에 올리기':'운동 검색해서 오늘 산책로에 담기'} (예: 벤치)" value="${esc(FQ)}" autocomplete="off" style="width:100%;margin-top:8px;box-sizing:border-box">`,NOTE=`${world?`<div class="mu" style="margin-top:6px">${FE?'룬을 끌어서 위치를 옮겨요. ':''}${FE?'':'룬을 누르면 오늘 산책로에 담기고, 다시 누르면 빠져요.'}</div>`:''}`,WARN=`${lvi?`<div class="wb ${lvi.c}" role="${lvi.c==='red'?'alert':'status'}"><i aria-hidden="true">!</i>${route.length}/${fMax()} · ${lvi.t}</div>`:''}`,RT=`${route.length?`<div class="h2" style="margin-top:10px;font-size:14px">${ADM.cur?'오늘 수업':'오늘 운동'} 산책로 · 눌러서 기록</div><div class="mu" style="margin:2px 0 4px">왼쪽 ⠿ 를 잡고 끌어서 순서를 바꿔요. ✕ 는 운동 삭제예요.</div><div class="frl" id="frl">${route.map((r,q)=>{const dn=r.x.sets.some(s=>s.done),ask=RMC===r.i;return `<div class="frow${ask?' ask':''}" data-q="${q}"><span class="fgh" role="button" aria-label="순서 바꾸기" title="끌어서 순서 바꾸기">⠿</span><button class="ex" style="flex:1;min-width:0" data-act="slot" data-i="${r.i}"><span style="min-width:0"><b class="n">${q+1}</b>${esc(EX[r.x.id].name)}${exEmb(r.x,ADM.cur&&ADM.cur.mid?AD().members.find(z=>z.id===ADM.cur.mid):null,20)}${ADM.cur?'':(l=>l==='on'?'<span class="tqi">⚔ 승급전 진행 중</span>':l==='quest'?'<span class="tqi">⚔ 퀘스트 도착</span>':'')(FTI.lines[lineOf(EX[r.x.id])])}</span><span class="mu">${r.x.sets.filter(s=>s.done).length}/${r.x.sets.length}세트 · ${P[EX[r.x.id].part]||''}</span></button>${ask?`<button class="btn sm" style="background:#d8372a;border-color:#d8372a;white-space:nowrap" data-act="rmx" data-i="${r.i}">기록까지 삭제</button><button class="btn ghost sm" data-act="rmc">취소</button>`:`<button class="fdx" data-act="rmx" data-i="${r.i}" aria-label="${esc(EX[r.x.id].name)} 삭제" title="이 운동 삭제">✕</button>`}</div>`}).join('')}</div>`:''}`;
+  const HEAD=`<div class="pn"><div class="row"><div class="h2">${world?(ADM.cur?'라인업 편집 · 월드맵':'내 라인업 · 월드맵'):(ADM.cur?'오늘 수업':'오늘 운동')}</div><span class="mu">${P0.t} 레이더 · ${route.length}/${fMax()}</span></div>`,SEGM=`<div class="fseg" role="group" aria-label="지도 보기"><button class="${world?'':'on'}" data-act="fmode" data-v="mini">미니맵 · 오늘 산책로</button><button class="${world?'on':''}" data-act="fmode" data-v="world">월드맵 · 전체 라인업</button></div>`,SEGP=`<div class="fseg" role="group" aria-label="레이더"><span class="mu" style="align-self:center">레이더</span>${Object.keys(PHS).map(k=>`<button class="${ph===k?'on':''}" data-act="fphase" data-v="${k}">${PHS[k].t}</button>`).join('')}</div>`,FLD=`<div class="fld${ed?' ed':''}" id="fld"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="fam" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#c26a00"/></marker></defs>${rings}${spokes}${arrows}</svg>${labs}${tk}${empty}</div>`,BTN=`<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px">${world?`<button class="btn ghost sm" data-act="fadd" data-lu="1">+ 운동 올리기</button><button class="btn ghost sm" data-act="recpop">🕘 최근 운동</button><button class="btn ghost sm" data-act="fedit">${FE?'편집 끝내기':'배치 편집'}</button>`:`<button class="btn sm" data-act="fadd">+ 운동 담기</button><button class="btn ghost sm" data-act="recpop">🕘 최근 운동</button>`}${world&&FE&&FSEL&&pos[FSEL]?`<button class="btn ghost sm" data-act="frm" data-id="${FSEL}">라인업에서 제외</button>`:''}</div>`,INP=`<input type="search" id="fq" placeholder="${world?'운동 검색해서 라인업에 올리기':'운동 검색해서 오늘 산책로에 담기'} (예: 벤치)" value="${esc(FQ)}" autocomplete="off" style="width:100%;margin-top:8px;box-sizing:border-box">`,NOTE=`${world?`<div class="mu" style="margin-top:6px">${FE?'룬을 끌어서 위치를 옮겨요. ':''}${FE?'':'룬을 누르면 오늘 산책로에 담기고, 다시 누르면 빠져요.'}</div>`:''}`,WARN=`${lvi?`<div class="wb ${lvi.c}" role="${lvi.c==='red'?'alert':'status'}"><i aria-hidden="true">!</i>${route.length}/${fMax()} · ${lvi.t}</div>`:''}`,RT=`${route.length?`<div class="h2" style="margin-top:10px;font-size:14px">${ADM.cur?'오늘 수업':'오늘 운동'} 산책로 · 눌러서 기록</div><div class="mu" style="margin:2px 0 4px">왼쪽 ⠿ 를 잡고 끌어서 순서를 바꿔요. ✕ 는 운동 삭제예요.</div><div class="frl" id="frl">${route.map((r,q)=>{const dn=r.x.sets.some(s=>s.done),ask=RMC===r.i;return `<div class="frow${ask?' ask':''}" data-q="${q}"><span class="fgh" role="button" aria-label="순서 바꾸기" title="끌어서 순서 바꾸기">⠿</span><button class="ex" style="flex:1;min-width:0" data-act="slot" data-i="${r.i}"><span style="min-width:0"><b class="n">${q+1}</b>${esc(EX[r.x.id].name)}${exEmb(r.x,ADM.cur&&ADM.cur.mid?AD().members.find(z=>z.id===ADM.cur.mid):null,20)}${ADM.cur?'':(l=>l==='on'?'<span class="tqi">⚔ 승급전 진행 중</span>':l==='quest'?'<span class="tqi">⚔ 퀘스트 도착</span>':'')(FTI.lines[lineOf(EX[r.x.id])])}</span><span class="mu">${r.x.sets.filter(s=>s.done).length}/${r.x.sets.length}세트 · ${P[EX[r.x.id].part]||''}</span></button>${ask?`<button class="btn sm" style="background:#d8372a;border-color:#d8372a;white-space:nowrap" data-act="rmx" data-i="${r.i}">기록까지 삭제</button><button class="btn ghost sm" data-act="rmc">취소</button>`:`<button class="fdx" data-act="rmx" data-i="${r.i}" aria-label="${esc(EX[r.x.id].name)} 삭제" title="이 운동 삭제">✕</button>`}</div>`}).join('')}</div>`:''}`;
   if(world)return HEAD+SEGM+SEGP+FLD+BTN+INP+'<div id="fqr">'+fqHTML(d)+'</div>'+NOTE+WARN+RT+'</div>';
   /* 개인/수업 기록: 담기·검색 → 운동 순서 → 최근 운동 → 맨 아래 미니맵 */
-  const sq=FQ.trim()?fqHTML(d):'',rc=FQ.trim()?'':fqHTML(d);
-  return HEAD+BTN+INP+(ADM.cur?lastRev():'')+'<div id="fqr">'+sq+'</div>'+WARN+RT+'<div id="fqrec">'+rc+'</div>'+'</div>'+pastRouteHTML()}
+  return HEAD+BTN+INP+(ADM.cur?lastRev():'')+'<div id="fqr">'+fqHTML(d)+'</div>'+WARN+RT+'</div>'+pastRouteHTML()}
+/* 최근 운동 팝업: 버튼으로 열고, 담아도 열린 채로 여러 개 연속 담기 */
+let RCP=false;
+function recPop(){const o=$('#rcov');if(o)o.remove();if(!RCP)return;const world=FM==='world',h=fqHTML(draft(),1);
+  const d=document.createElement('div');d.id='rcov';d.className='pxov';
+  d.innerHTML=`<div class="pxbk" data-act="rcclose"></div><div class="pxbox" style="--c:var(--ln)"><button class="x" data-act="rcclose" aria-label="닫기" style="position:absolute;right:8px;top:6px">✕</button><b style="font-size:15px">🕘 최근 운동</b><div id="fqrec">${h||'<div class="mu" style="margin:10px 0">아직 최근 운동이 없어요 · “+ 운동 '+(world?'올리기':'담기')+'”로 골라 보세요</div>'}</div><button class="btn" style="margin-top:6px" data-act="rcclose">닫기</button></div>`;
+  document.body.appendChild(d)}
 /* ---- 회원 월드맵 관리창 ---- */
 function fCore(o,ph,sel){
   const P0=PHS[ph],n=P0.ax.length,lu=o.lu[ph];
@@ -1735,12 +1744,13 @@ document.addEventListener('pointerdown',e=>{const h=e.target.closest&&e.target.c
 document.addEventListener('pointermove',e=>{if(!RD)return;const dy=e.clientY-RD.sy;RD.row.style.transform='translateY('+dy+'px)';const my=RD.row.getBoundingClientRect().top+RD.row.offsetHeight/2-dy+dy;let t=RD.from;RD.rows.forEach((r,i)=>{if(r===RD.row)return;const b=r.getBoundingClientRect(),c=b.top+b.height/2;if(i<RD.from&&my<c)t=Math.min(t,i);if(i>RD.from&&my>c)t=Math.max(t,i)});RD.to=t;RD.rows.forEach((r,i)=>r.classList.toggle('tgt',i===t&&t!==RD.from))});
 const rdEnd=()=>{if(!RD)return;const d=RD;RD=null;d.row.style.transform='';d.row.classList.remove('drg');d.rows.forEach(r=>r.classList.remove('tgt'));swSup=Date.now();if(d.to!==d.from){moveRoute(d.from,d.to);persist();render()}};
 document.addEventListener('pointerup',rdEnd);document.addEventListener('pointercancel',rdEnd);
-function fqHTML(d){
+function fqHTML(d,pop){
   const q=FQ.trim();
   const sn=x=>String(x||'').toLowerCase().replace(/[^0-9a-z가-힣]/g,'').replace(/[가-힣]/g,HN1),toks=q.split(/\s+/).map(sn).filter(Boolean),isRec=!toks.length;
   const world=FM==='world',o=luObj();
   const have=new Set(world?o.lu[o.phase].map(t=>t.id):d.slots.filter(Boolean).map(x=>x.id));
   const all=isRec?recentEx(10).map(id=>EX[id]):CAT.list().filter(e=>{const h=sn(e.name+' '+e.al+' '+eqTag(e));return toks.every(t=>h.includes(t))}).sort(freqSort(freqEx(),(a,b)=>eqRank(a)-eqRank(b)||a.sort-b.sort));
+  if(isRec&&!pop)return '';
   const bar=isRec&&!world?rscBar():'';
   if(!all.length)return isRec?(bar?bar+'<div class="mu" style="margin:6px 0">이 회원 기록이 아직 없어요 · 전체 회원 최근을 눌러 보세요</div>':''):'<div class="mu" style="margin:6px 0">검색 결과가 없어요</div>';
   return bar+(isRec?'<div class="mu" style="margin:6px 0 0"><b>최근 운동 10</b> · 눌러서 바로 담기</div>':'')+'<div style="margin:6px 0;border:1px solid var(--ln);border-radius:10px;overflow:hidden">'+all.slice(0,isRec?10:8).map(e=>`<div class="row" style="padding:6px 10px;border-bottom:1px solid var(--ln);gap:8px"><span style="min-width:0"><b style="color:${PC[e.part]}">${P[e.part]}</b> ${esc(e.name)}${eqTag(e)?` <span class="mu">· ${eqTag(e)}</span>`:''}</span>${have.has(e.id)?'<span class="mu" style="white-space:nowrap">'+(world?'추가됨':'담김')+'</span>':`<button class="btn sm" style="white-space:nowrap" data-act="fqadd" data-id="${e.id}">${world?'올리기':'담기'}</button>`}</div>`).join('')+(all.length>8?`<div class="mu" style="padding:6px 10px">외 ${all.length-8}개 · 더 입력해 좁혀 보세요</div>`:'')+'</div>'}
@@ -3277,6 +3287,7 @@ function srvBar(){
   return `<div class="srvbar"><span class="srvchip ${ad?'adm':'mem'}">● ${ad?'관리자 서버':'회원 서버'}</span><div class="bt">${canAdmin()?(ad?`<button class="sb2 mem" data-act="mode" data-v="member">내 운동 기록 ▸ 회원 모드</button>`:`<button class="sb2 adm" data-act="mode" data-v="admin">관리자 화면 ▸</button>`):''}${canAdmin()?'<button class="sb2" style="border-color:#1565c0;color:#1565c0" data-act="diag">진단·점검</button>':''}<button class="sb2" data-act="servers">서버 선택</button></div></div>`;
 }
 function render(){
+  if(RCP&&!(SCR==='app'&&(tab==='today'||(S.mode==='admin'&&ADM.cur)))){RCP=false;recPop()}
   if(SCR!=='app'){renderGate();return}
   document.querySelector('.nav').style.display='';
   const ad=S.mode==='admin';
@@ -3977,7 +3988,9 @@ const A={
     if(!it.done){toast('제출을 취소했어요');return}
     if(!(it.review||'').trim()&&!it.reviewLater){openM(revHTML(it,'1'));setTimeout(()=>{const t=$('#rvt');if(t)t.focus()},60);return}
     afterSub(it)},
-  rsc:d=>{RSC=d.v;const h=fqHTML(draft()),l=$('#fqrec');if(l&&!FQ.trim())l.innerHTML=h;if($('#pl'))pickList()},
+  rsc:d=>{RSC=d.v;if(RCP)recPop();if($('#pl'))pickList()},
+  recpop:()=>{FQ='';RCP=true;recPop()},
+  rcclose:()=>{RCP=false;recPop()},
   lkreq:async d=>{
     try{const r=await sb.rpc('trainer_link_request',{p_member:d.uid});if(r.error){toast(r.error.message||'요청하지 못했어요');return}
       LK.t[d.uid]=r.data||'pending';const nm=d.nm||'회원';let m=AD().members.find(x=>x.uid===d.uid);
@@ -4032,7 +4045,7 @@ const A={
   fqadd:d=>{const id=d.id;
     if(FM==='world'){const o=luObj();fEnsure(o,o.phase,id);persist();toast('라인업에 올렸어요')}
     else{if(!fAddRoute(id))return;persist();toast('오늘 산책로에 담았어요')}
-    FQ='';render();const i=$('#fq');if(i)i.focus()},
+    FQ='';render();if(RCP){recPop();return}const i=$('#fq');if(i)i.focus()},
   mqadd:d=>{const o=luObj();fEnsure(o,ML.ph,d.id);persist();MQ='';const i=$('#mq');if(i)i.focus();mapRe();const j=$('#mq');if(j)j.focus();toast('라인업에 올렸어요')},
   mmap:d=>{MQ='';LUM=d.id;const m=AD().members.find(x=>x.id===d.id);ML={ph:(m&&PHS[m.phase]&&m.phase)||'late',conf:''};FSEL=null;luObj();openM(mapHTML())},
   minfo:d=>{LUM=null;FSEL=null;persist();openM(memInfo(d.id))},
@@ -4111,7 +4124,11 @@ const A={
   mmreadg:d=>{S.memoSeen=S.memoSeen||{};const now=new Date().toISOString();(memoByGrade()[+d.g]||[]).forEach(m=>{S.memoSeen[m.uid]=now});persist();toast('읽음처리했어요');closeM()},
   ty:d=>{const s=draft().slots[RC].sets[+d.i],o={W:'M',M:'F',F:'W'};s.t=o[s.t];if(s.t==='F'&&s.g==null)s.g=+s.r||0;persist();recRe()},
   sdel:d=>{const x=draft().slots[RC];if(x.sets.length<=1){toast('세트는 최소 1개 필요해요');return}x.sets.splice(+d.i,1);persist();recRe()},
-  sadd:d=>{const x=draft().slots[RC],m=x.sets.filter(s=>s.t==='M'),l=m[m.length-1]||x.sets[x.sets.length-1],w=d.t==='W';const at=w?Math.max(0,x.sets.findIndex(s=>s.t==='M')):x.sets.length;const ns={t:d.t,w:w?rnd(l.w/2):l.w,r:l.r,done:false,tmp:(w||l.tmp)?1:0};if(l.lr){ns.lr=1;ns.w2=w?rnd(l.w2/2):l.w2;ns.r2=l.r2}x.sets.splice(at,0,ns);persist();recRe()},
+  sadd:d=>{const x=draft().slots[RC],w=d.t==='W',m=x.sets.filter(s=>s.t!=='W'),l=m[m.length-1]||x.sets[x.sets.length-1]||{w:0,r:0};let at=w?x.sets.findIndex(s=>s.t!=='W'):x.sets.length;if(at<0)at=x.sets.length;
+    /* Hevy식: 지난번 같은 순번 세트(웜업은 웜업끼리, 본세트는 본세트끼리)의 무게·횟수를 회색 임시값으로 채워요 */
+    let ns=null;try{const pv=prevOf(x.id),k=x.sets.filter(s=>w?s.t==='W':s.t!=='W').length,p=pv&&pv.sets.filter(q=>w?q.t==='W':q.t!=='W')[k];if(p&&(+p.w>0||+p.r>0||p.v))ns=setFrom(p,d.t)}catch(e){}
+    if(!ns){ns={t:d.t,w:w?rnd(l.w/2):l.w,r:l.r,done:false,tmp:(w||l.tmp)?1:0};if(l.lr){ns.lr=1;ns.w2=w?rnd(l.w2/2):l.w2;ns.r2=l.r2}if(l.v)ns.v=l.v;if(l.car)ns.car=l.car}
+    x.sets.splice(at,0,ns);persist();recRe()},
   dbm:d=>{const x=draft().slots[RC];x.sets.forEach(s=>{if(d.v==='1'){if(!s.lr){s.lr=1;s.w2=s.w;s.r2=s.r}}else if(s.lr){delete s.lr;delete s.w2;delete s.r2}});persist();recRe()},
   pfill:d=>{const x=draft().slots[RC],i=+d.i,s=x.sets[i],pv=prevOf(x.id),p=pv&&pv.sets[i];if(!p)return;s.w=p.w;if(p.v)s.v=p.v;s.r=p.r;if(p.lr){s.lr=1;s.w2=p.w2;s.r2=p.r2}s.tmp=0;s.tr=0;RF=i;persist();recRe()},
   sck:d=>{const x=draft().slots[RC],i=+d.i,s=x.sets[i];s.done=!s.done;if(s.done)s.at=Date.now();else delete s.at;if(s.done){s.tmp=0;s.tr=0;RT=90;const nx=x.sets.findIndex((q,k)=>k>i&&q.t!=='W'&&!q.done);if(nx>=0)RF=nx;fxCheck(x,i)}else RF=i;persist();recRe()},
@@ -4195,7 +4212,7 @@ document.addEventListener('input',e=>{
   if(t.dataset.pf){OB[t.dataset.pf]=t.value;obRefresh();return}
   if(t.id==='recq'){REC.q=t.value;clearTimeout(REC.tm);REC.tm=setTimeout(async()=>{REC.feed=null;REC.members=null;await recLoad(false);const e=$('#recq');if(e){e.focus();try{e.setSelectionRange(e.value.length,e.value.length)}catch(x){}}},350);return}
   if(t.id==='mpq'){MP.q=t.value;const l=$('#mpl');if(l)l.innerHTML=mpList();return}
-  if(t.id==='fq'){FQ=t.value;const l=$('#fqr'),r=$('#fqrec'),h=fqHTML(draft());if(r){if(FQ.trim()){if(l)l.innerHTML=h;r.innerHTML=''}else{if(l)l.innerHTML='';r.innerHTML=h}}else if(l)l.innerHTML=h;return}
+  if(t.id==='fq'){FQ=t.value;const l=$('#fqr');if(l)l.innerHTML=fqHTML(draft());return}
   if(t.id==='mq'){MQ=t.value;const l=$('#mqr');if(l)l.innerHTML=mqHTML();return}
   if(t.id==='msq'){MSQ=t.value;const l=$('#mlist');if(l)l.innerHTML=memRowsHTML();return}
   if(t.id==='pq'){PK.q=t.value;pickList();return}
